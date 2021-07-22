@@ -227,17 +227,23 @@ def inner(indx, X, y, gpr, rf):
     rf.fit(X_train, y_train)
     rf_best = rf.best_estimator_
 
-    y_test_gpr_pred, sigma = gpr_best.predict(X_test, return_std=True)
-    df['gpr_std'] = sigma
+    # Get GPR predictions
+    y_test_gpr_pred, gpr_std = gpr_best.predict(X_test, return_std=True)
 
+    # Get RF predictions
     y_test_rf_pred = rf_best.predict(X_test)
+    rf_estimators = rf_best.named_steps['model'].estimators_
+    rf_std = [i.predict(X_test) for i in rf_estimators]
+    rf_std = np.std(rf_std, axis=0)
 
     gpr_mets = eval_metrics(y_test, y_test_gpr_pred)
     rf_mets = eval_metrics(y_test, y_test_rf_pred)
 
     df['actual'] = y_test
     df['gpr_pred'] = y_test_gpr_pred
+    df['gpr_std'] = gpr_std
     df['rf_pred'] = y_test_rf_pred
+    df['rf_std'] = rf_std
     df['index'] = te_indx
 
     return df, gpr_mets, rf_mets
@@ -249,12 +255,6 @@ def outer(split, gpr, rf, X, y, save):
     '''
 
     data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
-
-    '''
-    data = []
-    for i in split.split(X):
-        data.append(inner(i, X, y, gpr, rf))
-    '''
 
     df = [pd.DataFrame(i[0]) for i in data]
     gpr_mets = [pd.DataFrame(i[1]) for i in data]
