@@ -1,4 +1,6 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.ensemble import RandomForestRegressor
+
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.gaussian_process.kernels import RBF
@@ -107,7 +109,7 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
     ax.set_xlabel('Actual {} {}'.format(name, units))
 
     fig.tight_layout()
-    fig.savefig(os.path.join(save, 'parity.png'))
+    fig.savefig(os.path.join(save, '{}_parity.png'.format(name)))
     pl.close(fig)
 
     data = {}
@@ -201,7 +203,7 @@ def stats(df, cols):
     return df
 
 
-def inner(indx, X, y, search):
+def inner(indx, X, y, gpr, rf):
     '''
     The inner loop.
     '''
@@ -219,57 +221,84 @@ def inner(indx, X, y, search):
         else:
             df[key] = list(value)
 
-    search.fit(X_train, y_train)
-    model = search.best_estimator_
+    gpr.fit(X_train, y_train)
+    gpr_best = gpr.best_estimator_
 
-    try:
-        y_test_pred, sigma = model.predict(X_test, return_std=True)
-        df['model_err'] = sigma
-    except Exception:
-        y_test_pred = model.predict(X_test)
+    rf.fit(X_train, y_train)
+    rf_best = rf.best_estimator_
 
-    mets = eval_metrics(y_test, y_test_pred)
+    y_test_gpr_pred, sigma = gpr_best.predict(X_test, return_std=True)
+    df['gpr_std'] = sigma
+
+    y_test_rf_pred = rf_best.predict(X_test)
+
+    gpr_mets = eval_metrics(y_test, y_test_gpr_pred)
+    rf_mets = eval_metrics(y_test, y_test_rf_pred)
 
     df['actual'] = y_test
-    df['pred'] = y_test_pred
+    df['gpr_pred'] = y_test_gpr_pred
+    df['rf_pred'] = y_test_rf_pred
     df['index'] = te_indx
 
-    return df, mets
+    return df, gpr_mets, rf_mets
 
 
-def outer(split, search, X, y, save):
+def outer(split, gpr, rf, X, y, save):
     '''
-    Return the true values, predicted values, distances, and model error.
+    Save the true values, predicted values, distances, and model error.
     '''
 
-    data = parallel(inner, list(split.split(X)), X=X, y=y, search=search)
-    dfs = [pd.DataFrame(i[0]) for i in data]
-    mets = [pd.DataFrame(i[1]) for i in data]
+    data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
 
-    df = dfs = pd.concat(dfs)
-    met = mets = pd.concat(mets)
+    '''
+    data = []
+    for i in split.split(X):
+        data.append(inner(i, X, y, gpr, rf))
+    '''
+
+    df = [pd.DataFrame(i[0]) for i in data]
+    gpr_mets = [pd.DataFrame(i[1]) for i in data]
+    rf_mets = [pd.DataFrame(i[2]) for i in data]
+
+    df = pd.concat(df)
+    gpr_mets = pd.concat(gpr_mets)
+    rf_mets = pd.concat(rf_mets)
 
     dfstats = stats(df, 'index')
-    metsstats = stats(mets, 'metric')
+    gpr_metsstats = stats(gpr_mets, 'metric')
+    rf_metsstats = stats(rf_mets, 'metric')
 
     parity(
-           metsstats,
+           gpr_metsstats,
            dfstats.actual_mean,
-           dfstats.pred_mean,
-           dfstats.pred_sem,
+           dfstats.gpr_pred_mean,
+           dfstats.gpr_pred_sem,
+           'GPR',
            '',
+           save
+           )
+
+    parity(
+           rf_metsstats,
+           dfstats.actual_mean,
+           dfstats.rf_pred_mean,
+           dfstats.rf_pred_sem,
+           'RF',
            '',
            save
            )
 
     # Convert series to dataframes
     dfstats = dfstats.reset_index()
-    metsstats = metsstats.reset_index()
+    gpr_metsstats = gpr_metsstats.reset_index()
+    rf_metsstats = rf_metsstats.reset_index()
 
     df.to_csv(os.path.join(save, 'data.csv'), index=False)
     dfstats.to_csv(os.path.join(save, 'data_stats.csv'), index=False)
-    mets.to_csv(os.path.join(save, 'metrics.csv'), index=False)
-    metsstats.to_csv(os.path.join(save, 'metrics_stats.csv'), index=False)
+    gpr_mets.to_csv(os.path.join(save, 'gpr_metrics.csv'), index=False)
+    gpr_metsstats.to_csv(os.path.join(save, 'gpr_metrics_stats.csv'), index=False)
+    rf_mets.to_csv(os.path.join(save, 'rf_metrics.csv'), index=False)
+    rf_metsstats.to_csv(os.path.join(save, 'rf_metrics_stats.csv'), index=False)
 
 
 def main():
@@ -295,15 +324,25 @@ def main():
     # ML setup
     scale = StandardScaler()
     split = RepeatedKFold(n_splits=3, n_repeats=2)
+
+    # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor(kernel=kernel)
     grid = {}
-
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    search = GridSearchCV(pipe, grid)
+    gpr = GridSearchCV(pipe, grid)
+
+    # Random forest regression
+    model = RandomForestRegressor()
+    grid = {}
+    grid['model__n_estimators'] = [100]
+    grid['model__max_features'] = [None]
+    grid['model__max_depth'] = [None]
+    pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
+    rf = GridSearchCV(pipe, grid)
 
     # Nested CV
-    outer(split, search, X, y, save)
+    outer(split, gpr, rf, X, y, save)
 
 
 if __name__ == '__main__':
