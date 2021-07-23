@@ -323,7 +323,7 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    split = RepeatedKFold(n_splits=3, n_repeats=2)
+    split = RepeatedKFold(n_splits=5, n_repeats=2)
 
     # Gaussian process regression
     kernel = RBF()

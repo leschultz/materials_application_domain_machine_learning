@@ -54,8 +54,8 @@ model = SklearnModel(
 
 splitter = SklearnDataSplitter(
                                splitter='RepeatedKFold',
-                               n_repeats=2,
-                               n_splits=2
+                               n_repeats=10,
+                               n_splits=5
                                )
 
 hyperopt = GridSearch(
