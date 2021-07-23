@@ -228,6 +228,22 @@ def inner(indx, X, y, gpr, rf):
     rf_best = rf.best_estimator_
 
     # Get GPR predictions
+
+    '''
+    You need to scale your fucking features
+    '''
+
+
+
+
+
+
+
+
+
+
+
+
     y_test_gpr_pred, gpr_std = gpr_best.predict(X_test, return_std=True)
 
     # Get RF predictions
