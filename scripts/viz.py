@@ -1,48 +1,40 @@
-from mastml.datasets import LocalDatasets
 from matplotlib import pyplot as pl
+from itertools import combinations
+
 import seaborn as sns
+import pandas as pd
 import os
 
-input_path = '../original_data/diffusion.xlsx'
-data_path = '../data'
-out_path = '../mastml_jobs'
-target = 'E_regression'
-error_method = 'stdev_weak_learners'
-extra_columns = ['Material compositions 1', 'Material compositions 2']
-plots = [
-         'Error',
-         'Scatter',
-         'Histogram'
-         ]
-metrics = [
-           'r2_score',
-           'mean_absolute_error',
-           'root_mean_squared_error',
-           'rmse_over_stdev'
-           ]
+from functions import parallel
 
-# Load data
-d = LocalDatasets(
-                  file_path=input_path,
-                  target=target,
-                  extra_columns=extra_columns,
-                  testdata_columns=None,
-                  as_frame=True
-                  )
 
-# Load the data with the load_data() method
-data_dict = d.load_data()
+def plot(cols, df, save):
+    cols = list(cols)
+    data = df[cols]
 
-# Let's assign each data object to its respective name
-X = data_dict['X']
-y = data_dict['y']
-X_extra = data_dict['X_extra']
+    fig = sns.pairplot(data, kind="kde")
+    fig.tight_layout()
+    fig.savefig(os.path.join(save, '_'.join(cols)))
 
-cols = X.columns
 
-X = X[cols[:3]]
+def main():
+    df = '../original_data/Supercon_data_features_selected.xlsx'
+    save = '../analysis/pairplots'
+    drop_cols = [
+                 'name',
+                 'group',
+                 'ln(Tc)',
+                 ]
 
-print(X)
-sns.pairplot(X, kind="kde")
+    # Output directory creation
+    os.makedirs(save, exist_ok=True)
 
-pl.show()
+    # Data handling
+    df = pd.read_excel(df)
+    df.drop(drop_cols, axis=1, inplace=True)
+
+    parallel(plot, list(combinations(df.columns, 2)), df=df, save=save)
+
+
+if __name__ == '__main__':
+    main()
