@@ -321,24 +321,14 @@ def outer(split, gpr, rf, X, y, save):
                         )
 
 
-def main():
-
-    df = '../original_data/Supercon_data_features_selected.xlsx'
-    save = '../analysis'
-    target = 'Tc'
-    drop_cols = [
-                 'name',
-                 'group',
-                 'ln(Tc)',
-                 ]
+def ml(loc, target, drop, save):
 
     # Output directory creation
     os.makedirs(save, exist_ok=True)
 
     # Data handling
-    df = pd.read_excel(df)
-    #df = df.sample(frac=0.1)  # To make testing faster (delete when done)
-    df.drop(drop_cols, axis=1, inplace=True)
+    df = pd.read_excel(loc)
+    df.drop(drop, axis=1, inplace=True)
 
     X = df.loc[:, df.columns != target].values
     y = df[target].values
@@ -365,7 +355,3 @@ def main():
 
     # Nested CV
     outer(split, gpr, rf, X, y, save)
-
-
-if __name__ == '__main__':
-    main()
