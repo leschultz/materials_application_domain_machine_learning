@@ -13,7 +13,7 @@ def binner(data, cols, actual, pred):
         df = data[[i, actual, pred]].copy()
         df['bin'] = pd.cut(
                            df[i],
-                           10,
+                           15,
                            include_lowest=True
                            )
 
@@ -47,10 +47,11 @@ def binner(data, cols, actual, pred):
             moderrs /= std
             xlabel += r'$/\sigma$'
 
+        widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.75
         fig, ax = pl.subplots(2)
 
         ax[0].plot(moderrs, rmses/std, marker='.', linestyle='none')
-        ax[1].bar(moderrs, counts, (max(moderrs)-min(moderrs))/len(moderrs)*0.75)
+        ax[1].bar(moderrs, counts, widths)
 
         ax[0].set_ylabel(r'$RMSE/\sigma$')
 
@@ -75,7 +76,6 @@ def main():
 
     cols = ['rf_std']
     binner(df, cols, 'actual', 'rf_pred')
-    cols = ['gpr_std']
     binner(df, cols, 'actual', 'gpr_pred')
 
 

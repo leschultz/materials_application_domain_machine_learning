@@ -228,28 +228,14 @@ def inner(indx, X, y, gpr, rf):
     rf_best = rf.best_estimator_
 
     # Get GPR predictions
-
-    '''
-    You need to scale your fucking features
-    '''
-
-
-
-
-
-
-
-
-
-
-
-
     y_test_gpr_pred, gpr_std = gpr_best.predict(X_test, return_std=True)
 
     # Get RF predictions
     y_test_rf_pred = rf_best.predict(X_test)
+    rf_scale = rf_best.named_steps['scaler']
+    rf_X = rf_best.named_steps['scaler'].transform(X_test)
     rf_estimators = rf_best.named_steps['model'].estimators_
-    rf_std = [i.predict(X_test) for i in rf_estimators]
+    rf_std = [i.predict(rf_X) for i in rf_estimators]
     rf_std = np.std(rf_std, axis=0)
 
     gpr_mets = eval_metrics(y_test, y_test_gpr_pred)
@@ -309,22 +295,41 @@ def outer(split, gpr, rf, X, y, save):
     gpr_metsstats = gpr_metsstats.reset_index()
     rf_metsstats = rf_metsstats.reset_index()
 
-    df.to_csv(os.path.join(save, 'data.csv'), index=False)
-    dfstats.to_csv(os.path.join(save, 'data_stats.csv'), index=False)
-    gpr_mets.to_csv(os.path.join(save, 'gpr_metrics.csv'), index=False)
-    gpr_metsstats.to_csv(os.path.join(save, 'gpr_metrics_stats.csv'), index=False)
-    rf_mets.to_csv(os.path.join(save, 'rf_metrics.csv'), index=False)
-    rf_metsstats.to_csv(os.path.join(save, 'rf_metrics_stats.csv'), index=False)
+    df.to_csv(
+              os.path.join(save, 'data.csv'),
+              index=False
+              )
+    dfstats.to_csv(
+                   os.path.join(save, 'data_stats.csv'),
+                   index=False
+                   )
+    gpr_mets.to_csv(
+                    os.path.join(save, 'gpr_metrics.csv'),
+                    index=False
+                    )
+    gpr_metsstats.to_csv(
+                         os.path.join(save, 'gpr_metrics_stats.csv'),
+                         index=False
+                         )
+    rf_mets.to_csv(
+                   os.path.join(save, 'rf_metrics.csv'),
+                   index=False
+                   )
+    rf_metsstats.to_csv(
+                        os.path.join(save, 'rf_metrics_stats.csv'),
+                        index=False
+                        )
 
 
 def main():
 
-    df = '../original_data/diffusion.xlsx'
+    df = '../original_data/Supercon_data_features_selected.xlsx'
     save = '../analysis'
-    target = 'E_regression'
+    target = 'Tc'
     drop_cols = [
-                 'Material compositions 1',
-                 'Material compositions 2'
+                 'name',
+                 'group',
+                 'ln(Tc)',
                  ]
 
     # Output directory creation
@@ -332,6 +337,7 @@ def main():
 
     # Data handling
     df = pd.read_excel(df)
+    #df = df.sample(frac=0.1)  # To make testing faster (delete when done)
     df.drop(drop_cols, axis=1, inplace=True)
 
     X = df.loc[:, df.columns != target].values
@@ -339,7 +345,7 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    split = RepeatedKFold(n_splits=5, n_repeats=2)
+    split = RepeatedKFold(n_splits=5, n_repeats=1)
 
     # Gaussian process regression
     kernel = RBF()
