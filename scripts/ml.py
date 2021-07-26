@@ -327,7 +327,11 @@ def ml(loc, target, drop, save):
     os.makedirs(save, exist_ok=True)
 
     # Data handling
-    df = pd.read_excel(loc)
+    if 'xlsx' in loc:
+        df = pd.read_excel(loc)
+    else:
+        df = pd.read_csv(loc)
+
     df.drop(drop, axis=1, inplace=True)
 
     X = df.loc[:, df.columns != target].values
@@ -339,8 +343,10 @@ def ml(loc, target, drop, save):
 
     # Gaussian process regression
     kernel = RBF()
-    model = GaussianProcessRegressor(kernel=kernel)
+    model = GaussianProcessRegressor()
     grid = {}
+    grid['model__alpha'] = [1e-2, 1e-3]
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-1, 1, 2)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid)
 

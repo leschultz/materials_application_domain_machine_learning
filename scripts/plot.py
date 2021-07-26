@@ -17,6 +17,8 @@ def binner(data, cols, actual, pred):
                            include_lowest=True
                            )
 
+        print(df)
+
         # Statistics
         rmses = []
         moderrs = []
@@ -74,7 +76,6 @@ def main():
     cols.remove('gpr_pred')
     cols.remove('rf_pred')
 
-    cols = ['rf_std']
     binner(df, cols, 'actual', 'rf_pred')
     binner(df, cols, 'actual', 'gpr_pred')
 
