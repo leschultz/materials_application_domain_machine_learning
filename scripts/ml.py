@@ -345,8 +345,8 @@ def ml(loc, target, drop, save):
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = [1e-2, 1e-3]
-    grid['model__kernel'] = [RBF(i) for i in np.logspace(-1, 1, 2)]
+    grid['model__alpha'] = np.logspace(-20, 10, 31)
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-10, 10, 21)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid)
 
