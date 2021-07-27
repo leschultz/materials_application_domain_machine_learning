@@ -1,5 +1,6 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -18,6 +19,7 @@ from scipy.spatial.distance import cdist
 
 import pandas as pd
 import numpy as np
+import random
 import json
 import os
 
@@ -256,7 +258,7 @@ def outer(split, gpr, rf, X, y, save):
     Save the true values, predicted values, distances, and model error.
     '''
 
-    data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
+    data = parallel(inner, split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
 
     df = [pd.DataFrame(i[0]) for i in data]
     gpr_mets = [pd.DataFrame(i[1]) for i in data]
@@ -320,6 +322,38 @@ def outer(split, gpr, rf, X, y, save):
                         index=False
                         )
 
+class splitters(object):
+
+    def repkf(*argv, **kargv):
+        return RepeatedKFold(*argv, **kargv)
+
+    def repcf(X, clust, split):
+        clust.fit(X)
+
+        split_num = X.shape[0]//split
+        print(split_num)
+
+        df = pd.DataFrame(X)
+        df = df.sample(frac=1)
+        df['cluster'] = clust.labels_
+        
+        order = list(set(clust.labels_))
+        random.shuffle(order)
+
+        test = []
+        train = []
+        for i in order:
+
+            data = df.loc[df['cluster'] == i]
+
+            for j in data.index:
+                if len(test) < split_num:
+                    test.append(j)
+                else:
+                    train.append(j)
+
+        yield train, test
+
 
 def ml(loc, target, drop, save):
 
@@ -339,16 +373,17 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = RepeatedKFold(n_splits=5, n_repeats=1)
+    split = splitters.repkf(n_splits=5, n_repeats=1)
+    split = splitters.repcf(X, cluster.KMeans(n_jobs=-1, n_clusters=10), 10)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = np.logspace(-20, 10, 31)
-    grid['model__kernel'] = [RBF(i) for i in np.logspace(-10, 10, 21)]
+    grid['model__alpha'] = np.logspace(-20, 10, 3)
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-10, 10, 2)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    gpr = GridSearchCV(pipe, grid)
+    gpr = GridSearchCV(pipe, grid, cv=split)
 
     # Random forest regression
     model = RandomForestRegressor()
@@ -357,7 +392,7 @@ def ml(loc, target, drop, save):
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    rf = GridSearchCV(pipe, grid)
+    rf = GridSearchCV(pipe, grid, cv=split)
 
     # Nested CV
     outer(split, gpr, rf, X, y, save)
