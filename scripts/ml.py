@@ -9,11 +9,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn import metrics
 
-from multiprocessing import Pool
-from functools import partial
-from tqdm import tqdm
-import sys
-
 from matplotlib import pyplot as pl
 from scipy.spatial.distance import cdist
 
@@ -23,20 +18,7 @@ import random
 import json
 import os
 
-
-def parallel(func, x, *args, **kwargs):
-    '''
-    Run some function in parallel.
-    '''
-
-    pool = Pool(os.cpu_count())
-    part_func = partial(func, *args, **kwargs)
-
-    data = list(tqdm(pool.imap(part_func, x), total=len(x), file=sys.stdout))
-    pool.close()
-    pool.join()
-
-    return data
+from functions import parallel
 
 
 def parity(mets, y, y_pred, y_pred_sem, name, units, save):
@@ -258,7 +240,13 @@ def outer(split, gpr, rf, X, y, save):
     Save the true values, predicted values, distances, and model error.
     '''
 
-    data = parallel(inner, split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
+    data = []
+    for i in list(split.split(X)):
+        print(len(i))
+        [print(len(j)) for j in i]
+        inner(i, X, y, gpr, rf)
+
+    #data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
 
     df = [pd.DataFrame(i[0]) for i in data]
     gpr_mets = [pd.DataFrame(i[1]) for i in data]
@@ -322,37 +310,50 @@ def outer(split, gpr, rf, X, y, save):
                         index=False
                         )
 
-class splitters(object):
+class splitters:
 
     def repkf(*argv, **kargv):
         return RepeatedKFold(*argv, **kargv)
+    def repcf(*argv, **kargv):
+        return clust_split(*argv, **kargv)
 
-    def repcf(X, clust, split):
-        clust.fit(X)
 
-        split_num = X.shape[0]//split
-        print(split_num)
+class clust_split:
+
+    def __init__(self, clust, n_clusts):
+        self.train = []
+        self.test = []
+
+        self.clust = clust
+        self.n_clusts = n_clusts
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        return 1
+
+
+    def split(self, X, y=None, groups=None):
+
+        self.clust.fit(X)
+
+        self.split_num = X.shape[0]//self.n_clusts
 
         df = pd.DataFrame(X)
         df = df.sample(frac=1)
-        df['cluster'] = clust.labels_
+        df['cluster'] = self.clust.labels_
         
-        order = list(set(clust.labels_))
+        order = list(set(self.clust.labels_))
         random.shuffle(order)
 
-        test = []
-        train = []
         for i in order:
 
             data = df.loc[df['cluster'] == i]
-
             for j in data.index:
-                if len(test) < split_num:
-                    test.append(j)
+                if len(self.test) < self.split_num:
+                    self.test.append(j)
                 else:
-                    train.append(j)
+                    self.train.append(j)
 
-        yield train, test
+        yield self.train, self.test
 
 
 def ml(loc, target, drop, save):
@@ -373,8 +374,7 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repkf(n_splits=5, n_repeats=1)
-    split = splitters.repcf(X, cluster.KMeans(n_jobs=-1, n_clusters=10), 10)
+    split = splitters.repcf(cluster.KMeans(n_clusters=2), 10)
 
     # Gaussian process regression
     kernel = RBF()
