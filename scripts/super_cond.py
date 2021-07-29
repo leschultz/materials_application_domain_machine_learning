@@ -5,11 +5,11 @@ def main():
 
     df = '../original_data/Supercon_data_features_selected.xlsx'
     save = '../analysis'
-    target = 'Tc'
+    target = 'ln(Tc)'
     drop_cols = [
                  'name',
                  'group',
-                 'ln(Tc)',
+                 'Tc',
                  ]
 
     ml(df, target, drop_cols, save)

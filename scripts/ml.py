@@ -240,13 +240,15 @@ def outer(split, gpr, rf, X, y, save):
     Save the true values, predicted values, distances, and model error.
     '''
 
+    '''
     data = []
     for i in list(split.split(X)):
         print(len(i))
         [print(len(j)) for j in i]
         inner(i, X, y, gpr, rf)
+    '''
 
-    #data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
+    data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
 
     df = [pd.DataFrame(i[0]) for i in data]
     gpr_mets = [pd.DataFrame(i[1]) for i in data]
@@ -375,13 +377,14 @@ def ml(loc, target, drop, save):
     # ML setup
     scale = StandardScaler()
     split = splitters.repcf(cluster.KMeans(n_clusters=2), 10)
+    split = splitters.repkf(n_splits=5, n_repeats=1)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = np.logspace(-20, 10, 3)
-    grid['model__kernel'] = [RBF(i) for i in np.logspace(-10, 10, 2)]
+    grid['model__alpha'] = np.logspace(2, 4, 2)
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-1, 1, 2)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid, cv=split)
 

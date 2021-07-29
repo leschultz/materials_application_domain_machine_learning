@@ -80,8 +80,8 @@ def binner(i, data, actual, pred, std, save):
 
 
 def main():
-    df = '../analysis/data.csv'
-    save = '../analysis/plots'
+    df = '../analysis_rf/data.csv'
+    save = '../analysis_rf/plots'
 
     os.makedirs(save, exist_ok=True)
 
