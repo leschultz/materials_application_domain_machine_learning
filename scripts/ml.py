@@ -205,9 +205,11 @@ def inner(indx, X, y, gpr, rf):
         else:
             df[key] = list(value)
 
+    gpr.cv = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
     gpr.fit(X_train, y_train)
     gpr_best = gpr.best_estimator_
 
+    rf.cv = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
     rf.fit(X_train, y_train)
     rf_best = rf.best_estimator_
 
@@ -243,9 +245,8 @@ def outer(split, gpr, rf, X, y, save):
     '''
     data = []
     for i in list(split.split(X)):
-        print(len(i))
-        [print(len(j)) for j in i]
-        inner(i, X, y, gpr, rf)
+        d = inner(i, X, y, gpr, rf)
+        data.append(d)
     '''
 
     data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
@@ -376,8 +377,8 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.KMeans(n_clusters=2), 10)
-    split = splitters.repkf(n_splits=5, n_repeats=1)
+    split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
+    #split = splitters.repkf(n_splits=5, n_repeats=1)
 
     # Gaussian process regression
     kernel = RBF()
