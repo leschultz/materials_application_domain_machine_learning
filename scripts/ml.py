@@ -377,15 +377,15 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
-    #split = splitters.repkf(n_splits=5, n_repeats=1)
+    #split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
+    split = splitters.repkf(n_splits=5, n_repeats=2)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = np.logspace(2, 4, 2)
-    grid['model__kernel'] = [RBF(i) for i in np.logspace(-1, 1, 2)]
+    grid['model__alpha'] = [1e-1]  # np.logspace(-2, 2, 5)
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-2, 2, 5)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid, cv=split)
 

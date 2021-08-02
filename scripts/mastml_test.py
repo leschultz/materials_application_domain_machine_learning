@@ -6,15 +6,14 @@ from mastml.models import SklearnModel
 import mastml
 import os
 
-input_path = '../original_data/test.csv'
+input_path = '../original_data/test_small.csv'
 data_path = '../data'
 out_path = '../mastml_jobs'
-target = 'ln(Tc)'
+target = 'Tc'
 error_method = 'stdev_weak_learners'
 extra_columns = [
-                 'name',
                  'group',
-                 'Tc',
+                 'ln(Tc)',
                  ]
 plots = [
          'Error',
@@ -53,13 +52,13 @@ preprocessor = SklearnPreprocessor(
 
 model = SklearnModel(
                      model='RandomForestRegressor',
-                     n_jobs=-1
                      )
 
 splitter = SklearnDataSplitter(
                                splitter='RepeatedKFold',
-                               n_repeats=1,
-                               n_splits=5
+                               n_repeats=5,
+                               n_splits=2,
+                               par=True,
                                )
 
 hyperopt = GridSearch(
@@ -80,5 +79,5 @@ splitter.evaluate(
                   X_extra=X_extra,
                   nested_CV=True,
                   error_method=error_method,
-                  verbosity=3
+                  verbosity=0
                   )

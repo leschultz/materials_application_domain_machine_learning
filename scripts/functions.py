@@ -1,4 +1,4 @@
-from multiprocessing import Pool
+from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 from tqdm import tqdm
 
@@ -13,9 +13,11 @@ def parallel(func, x, *args, **kwargs):
 
     pool = Pool(os.cpu_count())
     part_func = partial(func, *args, **kwargs)
-
-    data = list(tqdm(pool.imap(part_func, x), total=len(x), file=sys.stdout))
-    pool.close()
-    pool.join()
+    with Pool(os.cpu_count()) as pool:
+        data = list(tqdm(
+                         pool.imap(part_func, x),
+                         total=len(x),
+                         file=sys.stdout
+                         ))
 
     return data
