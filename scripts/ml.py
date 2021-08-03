@@ -205,11 +205,9 @@ def inner(indx, X, y, gpr, rf):
         else:
             df[key] = list(value)
 
-    gpr.cv = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
     gpr.fit(X_train, y_train)
     gpr_best = gpr.best_estimator_
 
-    rf.cv = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
     rf.fit(X_train, y_train)
     rf_best = rf.best_estimator_
 
@@ -313,26 +311,25 @@ def outer(split, gpr, rf, X, y, save):
                         index=False
                         )
 
+
 class splitters:
 
     def repkf(*argv, **kargv):
         return RepeatedKFold(*argv, **kargv)
+
     def repcf(*argv, **kargv):
         return clust_split(*argv, **kargv)
 
 
 class clust_split:
 
-    def __init__(self, clust, n_clusts):
-        self.train = []
-        self.test = []
-
+    def __init__(self, clust, n_clusts, reps):
         self.clust = clust
         self.n_clusts = n_clusts
+        self.reps = reps
 
     def get_n_splits(self, X=None, y=None, groups=None):
-        return 1
-
+        return self.reps
 
     def split(self, X, y=None, groups=None):
 
@@ -341,22 +338,28 @@ class clust_split:
         self.split_num = X.shape[0]//self.n_clusts
 
         df = pd.DataFrame(X)
-        df = df.sample(frac=1)
         df['cluster'] = self.clust.labels_
-        
+
         order = list(set(self.clust.labels_))
-        random.shuffle(order)
 
-        for i in order:
+        for rep in range(self.reps):
 
-            data = df.loc[df['cluster'] == i]
-            for j in data.index:
-                if len(self.test) < self.split_num:
-                    self.test.append(j)
-                else:
-                    self.train.append(j)
+            # Shuffling
+            random.shuffle(order)  # Cluster order
+            df = df.sample(frac=1)  # Sample order
 
-        yield self.train, self.test
+            test = []
+            train = []
+            for i in order:
+
+                data = df.loc[df['cluster'] == i]
+                for j in data.index:
+                    if len(test) < self.split_num:
+                        test.append(j)
+                    else:
+                        train.append(j)
+
+            yield train, test
 
 
 def ml(loc, target, drop, save):
@@ -377,8 +380,8 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    #split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10)
-    split = splitters.repkf(n_splits=5, n_repeats=2)
+    split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10, 3)
+    # split = splitters.repkf(n_splits=5, n_repeats=2)
 
     # Gaussian process regression
     kernel = RBF()
