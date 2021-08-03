@@ -35,6 +35,8 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         save = The directory to save plot.
     '''
 
+    os.makedirs(save, exist_ok=True)
+
     label = r''
     for i, j, k in zip(
                        mets['metric'],
@@ -102,9 +104,9 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         json.dump(data, handle)
 
 
-def eval_metrics(y, y_pred):
+def eval_reg_metrics(y, y_pred):
     '''
-    Evaluate standard prediction metrics.
+    Evaluate standard regression prediction metrics.
     '''
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
@@ -186,25 +188,25 @@ def inner(indx, X, y, pipes):
     The inner loop from nested cross validation.
     '''
 
-    df = {}
+    dfs = []
     mets = []
 
     tr_indx, te_indx = indx
     X_train, X_test = X[tr_indx], X[te_indx]
     y_train, y_test = y[tr_indx], y[te_indx]
 
-    # Save true values
-    df['actual'] = y_test
-    df['index'] = te_indx
-
     # Calculate distances from test set cases to traning set
+    dists = {}
     for key, value in distance(X_train, X_test).items():
-        if key in df:
-            df[key] += list(value)
+        if key in dists:
+            dists[key] += list(value)
         else:
-            df[key] = list(value)
+            dists[key] = list(value)
 
     for pipe in pipes:
+
+        df = {}
+
         pipe.fit(X_train, y_train)
         pipe_best = pipe.best_estimator_
 
@@ -221,21 +223,28 @@ def inner(indx, X, y, pipes):
             pipe_estimators = pipe_best_model.estimators_
             std = [i.predict(X_trans) for i in pipe_estimators]
             std = np.std(std, axis=0)
-            df[model_type+'_std'] = std
+            df['std'] = std
 
         # If model is gaussian process regressor
         elif model_type == 'GaussianProcessRegressor':
             y_test_pred, std = pipe_best.predict(X_test, return_std=True)
-            df[model_type+'_std'] = std
+            df['std'] = std
 
-        m = pd.DataFrame(eval_metrics(y_test, y_test_pred))
+        m = pd.DataFrame(eval_reg_metrics(y_test, y_test_pred))
         m['model'] = model_type
         m['scaler'] = scaler_type
 
         mets.append(m)
-        df[model_type+'_pred'] = y_test_pred
 
-    df = pd.DataFrame(df)
+        df['model'] = model_type
+        df['scaler'] = scaler_type
+        df['y_test'] = y_test
+        df['y_test_pred'] = y_test_pred
+        df['index'] = te_indx
+        df.update(dists)
+        dfs.append(pd.DataFrame(df))
+
+    dfs = df = pd.concat(dfs)
     mets = pd.concat(mets)
 
     return df, mets
@@ -253,6 +262,9 @@ def outer(split, pipes, X, y, save):
         save = The directory to save values
     '''
 
+    # Output directory creation
+    os.makedirs(save, exist_ok=True)
+
     # Gather split data in parallel
     data = parallel(inner, list(split.split(X)), X=X, y=y, pipes=pipes)
 
@@ -265,7 +277,7 @@ def outer(split, pipes, X, y, save):
     mets = pd.concat(mets)
 
     # Get statistics
-    dfstats = stats(df, 'index')
+    dfstats = stats(df, ['index', 'model', 'scaler'])
     metsstats = stats(mets, ['metric', 'model', 'scaler'])
 
     # Convert to dataframes
@@ -273,18 +285,23 @@ def outer(split, pipes, X, y, save):
     metsstats = metsstats.reset_index()
 
     # Generate parity plots
-    for i in set(metsstats['model']):
+    for m, d in zip(
+                    metsstats.groupby(['scaler', 'model']),
+                    dfstats.groupby(['scaler', 'model'])
+                    ):
 
-        m = metsstats[metsstats['model'].isin([i])]
+        name = '_'.join(d[0])
+        d = d[1]
+        m = m[1]
 
         parity(
                m,
-               dfstats['actual_mean'],
-               dfstats[i+'_pred_mean'],
-               dfstats[i+'_pred_sem'],
-               i,
+               d['y_test_mean'],
+               d['y_test_pred_mean'],
+               d['y_test_pred_sem'],
                '',
-               save
+               '',
+               os.path.join(save, name)
                )
 
     # Save data
@@ -340,6 +357,11 @@ class clust_split:
         '''
 
         self.clust = clust(*args, **kwargs)
+
+        # Make sure it runs in serial
+        if hasattr(self.clust, 'n_jobs'):
+            self.clust.n_jobs = 1
+
         self.reps = reps
 
     def get_n_splits(self, X=None, y=None, groups=None):
@@ -395,9 +417,6 @@ def ml(loc, target, drop, save):
     for gaussian process regression and random forest.
     '''
 
-    # Output directory creation
-    os.makedirs(save, exist_ok=True)
-
     # Data handling
     if 'xlsx' in loc:
         df = pd.read_excel(loc)
@@ -411,14 +430,13 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.KMeans, 3, n_clusters=10, n_jobs=1)
-    split = splitters.repkf(2, 2)
+    split = splitters.repcf(cluster.KMeans, 100, n_clusters=10)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = [1e-1]  # np.logspace(-2, 2, 5)
+    grid['model__alpha'] = np.logspace(-2, 2, 5)
     grid['model__kernel'] = [RBF(i) for i in np.logspace(-2, 2, 5)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid, cv=split)
