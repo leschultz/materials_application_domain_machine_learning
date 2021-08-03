@@ -125,49 +125,42 @@ def eval_metrics(y, y_pred):
     return results
 
 
+def distance_link(X_train, X_test, dist_type):
+    '''
+    Get the distances based on a metric.
+
+    inputs:
+        X_train = The features of the training set.
+        X_test = The features of the test set.
+        dist = The distance to consider.
+
+    ouputs:
+        dists = A dictionary of distances.
+    '''
+
+    # Get the inverse of the covariance matrix from training
+    dists = {}
+    if dist_type == 'mahalanobis':
+        vi = np.linalg.inv(np.cov(X_train.T))
+        dist = cdist(X_train, X_test, dist_type, VI=vi)
+    else:
+        dist = cdist(X_train, X_test, dist_type)
+
+    dists[dist_type+'_mean'] = np.mean(dist, axis=0)
+    dists[dist_type+'_max'] = np.max(dist, axis=0)
+    dists[dist_type+'_min'] = np.min(dist, axis=0)
+
+    return dists
+
+
 def distance(X_train, X_test):
     '''
     Determine the distance from set X_test to set X_train.
     '''
 
     dists = {}
-
-    # Get the inverse of the covariance matrix from training
-    vi = np.linalg.inv(np.cov(X_train.T))
-    mu = np.mean(X_train, axis=0)  # Mean of columns
-
-    dist_maha = cdist([mu], X_test, 'mahalanobis', VI=vi)
-    dist = cdist(X_train, X_test, 'mahalanobis', VI=vi)
-    dist_mean = np.mean(dist, axis=0)
-    dist_max = np.max(dist, axis=0)
-    dist_min = np.min(dist, axis=0)
-
-    dists['mahalanobis'] = dist_maha.ravel()
-    dists['mahalanobis_mean'] = dist_mean
-    dists['mahalanobis_max'] = dist_max
-    dists['mahalanobis_min'] = dist_min
-
-    dist_euclid = cdist([mu], X_test, 'euclidean')
-    dist = cdist(X_train, X_test, 'euclidean')
-    dist_mean = np.mean(dist, axis=0)
-    dist_max = np.max(dist, axis=0)
-    dist_min = np.min(dist, axis=0)
-
-    dists['euclidean'] = dist_maha.ravel()
-    dists['euclidean_mean'] = dist_mean
-    dists['euclidean_max'] = dist_max
-    dists['euclidean_min'] = dist_min
-
-    dist_city = cdist([mu], X_test, 'cityblock')
-    dist = cdist(X_train, X_test, 'cityblock')
-    dist_mean = np.mean(dist, axis=0)
-    dist_max = np.max(dist, axis=0)
-    dist_min = np.min(dist, axis=0)
-
-    dists['cityblock'] = dist_maha.ravel()
-    dists['cityblock_mean'] = dist_mean
-    dists['cityblock_max'] = dist_max
-    dists['cityblock_min'] = dist_min
+    for i in ['mahalanobis', 'euclidean', 'cityblock']:
+        dists.update(distance_link(X_train, X_test, i))
 
     return dists
 
@@ -189,7 +182,7 @@ def stats(df, cols):
 
 def inner(indx, X, y, gpr, rf):
     '''
-    The inner loop.
+    The inner loop from nested cross validation.
     '''
 
     df = {}
@@ -240,27 +233,25 @@ def outer(split, gpr, rf, X, y, save):
     Save the true values, predicted values, distances, and model error.
     '''
 
-    '''
-    data = []
-    for i in list(split.split(X)):
-        d = inner(i, X, y, gpr, rf)
-        data.append(d)
-    '''
-
+    # Gather split data in parallel
     data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
 
+    # Format data correctly
     df = [pd.DataFrame(i[0]) for i in data]
     gpr_mets = [pd.DataFrame(i[1]) for i in data]
     rf_mets = [pd.DataFrame(i[2]) for i in data]
 
+    # Combine frames
     df = pd.concat(df)
     gpr_mets = pd.concat(gpr_mets)
     rf_mets = pd.concat(rf_mets)
 
+    # Get statistics
     dfstats = stats(df, 'index')
     gpr_metsstats = stats(gpr_mets, 'metric')
     rf_metsstats = stats(rf_mets, 'metric')
 
+    # Gather parity plots
     parity(
            gpr_metsstats,
            dfstats.actual_mean,
@@ -286,6 +277,7 @@ def outer(split, gpr, rf, X, y, save):
     gpr_metsstats = gpr_metsstats.reset_index()
     rf_metsstats = rf_metsstats.reset_index()
 
+    # Save data
     df.to_csv(
               os.path.join(save, 'data.csv'),
               index=False
@@ -313,34 +305,67 @@ def outer(split, gpr, rf, X, y, save):
 
 
 class splitters:
+    '''
+    A class used to handle splitter types.
+    '''
 
     def repkf(*argv, **kargv):
+        '''
+        Repeated K-fold cross validation.
+        '''
+
         return RepeatedKFold(*argv, **kargv)
 
     def repcf(*argv, **kargv):
+        '''
+        Custom cluster splitter by fraction.
+        '''
+
         return clust_split(*argv, **kargv)
 
 
 class clust_split:
+    '''
+    Custom slitting class which pre-clusters data and then splits on a fraction.
+    '''
 
-    def __init__(self, clust, n_clusts, reps):
-        self.clust = clust
-        self.n_clusts = n_clusts
+    def __init__(self, clust, reps, *args, **kwargs):
+        '''
+        inputs:
+            clust = The class of cluster from Scikit-learn.
+            reps = The number of times to apply splitting.
+        '''
+
+        self.clust = clust(*args, **kwargs)
         self.reps = reps
 
     def get_n_splits(self, X=None, y=None, groups=None):
+        '''
+        A method to return the number of splits.
+        '''
+
         return self.reps
 
     def split(self, X, y=None, groups=None):
+        '''
+        Cluster data, randomize cluster order, randomize case order, 
+        and then split into train and test sets self.reps number of times.
+
+        inputs:
+            X = The features.
+            
+        outputs:
+            A generator for train and test splits.
+        '''
 
         self.clust.fit(X)
-
-        self.split_num = X.shape[0]//self.n_clusts
 
         df = pd.DataFrame(X)
         df['cluster'] = self.clust.labels_
 
         order = list(set(self.clust.labels_))
+        n_clusts = len(order)
+        split_num = X.shape[0]//n_clusts
 
         for rep in range(self.reps):
 
@@ -354,7 +379,7 @@ class clust_split:
 
                 data = df.loc[df['cluster'] == i]
                 for j in data.index:
-                    if len(test) < self.split_num:
+                    if len(test) < split_num:
                         test.append(j)
                     else:
                         train.append(j)
@@ -363,6 +388,10 @@ class clust_split:
 
 
 def ml(loc, target, drop, save):
+    '''
+    Define the machine learning workflow with nested cross validation
+    for gaussian process regression and random forest.
+    '''
 
     # Output directory creation
     os.makedirs(save, exist_ok=True)
@@ -380,8 +409,7 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.KMeans(n_clusters=2, n_jobs=1), 10, 3)
-    # split = splitters.repkf(n_splits=5, n_repeats=2)
+    split = splitters.repcf(cluster.KMeans, 3, n_clusters=10, n_jobs=1)
 
     # Gaussian process regression
     kernel = RBF()
