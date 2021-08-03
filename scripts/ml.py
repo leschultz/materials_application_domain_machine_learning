@@ -24,32 +24,26 @@ from functions import parallel
 def parity(mets, y, y_pred, y_pred_sem, name, units, save):
     '''
     Make a paroody plot.
+
+    inputs:
+        mets = The regression metrics.
+        y = The true target value.
+        y_pred = The predicted target value.
+        y_pred_sem = The standard error of the mean in predicted values.
+        name = The name of the target value.
+        units = The units of the target value.
+        save = The directory to save plot.
     '''
 
-    rmse_sig = mets['result_mean'][r'$RMSE/\sigma$']
-    rmse_sig_sem = mets['result_sem'][r'$RMSE/\sigma$']
-
-    rmse = mets['result_mean'][r'$RMSE$']
-    rmse_sem = mets['result_sem'][r'$RMSE$']
-
-    mae = mets['result_mean'][r'$MAE$']
-    mae_sem = mets['result_sem'][r'$MAE$']
-
-    r2 = mets['result_mean'][r'$R^{2}$']
-    r2_sem = mets['result_sem'][r'$R^{2}$']
-
-    # Parody plot
-    label = r'$RMSE/\sigma=$'
-    label += r'{:.2} $\pm$ {:.1}'.format(rmse_sig, rmse_sig_sem)
-    label += '\n'
-    label += r'$RMSE=$'
-    label += r'{:.2} $\pm$ {:.1}'.format(rmse, rmse_sem)
-    label += '\n'
-    label += r'$MAE=$'
-    label += r'{:.2} $\pm$ {:.1}'.format(mae, mae_sem)
-    label += '\n'
-    label += r'$R^{2}=$'
-    label += r'{:.2} $\pm$ {:.1}'.format(r2, r2_sem)
+    label = r''
+    for i, j, k in zip(
+                       mets['metric'],
+                       mets['result_mean'],
+                       mets['result_sem']
+                       ):
+        label += r'{}={:.2} $\pm$ {:.1}'.format(i, j, k)
+        label += '\n'
+    label = label[:-2]  # Compensate for last break
 
     fig, ax = pl.subplots()
     ax.errorbar(
@@ -96,6 +90,7 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
     fig.savefig(os.path.join(save, '{}_parity.png'.format(name)))
     pl.close(fig)
 
+    # Repare plot data for saving
     data = {}
     data['y_pred'] = list(y_pred)
     data['y_pred_sem'] = list(y_pred_sem)
@@ -158,8 +153,14 @@ def distance(X_train, X_test):
     Determine the distance from set X_test to set X_train.
     '''
 
+    selected = [
+                'mahalanobis',
+                'euclidean',
+                'cityblock',
+                ]
+
     dists = {}
-    for i in ['mahalanobis', 'euclidean', 'cityblock']:
+    for i in selected:
         dists.update(distance_link(X_train, X_test, i))
 
     return dists
@@ -180,16 +181,21 @@ def stats(df, cols):
     return df
 
 
-def inner(indx, X, y, gpr, rf):
+def inner(indx, X, y, pipes):
     '''
     The inner loop from nested cross validation.
     '''
 
     df = {}
+    mets = []
 
     tr_indx, te_indx = indx
     X_train, X_test = X[tr_indx], X[te_indx]
     y_train, y_test = y[tr_indx], y[te_indx]
+
+    # Save true values
+    df['actual'] = y_test
+    df['index'] = te_indx
 
     # Calculate distances from test set cases to traning set
     for key, value in distance(X_train, X_test).items():
@@ -198,84 +204,88 @@ def inner(indx, X, y, gpr, rf):
         else:
             df[key] = list(value)
 
-    gpr.fit(X_train, y_train)
-    gpr_best = gpr.best_estimator_
+    for pipe in pipes:
+        pipe.fit(X_train, y_train)
+        pipe_best = pipe.best_estimator_
 
-    rf.fit(X_train, y_train)
-    rf_best = rf.best_estimator_
+        pipe_best_model = pipe_best.named_steps['model']
+        pipe_best_scaler = pipe_best.named_steps['scaler']
 
-    # Get GPR predictions
-    y_test_gpr_pred, gpr_std = gpr_best.predict(X_test, return_std=True)
+        model_type = pipe_best_model.__class__.__name__
+        scaler_type = pipe_best_scaler.__class__.__name__
 
-    # Get RF predictions
-    y_test_rf_pred = rf_best.predict(X_test)
-    rf_scale = rf_best.named_steps['scaler']
-    rf_X = rf_best.named_steps['scaler'].transform(X_test)
-    rf_estimators = rf_best.named_steps['model'].estimators_
-    rf_std = [i.predict(rf_X) for i in rf_estimators]
-    rf_std = np.std(rf_std, axis=0)
+        # If model is random forest regressor
+        if model_type == 'RandomForestRegressor':
+            y_test_pred = pipe_best.predict(X_test)
+            X_trans = pipe_best_scaler.transform(X_test)
+            pipe_estimators = pipe_best_model.estimators_
+            std = [i.predict(X_trans) for i in pipe_estimators]
+            std = np.std(std, axis=0)
+            df[model_type+'_std'] = std
 
-    gpr_mets = eval_metrics(y_test, y_test_gpr_pred)
-    rf_mets = eval_metrics(y_test, y_test_rf_pred)
+        # If model is gaussian process regressor
+        elif model_type == 'GaussianProcessRegressor':
+            y_test_pred, std = pipe_best.predict(X_test, return_std=True)
+            df[model_type+'_std'] = std
 
-    df['actual'] = y_test
-    df['gpr_pred'] = y_test_gpr_pred
-    df['gpr_std'] = gpr_std
-    df['rf_pred'] = y_test_rf_pred
-    df['rf_std'] = rf_std
-    df['index'] = te_indx
+        m = pd.DataFrame(eval_metrics(y_test, y_test_pred))
+        m['model'] = model_type
+        m['scaler'] = scaler_type
 
-    return df, gpr_mets, rf_mets
+        mets.append(m)
+        df[model_type+'_pred'] = y_test_pred
+
+    df = pd.DataFrame(df)
+    mets = pd.concat(mets)
+
+    return df, mets
 
 
-def outer(split, gpr, rf, X, y, save):
+def outer(split, pipes, X, y, save):
     '''
     Save the true values, predicted values, distances, and model error.
+
+    inputs:
+        split = The splitting method.
+        pipes = The machine learning pipeline.
+        X = The feature matrix.
+        y = The target values.
+        save = The directory to save values
     '''
 
     # Gather split data in parallel
-    data = parallel(inner, list(split.split(X)), X=X, y=y, gpr=gpr, rf=rf)
+    data = parallel(inner, list(split.split(X)), X=X, y=y, pipes=pipes)
 
     # Format data correctly
     df = [pd.DataFrame(i[0]) for i in data]
-    gpr_mets = [pd.DataFrame(i[1]) for i in data]
-    rf_mets = [pd.DataFrame(i[2]) for i in data]
+    mets = [pd.DataFrame(i[1]) for i in data]
 
     # Combine frames
     df = pd.concat(df)
-    gpr_mets = pd.concat(gpr_mets)
-    rf_mets = pd.concat(rf_mets)
+    mets = pd.concat(mets)
 
     # Get statistics
     dfstats = stats(df, 'index')
-    gpr_metsstats = stats(gpr_mets, 'metric')
-    rf_metsstats = stats(rf_mets, 'metric')
+    metsstats = stats(mets, ['metric', 'model', 'scaler'])
 
-    # Gather parity plots
-    parity(
-           gpr_metsstats,
-           dfstats.actual_mean,
-           dfstats.gpr_pred_mean,
-           dfstats.gpr_pred_sem,
-           'GPR',
-           '',
-           save
-           )
-
-    parity(
-           rf_metsstats,
-           dfstats.actual_mean,
-           dfstats.rf_pred_mean,
-           dfstats.rf_pred_sem,
-           'RF',
-           '',
-           save
-           )
-
-    # Convert series to dataframes
+    # Convert to dataframes
     dfstats = dfstats.reset_index()
-    gpr_metsstats = gpr_metsstats.reset_index()
-    rf_metsstats = rf_metsstats.reset_index()
+    metsstats = metsstats.reset_index()
+
+    # Generate parity plots
+    for i in set(metsstats['model']):
+
+        m = metsstats[metsstats['model'].isin([i])]
+
+        parity(
+               m,
+               dfstats['actual_mean'],
+               dfstats[i+'_pred_mean'],
+               dfstats[i+'_pred_sem'],
+               i,
+               '',
+               save
+               )
 
     # Save data
     df.to_csv(
@@ -286,22 +296,14 @@ def outer(split, gpr, rf, X, y, save):
                    os.path.join(save, 'data_stats.csv'),
                    index=False
                    )
-    gpr_mets.to_csv(
-                    os.path.join(save, 'gpr_metrics.csv'),
-                    index=False
-                    )
-    gpr_metsstats.to_csv(
-                         os.path.join(save, 'gpr_metrics_stats.csv'),
-                         index=False
-                         )
-    rf_mets.to_csv(
-                   os.path.join(save, 'rf_metrics.csv'),
-                   index=False
-                   )
-    rf_metsstats.to_csv(
-                        os.path.join(save, 'rf_metrics_stats.csv'),
-                        index=False
-                        )
+    mets.to_csv(
+                os.path.join(save, 'metrics.csv'),
+                index=False
+                )
+    metsstats.to_csv(
+                     os.path.join(save, 'metrics_stats.csv'),
+                     index=False
+                     )
 
 
 class splitters:
@@ -326,7 +328,8 @@ class splitters:
 
 class clust_split:
     '''
-    Custom slitting class which pre-clusters data and then splits on a fraction.
+    Custom slitting class which pre-clusters data and then splits on a
+    fraction.
     '''
 
     def __init__(self, clust, reps, *args, **kwargs):
@@ -348,12 +351,11 @@ class clust_split:
 
     def split(self, X, y=None, groups=None):
         '''
-        Cluster data, randomize cluster order, randomize case order, 
+        Cluster data, randomize cluster order, randomize case order,
         and then split into train and test sets self.reps number of times.
 
         inputs:
             X = The features.
-            
         outputs:
             A generator for train and test splits.
         '''
@@ -410,6 +412,7 @@ def ml(loc, target, drop, save):
     # ML setup
     scale = StandardScaler()
     split = splitters.repcf(cluster.KMeans, 3, n_clusters=10, n_jobs=1)
+    split = splitters.repkf(2, 2)
 
     # Gaussian process regression
     kernel = RBF()
@@ -429,5 +432,8 @@ def ml(loc, target, drop, save):
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     rf = GridSearchCV(pipe, grid, cv=split)
 
+    # Evaluate each pipeline
+    pipes = [gpr, rf]
+
     # Nested CV
-    outer(split, gpr, rf, X, y, save)
+    outer(split, pipes, X, y, save)
