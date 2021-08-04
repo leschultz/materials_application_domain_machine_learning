@@ -10,6 +10,8 @@ from functions import parallel
 
 def binner(i, data, actual, pred, std, save):
 
+    os.makedirs(save, exist_ok=True)
+
     name = os.path.join(save, pred)
     name += '_{}'.format(i)
 
@@ -81,39 +83,27 @@ def binner(i, data, actual, pred, std, save):
 
 def main():
     df = '../analysis/data.csv'
-    save = '../analysis/plots'
-
-    os.makedirs(save, exist_ok=True)
+    save = '../analysis'
+    groups = ['scaler', 'model', 'split']
+    drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
+    for group, values in df.groupby(groups):
 
-    cols = list(df.columns)
-    cols.remove('index')
-    cols.remove('actual')
-    cols.remove('gpr_pred')
-    cols.remove('rf_pred')
+        values.drop(drop_cols, axis=1, inplace=True)
+        cols = values.columns.tolist()
+        cols.remove('y_test')
+        cols.remove('y_test_pred')
 
-    std = np.std(df['actual'].values)
-
-    parallel(
-             binner,
-             cols,
-             data=df,
-             actual='actual',
-             pred='rf_pred',
-             std=std,
-             save=save
-             )
-
-    parallel(
-             binner,
-             cols,
-             data=df,
-             actual='actual',
-             pred='gpr_pred',
-             std=std,
-             save=save
-             )
+        parallel(
+                 binner,
+                 cols,
+                 data=values,
+                 actual='y_test',
+                 pred='y_test_pred',
+                 std=np.std(values['y_test']),
+                 save=os.path.join(save, '_'.join(group))
+                 )
 
 
 if __name__ == '__main__':
