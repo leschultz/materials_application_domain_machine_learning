@@ -215,6 +215,7 @@ def inner(indx, X, y, pipes):
 
         model_type = pipe_best_model.__class__.__name__
         scaler_type = pipe_best_scaler.__class__.__name__
+        split_type = pipe.cv.__class__.__name__
 
         # If model is random forest regressor
         if model_type == 'RandomForestRegressor':
@@ -231,13 +232,17 @@ def inner(indx, X, y, pipes):
             df['std'] = std
 
         m = pd.DataFrame(eval_reg_metrics(y_test, y_test_pred))
+        m['pipe'] = pipe
         m['model'] = model_type
         m['scaler'] = scaler_type
+        m['split'] = split_type
 
         mets.append(m)
 
+        df['pipe'] = pipe
         df['model'] = model_type
         df['scaler'] = scaler_type
+        df['split'] = split_type
         df['y_test'] = y_test
         df['y_test_pred'] = y_test_pred
         df['index'] = te_indx
@@ -247,7 +252,7 @@ def inner(indx, X, y, pipes):
     dfs = df = pd.concat(dfs)
     mets = pd.concat(mets)
 
-    return df, mets
+    return df, mets, pipes
 
 
 def outer(split, pipes, X, y, save):
@@ -271,14 +276,15 @@ def outer(split, pipes, X, y, save):
     # Format data correctly
     df = [pd.DataFrame(i[0]) for i in data]
     mets = [pd.DataFrame(i[1]) for i in data]
+    pipes = [i[2] for i in data]
 
     # Combine frames
     df = pd.concat(df)
     mets = pd.concat(mets)
 
     # Get statistics
-    dfstats = stats(df, ['index', 'model', 'scaler'])
-    metsstats = stats(mets, ['metric', 'model', 'scaler'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'split'])
+    metsstats = stats(mets, ['metric', 'model', 'scaler', 'split'])
 
     # Convert to dataframes
     dfstats = dfstats.reset_index()
@@ -286,8 +292,8 @@ def outer(split, pipes, X, y, save):
 
     # Generate parity plots
     for m, d in zip(
-                    metsstats.groupby(['scaler', 'model']),
-                    dfstats.groupby(['scaler', 'model'])
+                    metsstats.groupby(['scaler', 'model', 'split']),
+                    dfstats.groupby(['scaler', 'model', 'split'])
                     ):
 
         name = '_'.join(d[0])
@@ -340,10 +346,10 @@ class splitters:
         Custom cluster splitter by fraction.
         '''
 
-        return clust_split(*argv, **kargv)
+        return RepeatedClusterSplit(*argv, **kargv)
 
 
-class clust_split:
+class RepeatedClusterSplit:
     '''
     Custom slitting class which pre-clusters data and then splits on a
     fraction.
@@ -430,14 +436,15 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.KMeans, 100, n_clusters=10)
+    split = splitters.repcf(cluster.OPTICS, 10)
+    split = splitters.repkf(3, 2)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = np.logspace(-2, 2, 5)
-    grid['model__kernel'] = [RBF(i) for i in np.logspace(-2, 2, 5)]
+    grid['model__alpha'] = [1e-1]  # np.logspace(-2, 2, 5)
+    grid['model__kernel'] = [RBF(1)]  # [RBF(i) for i in np.logspace(-2, 2, 5)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid, cv=split)
 
