@@ -355,7 +355,7 @@ class RepeatedClusterSplit:
     fraction.
     '''
 
-    def __init__(self, clust, reps, *args, **kwargs):
+    def __init__(self, clust, n_splits, n_repeats, *args, **kwargs):
         '''
         inputs:
             clust = The class of cluster from Scikit-learn.
@@ -368,14 +368,15 @@ class RepeatedClusterSplit:
         if hasattr(self.clust, 'n_jobs'):
             self.clust.n_jobs = 1
 
-        self.reps = reps
+        self.n_splits = n_splits
+        self.n_repeats = n_repeats
 
     def get_n_splits(self, X=None, y=None, groups=None):
         '''
         A method to return the number of splits.
         '''
 
-        return self.reps
+        return self.n_splits*self.n_repeats
 
     def split(self, X, y=None, groups=None):
         '''
@@ -388,40 +389,41 @@ class RepeatedClusterSplit:
             A generator for train and test splits.
         '''
 
-        self.clust.fit(X)
+        self.clust.fit(X)  # Do clustering
 
+        # Get splits based on cluster labels
         df = pd.DataFrame(X)
         df['cluster'] = self.clust.labels_
+        df = df.sample(frac=1)
+        df.sort_values(by='cluster', inplace=True)
+        s = np.array_split(df, self.n_splits)  # Split
+        range_splits = range(self.n_splits)
 
-        order = list(set(self.clust.labels_))
-        n_clusts = len(order)
-        split_num = X.shape[0]//n_clusts
+        # Do for requested repeats
+        for rep in range(self.n_repeats):
 
-        for rep in range(self.reps):
+            s = [i.sample(frac=1) for i in s]  # Shuffle
+            for i in range_splits:
 
-            # Shuffling
-            random.shuffle(order)  # Cluster order
-            df = df.sample(frac=1)  # Sample order
+                te = s[i]  # Test
+                tr = pd.concat(s[:i]+s[i+1:])  # Train
 
-            test = []
-            train = []
-            for i in order:
+                # Get the indexes
+                train = tr.index.tolist()
+                test = te.index.tolist()
 
-                data = df.loc[df['cluster'] == i]
-                for j in data.index:
-                    if len(test) < split_num:
-                        test.append(j)
-                    else:
-                        train.append(j)
-
-            yield train, test
+                yield train, test
 
 
-def ml(loc, target, drop, save):
+def ml(loc, target, drop, save, seed=1):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
     '''
+
+    # Setting seed for reproducibility
+    np.random.seed(seed)
+    np.random.RandomState(seed)
 
     # Data handling
     if 'xlsx' in loc:
@@ -436,15 +438,15 @@ def ml(loc, target, drop, save):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.OPTICS, 10)
-    split = splitters.repkf(3, 2)
+    split = splitters.repcf(cluster.OPTICS, 5, 10)
+    # split = splitters.repkf(5, 10)
 
     # Gaussian process regression
     kernel = RBF()
     model = GaussianProcessRegressor()
     grid = {}
-    grid['model__alpha'] = [1e-1]  # np.logspace(-2, 2, 5)
-    grid['model__kernel'] = [RBF(1)]  # [RBF(i) for i in np.logspace(-2, 2, 5)]
+    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    grid['model__kernel'] = [RBF(i) for i in np.logspace(-2, 2, 5)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
     gpr = GridSearchCV(pipe, grid, cv=split)
 

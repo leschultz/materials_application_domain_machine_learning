@@ -3,6 +3,7 @@ from ml import ml
 
 def main():
 
+    seed = 645221257
     df = '../original_data/test.csv'
     save = '../analysis'
     target = 'Tc'
@@ -12,7 +13,7 @@ def main():
                  'ln(Tc)',
                  ]
 
-    ml(df, target, drop_cols, save)
+    ml(df, target, drop_cols, save, seed)
 
 
 if __name__ == '__main__':
