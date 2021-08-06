@@ -67,8 +67,11 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
             )
 
     limits = []
-    limits.append(min(min(y), min(y_pred))-0.25)
-    limits.append(max(max(y), max(y_pred))+0.25)
+    min_range = min(min(y), min(y_pred))
+    max_range = max(max(y), max(y_pred))
+    span = max_range-min_range
+    limits.append(min_range-0.1*span)
+    limits.append(max_range+0.1*span)
 
     # Line of best fit
     ax.plot(
