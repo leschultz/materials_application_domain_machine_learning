@@ -397,8 +397,14 @@ class RepeatedClusterSplit:
         # Get splits based on cluster labels
         df = pd.DataFrame(X)
         df['cluster'] = self.clust.labels_
+        cluster_order = list(set(self.clust.labels_))
+        random.shuffle(cluster_order)
         df = df.sample(frac=1)
-        df.sort_values(by='cluster', inplace=True)
+
+        # Randomize cluster order
+        df = [df.loc[df['cluster'] == i] for i in cluster_order]
+        df = pd.concat(df)
+
         s = np.array_split(df, self.n_splits)  # Split
         range_splits = range(self.n_splits)
 
@@ -427,6 +433,7 @@ def ml(loc, target, drop, save, seed=1):
     # Setting seed for reproducibility
     np.random.seed(seed)
     np.random.RandomState(seed)
+    random.seed(seed)
 
     # Data handling
     if 'xlsx' in loc:
@@ -443,7 +450,9 @@ def ml(loc, target, drop, save, seed=1):
     scale = StandardScaler()
     inner_split = splitters.repcf(cluster.OPTICS, 5, 2)
     outer_split = splitters.repcf(cluster.OPTICS, 5, 10)
-    # split = splitters.repkf(5, 10)
+
+    # inner_split = splitters.repkf(5, 2)
+    # outer_split = splitters.repkf(5, 10)
 
     # Gaussian process regression
     kernel = RBF()
