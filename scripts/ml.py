@@ -92,7 +92,7 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
     ax.set_xlabel('Actual {} {}'.format(name, units))
 
     fig.tight_layout()
-    fig.savefig(os.path.join(save, '{}_parity.png'.format(name)))
+    fig.savefig(os.path.join(save, 'parity.png'.format(name)))
     pl.close(fig)
 
     # Repare plot data for saving
@@ -441,7 +441,8 @@ def ml(loc, target, drop, save, seed=1):
 
     # ML setup
     scale = StandardScaler()
-    split = splitters.repcf(cluster.OPTICS, 5, 10)
+    inner_split = splitters.repcf(cluster.OPTICS, 5, 2)
+    outer_split = splitters.repcf(cluster.OPTICS, 5, 10)
     # split = splitters.repkf(5, 10)
 
     # Gaussian process regression
@@ -451,7 +452,7 @@ def ml(loc, target, drop, save, seed=1):
     grid['model__alpha'] = np.logspace(-2, 2, 5)
     grid['model__kernel'] = [RBF(i) for i in np.logspace(-2, 2, 5)]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    gpr = GridSearchCV(pipe, grid, cv=split)
+    gpr = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Random forest regression
     model = RandomForestRegressor()
@@ -460,10 +461,10 @@ def ml(loc, target, drop, save, seed=1):
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    rf = GridSearchCV(pipe, grid, cv=split)
+    rf = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Evaluate each pipeline
     pipes = [gpr, rf]
 
     # Nested CV
-    outer(split, pipes, X, y, save)
+    outer(outer_split, pipes, X, y, save)
