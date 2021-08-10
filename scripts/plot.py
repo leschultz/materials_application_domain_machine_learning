@@ -8,7 +8,7 @@ import os
 from functions import parallel
 
 
-def binner(i, data, actual, pred, std, save):
+def binner(i, data, actual, pred, std, save, bins=None, samples=None):
 
     os.makedirs(save, exist_ok=True)
 
@@ -16,11 +16,22 @@ def binner(i, data, actual, pred, std, save):
     name += '_{}'.format(i)
 
     df = data[[i, actual, pred]].copy()
-    df['bin'] = pd.cut(
-                       df[i],
-                       15,
-                       include_lowest=True
-                       )
+
+    if bins:
+        df['bin'] = pd.cut(
+                           df[i],
+                           bins,
+                           include_lowest=True
+                           )
+    elif samples:
+        df.sort_values(by=i, inplace=True)
+        df = np.array_split(df, samples)
+        count = 0
+        for j in df:
+            j['bin'] = count
+            count += 1
+
+        df = pd.concat(df)
 
     # Statistics
     rmses = []
@@ -102,7 +113,8 @@ def main():
                  actual='y_test',
                  pred='y_test_pred',
                  std=np.std(values['y_test']),
-                 save=os.path.join(save, '_'.join(group))
+                 save=os.path.join(save, '_'.join(group)),
+                 samples=15
                  )
 
 
