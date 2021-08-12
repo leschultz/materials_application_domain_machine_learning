@@ -58,12 +58,12 @@ def binner(i, data, actual, pred, std, save, bins=None, samples=None):
     moderrs = np.array(moderrs)
     rmses = np.array(rmses)
 
-    xlabel = 'Average {}'.format(i)
     if 'std' in i:
         moderrs /= std
-        xlabel += r'$/\sigma$'
-
-    xlabel = xlabel.replace('_', ' ')
+        xlabel = r'Average $\dfrac{\sigma_{model}}{\sigma_{true}}$'
+    else:
+        xlabel = 'Average {}'.format(i)
+        xlabel = xlabel.replace('_', ' ')
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)
@@ -114,7 +114,7 @@ def main():
                  pred='y_test_pred',
                  std=np.std(values['y_test']),
                  save=os.path.join(save, '_'.join(group)),
-                 samples=15
+                 bins=15
                  )
 
 
