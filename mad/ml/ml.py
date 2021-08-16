@@ -18,7 +18,7 @@ import random
 import json
 import os
 
-from functions import parallel
+from ap.functions import parallel
 
 
 def parity(mets, y, y_pred, y_pred_sem, name, units, save):
