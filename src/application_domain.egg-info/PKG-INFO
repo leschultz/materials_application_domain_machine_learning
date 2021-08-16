@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: application-domain
+Version: 0.0.1
+Summary: Application domain of machine learning in materials science.
+Home-page: https://github.com/leschultz/application_domain.git
+Author: Lane E. Schultz
+Author-email: laneenriqueschultz@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+License-File: LICENSE
+
+UNKNOWN
+
