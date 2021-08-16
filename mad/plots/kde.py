@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 import os
 
-from ad.functions import parallel
+from mad.functions import parallel
 
 
 def plot(cols, df, save):

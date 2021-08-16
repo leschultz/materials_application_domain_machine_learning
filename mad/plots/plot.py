@@ -5,7 +5,7 @@ import numpy as np
 import json
 import os
 
-from ad.functions import parallel
+from mad.functions import parallel
 
 
 def binner(i, data, actual, pred, std, save, bins=None, samples=None):

@@ -12,8 +12,8 @@ classifiers = ['Programming Language :: Python :: 3',
                'License :: OSI Approved :: MIT License',
                'Operating System :: OS Independent',
                ]
-package_dir = {'': 'src'}
-packages=setuptools.find_packages(where='src')
+package_dir = {'': 'mad'}
+packages=setuptools.find_packages(where='mad')
 
 # Passing variables to setup
 setuptools.setup(
