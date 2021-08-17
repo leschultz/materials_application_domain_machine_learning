@@ -15,7 +15,7 @@ def load(df, target, drop_cols=None):
     if '.csv' == df[-4:]:
         df = pd.read_csv(path)
     else:
-        df = pd.read_excel(path)
+        df = pd.read_excel(path, engine='openpyxl')
 
     if drop_cols:
         df.drop(drop_cols, axis=1, inplace=True)

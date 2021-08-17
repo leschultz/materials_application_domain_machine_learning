@@ -24,7 +24,6 @@ install_requires = [
                     'tqdm',
                     'pytest',
                     'openpyxl',
-                    'xlrd=1.2.0',
                     ]
 long_description=open('README.md').read()
 
