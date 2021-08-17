@@ -12,7 +12,6 @@ classifiers = ['Programming Language :: Python :: 3',
                'License :: OSI Approved :: MIT License',
                'Operating System :: OS Independent',
                ]
-package_dir = {'': 'mad'}
 packages=setuptools.find_packages()
 install_requires = [
                     'matplotlib',
@@ -24,6 +23,7 @@ install_requires = [
                     'pathos',
                     'pytest',
                     ]
+long_description=open('README.md').read()
 
 # Passing variables to setup
 setuptools.setup(
@@ -33,9 +33,9 @@ setuptools.setup(
                  url=url,
                  author=author,
                  author_email=author_email,
-                 package_dir=package_dir,
                  packages=packages,
                  python_requires=python_requires,
                  classifiers=classifiers,
                  install_requires=install_requires,
+                 long_description=long_description,
                  )
