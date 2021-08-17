@@ -14,6 +14,16 @@ classifiers = ['Programming Language :: Python :: 3',
                ]
 package_dir = {'': 'mad'}
 packages=setuptools.find_packages(where='mad')
+install_requires = [
+                    'matplotlib',
+                    'scipy',
+                    'scikit-learn',
+                    'pandas',
+                    'numpy',
+                    'seaborn',
+                    'pathos',
+                    'pytest',
+                    ]
 
 # Passing variables to setup
 setuptools.setup(
@@ -27,4 +37,5 @@ setuptools.setup(
                  packages=packages,
                  python_requires=python_requires,
                  classifiers=classifiers,
+                 isntall_requires=install_requires,
                  )
