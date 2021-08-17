@@ -21,6 +21,7 @@ install_requires = [
                     'numpy',
                     'seaborn',
                     'pathos',
+                    'tqdm',
                     'pytest',
                     ]
 long_description=open('README.md').read()
