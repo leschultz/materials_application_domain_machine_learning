@@ -7,10 +7,9 @@ from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+from mad.ml import splitters, predict, aggregate
 from mad.datasets import load_data
 from mad.plots import kde, bins
-from mad.ml import predict
-from mad.ml import splitters
 
 import numpy as np
 import unittest
@@ -36,7 +35,7 @@ class ml_test(unittest.TestCase):
         # ML setup
         scale = StandardScaler()
         inner_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
-        outer_split = splitters.split.repcf(cluster.OPTICS, 5, 1)
+        outer_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
 
         # inner_split = splitters.repkf(5, 2)
         # outer_split = splitters.repkf(5, 10)
@@ -64,11 +63,13 @@ class ml_test(unittest.TestCase):
 
         # Evaluate
         predict.run(X, y, outer_split, pipes, save, 14987)
-        bins.make_plots(save, points, sampling)
-        kde.make_plots(df, save)
+        aggregate.folds(save)
+
+        #bins.make_plots(save, points, sampling)
+        #kde.make_plots(df, save)
 
         # Clean directory
-        shutil.rmtree(save)
+        #shutil.rmtree(save)
 
 
 if __name__ == '__main__':
