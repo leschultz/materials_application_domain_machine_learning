@@ -17,24 +17,9 @@ def plot(cols, df, save):
     fig.savefig(os.path.join(save, '_'.join(cols)))
 
 
-def main():
-    df = '../original_data/Supercon_data_features_selected.xlsx'
-    save = '../analysis/pairplots'
-    drop_cols = [
-                 'name',
-                 'group',
-                 'ln(Tc)',
-                 ]
+def make_plots(df, save):
 
     # Output directory creation
+    save = os.path.join(save, 'kde')
     os.makedirs(save, exist_ok=True)
-
-    # Data handling
-    df = pd.read_excel(df)
-    df.drop(drop_cols, axis=1, inplace=True)
-
     parallel(plot, list(combinations(df.columns, 2)), df=df, save=save)
-
-
-if __name__ == '__main__':
-    main()

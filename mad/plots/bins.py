@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def binner(i, data, actual, pred, std, save, bins=None, samples=None):
+def binner(i, data, actual, pred, std, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
@@ -17,15 +17,16 @@ def binner(i, data, actual, pred, std, save, bins=None, samples=None):
 
     df = data[[i, actual, pred]].copy()
 
-    if bins:
+    if sampling == 'even':
         df['bin'] = pd.cut(
                            df[i],
-                           bins,
+                           points,
                            include_lowest=True
                            )
-    elif samples:
+
+    elif samling == 'equal':
         df.sort_values(by=i, inplace=True)
-        df = np.array_split(df, samples)
+        df = np.array_split(df, points)
         count = 0
         for j in df:
             j['bin'] = count
@@ -92,9 +93,9 @@ def binner(i, data, actual, pred, std, save, bins=None, samples=None):
         json.dump(data, handle)
 
 
-def main():
-    df = '../analysis/data.csv'
-    save = '../analysis'
+def make_plots(save, points, sampling):
+
+    df = os.path.join(save, 'data.csv')
     groups = ['scaler', 'model', 'split']
     drop_cols = groups+['pipe', 'index']
 
@@ -114,9 +115,6 @@ def main():
                  pred='y_test_pred',
                  std=np.std(values['y_test']),
                  save=os.path.join(save, '_'.join(group)),
-                 bins=15
+                 points=points,
+                 sampling=sampling
                  )
-
-
-if __name__ == '__main__':
-    main()

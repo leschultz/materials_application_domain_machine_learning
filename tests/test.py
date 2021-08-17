@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data
+from mad.plots import kde, bins
 from mad.ml import predict
 from mad.ml import splitters
 
@@ -18,10 +19,26 @@ import shutil
 
 class ml_test(unittest.TestCase):
 
+    def test_loads(self):
+        '''
+        Test data import
+        '''
+
+        load_data.friedman()
+        load_data.diffusion()
+        load_data.super_cond()
+
     def test_ml(self):
+        '''
+        Test ml workflow
+        '''
+
         save = './test'
+        points = 15
+        sampling = 'even'
 
         data = load_data.diffusion()
+        df = data['frame']
         X = data['data']
         y = data['target']
 
@@ -56,6 +73,8 @@ class ml_test(unittest.TestCase):
 
         # Evaluate
         predict.run(X, y, outer_split, pipes, save, 14987)
+        bins.make_plots(save, points, sampling)
+        kde.make_plots(df, save)
 
         # Clean directory
         shutil.rmtree(save)

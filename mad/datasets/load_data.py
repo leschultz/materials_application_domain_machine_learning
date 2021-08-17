@@ -32,6 +32,7 @@ def load(df, target, drop_cols=None):
     data['feature_names'] = X_names
     data['target_name'] = target
     data['data_filename'] = path
+    data['frame'] = df
 
     return data
 
