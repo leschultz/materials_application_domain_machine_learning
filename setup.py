@@ -13,7 +13,7 @@ classifiers = ['Programming Language :: Python :: 3',
                'Operating System :: OS Independent',
                ]
 package_dir = {'': 'mad'}
-packages=setuptools.find_packages(where='mad')
+packages=setuptools.find_packages()
 install_requires = [
                     'matplotlib',
                     'scipy',
