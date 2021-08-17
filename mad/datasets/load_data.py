@@ -5,7 +5,7 @@ import os
 data_path = pkg_resources.resource_filename('mad', 'datasets/data')
 
 
-def load(df, target):
+def load(df, target, drop_cols=None):
     '''
     Returns data for regression task
     '''
@@ -16,6 +16,9 @@ def load(df, target):
         df = pd.read_csv(path)
     else:
         df = pd.read_excel(path)
+
+    if drop_cols:
+        df.drop(drop_cols, axis=1, inplace=True)
 
     # Prepare data
     X = df.drop(target, axis=1)
@@ -43,3 +46,37 @@ def friedman():
     target = 'y'
 
     return load(df, target)
+
+
+def super_cond():
+    '''
+    Load the super conductor data set.
+    '''
+
+    # Dataset information
+    df = 'Supercon_data_features_selected.xlsx'
+    target = 'Tc'
+    drop_cols = [
+                 'name',
+                 'group',
+                 'ln(Tc)',
+                 ]
+
+    return load(df, target, drop_cols)
+
+
+def diffusion():
+    '''
+    Load the diffusion data set.
+    '''
+
+    # Dataset information
+    df = 'Diffusion_Data_haijinlogfeaturesnobarrier_alldata.xlsx'
+    target = 'E_regression'
+    drop_cols = [
+                 'Material compositions 1',
+                 'Material compositions 2',
+                 'E_regression_shift',
+                 ]
+
+    return load(df, target, drop_cols)
