@@ -37,5 +37,5 @@ setuptools.setup(
                  packages=packages,
                  python_requires=python_requires,
                  classifiers=classifiers,
-                 isntall_requires=install_requires,
+                 install_requires=install_requires,
                  )
