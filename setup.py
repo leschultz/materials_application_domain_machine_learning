@@ -1,7 +1,7 @@
 import setuptools
 
 # Package information
-name = 'Materials Application Domain (MAD)'
+name = 'materials_application_domain'
 version = '0.0.1'
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/application_domain.git'
