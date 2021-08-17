@@ -1,12 +1,3 @@
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn import cluster
-
-from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import GridSearchCV
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 from sklearn import metrics
 
 from matplotlib import pyplot as pl
@@ -18,7 +9,7 @@ import random
 import json
 import os
 
-from ap.functions import parallel
+from mad.functions import parallel
 
 
 def parity(mets, y, y_pred, y_pred_sem, name, units, save):
@@ -332,99 +323,7 @@ def outer(split, pipes, X, y, save):
                      )
 
 
-class splitters:
-    '''
-    A class used to handle splitter types.
-    '''
-
-    def repkf(*argv, **kargv):
-        '''
-        Repeated K-fold cross validation.
-        '''
-
-        return RepeatedKFold(*argv, **kargv)
-
-    def repcf(*argv, **kargv):
-        '''
-        Custom cluster splitter by fraction.
-        '''
-
-        return RepeatedClusterSplit(*argv, **kargv)
-
-
-class RepeatedClusterSplit:
-    '''
-    Custom slitting class which pre-clusters data and then splits on a
-    fraction.
-    '''
-
-    def __init__(self, clust, n_splits, n_repeats, *args, **kwargs):
-        '''
-        inputs:
-            clust = The class of cluster from Scikit-learn.
-            reps = The number of times to apply splitting.
-        '''
-
-        self.clust = clust(*args, **kwargs)
-
-        # Make sure it runs in serial
-        if hasattr(self.clust, 'n_jobs'):
-            self.clust.n_jobs = 1
-
-        self.n_splits = n_splits
-        self.n_repeats = n_repeats
-
-    def get_n_splits(self, X=None, y=None, groups=None):
-        '''
-        A method to return the number of splits.
-        '''
-
-        return self.n_splits*self.n_repeats
-
-    def split(self, X, y=None, groups=None):
-        '''
-        Cluster data, randomize cluster order, randomize case order,
-        and then split into train and test sets self.reps number of times.
-
-        inputs:
-            X = The features.
-        outputs:
-            A generator for train and test splits.
-        '''
-
-        self.clust.fit(X)  # Do clustering
-
-        # Get splits based on cluster labels
-        df = pd.DataFrame(X)
-        df['cluster'] = self.clust.labels_
-        cluster_order = list(set(self.clust.labels_))
-        random.shuffle(cluster_order)
-        df = df.sample(frac=1)
-
-        # Randomize cluster order
-        df = [df.loc[df['cluster'] == i] for i in cluster_order]
-        df = pd.concat(df)
-
-        s = np.array_split(df, self.n_splits)  # Split
-        range_splits = range(self.n_splits)
-
-        # Do for requested repeats
-        for rep in range(self.n_repeats):
-
-            s = [i.sample(frac=1) for i in s]  # Shuffle
-            for i in range_splits:
-
-                te = s[i]  # Test
-                tr = pd.concat(s[:i]+s[i+1:])  # Train
-
-                # Get the indexes
-                train = tr.index.tolist()
-                test = te.index.tolist()
-
-                yield train, test
-
-
-def ml(loc, target, drop, save, seed=1):
+def run(X, y, split, pipes, save, seed=1):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
@@ -435,45 +334,5 @@ def ml(loc, target, drop, save, seed=1):
     np.random.RandomState(seed)
     random.seed(seed)
 
-    # Data handling
-    if 'xlsx' in loc:
-        df = pd.read_excel(loc)
-    else:
-        df = pd.read_csv(loc)
-
-    df.drop(drop, axis=1, inplace=True)
-
-    X = df.loc[:, df.columns != target].values
-    y = df[target].values
-
-    # ML setup
-    scale = StandardScaler()
-    inner_split = splitters.repcf(cluster.OPTICS, 5, 2)
-    outer_split = splitters.repcf(cluster.OPTICS, 5, 10)
-
-    # inner_split = splitters.repkf(5, 2)
-    # outer_split = splitters.repkf(5, 10)
-
-    # Gaussian process regression
-    kernel = RBF()
-    model = GaussianProcessRegressor()
-    grid = {}
-    grid['model__alpha'] = np.logspace(-2, 2, 5)
-    grid['model__kernel'] = [RBF()]
-    pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    gpr = GridSearchCV(pipe, grid, cv=inner_split)
-
-    # Random forest regression
-    model = RandomForestRegressor()
-    grid = {}
-    grid['model__n_estimators'] = [100]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
-    pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
-    rf = GridSearchCV(pipe, grid, cv=inner_split)
-
-    # Evaluate each pipeline
-    pipes = [gpr, rf]
-
     # Nested CV
-    outer(outer_split, pipes, X, y, save)
+    outer(split, pipes, X, y, save)
