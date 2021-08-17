@@ -1,7 +1,7 @@
 import setuptools
 
 # Package information
-name = 'materials_application_domain'
+name = 'mad'
 version = '0.0.1'
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/application_domain.git'
@@ -13,8 +13,7 @@ classifiers = ['Programming Language :: Python :: 3',
                'Operating System :: OS Independent',
                ]
 package_dir = {'': 'mad'}
-packages=setuptools.find_packages(where='./mad')
-print(packages)
+packages=setuptools.find_packages(where='mad')
 install_requires = [
                     'matplotlib',
                     'scipy',
