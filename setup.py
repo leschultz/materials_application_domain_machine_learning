@@ -23,6 +23,7 @@ install_requires = [
                     'pathos',
                     'tqdm',
                     'pytest',
+                    'openpyxl',
                     ]
 long_description=open('README.md').read()
 
