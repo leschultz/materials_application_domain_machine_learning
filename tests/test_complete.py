@@ -28,7 +28,7 @@ class ml_test(unittest.TestCase):
         points = 15
         sampling = 'even'
 
-        data = load_data.diffusion()
+        data = load_data.test()
         df = data['frame']
         X = data['data']
         y = data['target']

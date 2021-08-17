@@ -12,6 +12,7 @@ class ml_test(unittest.TestCase):
         load_data.friedman()
         load_data.diffusion()
         load_data.super_cond()
+        load_data.test()
 
 
 if __name__ == '__main__':

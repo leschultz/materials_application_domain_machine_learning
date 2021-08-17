@@ -81,3 +81,15 @@ def diffusion():
                  ]
 
     return load(df, target, drop_cols)
+
+
+def test():
+    '''
+    Load the test dataset.
+    '''
+
+    # Dataset information
+    df = 'test_data.csv'
+    target = 'y'
+
+    return load(df, target)
