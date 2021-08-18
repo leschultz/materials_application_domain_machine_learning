@@ -7,9 +7,9 @@ from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+from mad.plots import kde, bins, parity, calibration
 from mad.ml import splitters, predict, aggregate
 from mad.datasets import load_data
-from mad.plots import kde, bins, parity
 
 import numpy as np
 import unittest
@@ -63,7 +63,8 @@ class ml_test(unittest.TestCase):
         aggregate.folds(save)
         parity.make_plots(save)
 
-        bins.make_plots(save, points, sampling)
+        #bins.make_plots(save, points, sampling)
+        calibration.make_plots(save, points, sampling)
         kde.make_plots(df, save)
 
         # Clean directory

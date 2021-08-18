@@ -1,4 +1,5 @@
 from matplotlib import pyplot as pl
+from scipy.optimize import minimize
 from sklearn import metrics
 import pandas as pd
 import numpy as np
@@ -8,12 +9,39 @@ import os
 from mad.functions import parallel
 
 
+def llh(std, res, x):
+    '''
+    Compute the log likelihood for a case.
+    '''
+
+    total = np.log(2*np.pi)
+    total += np.log((x[0]*std+x[1])**2)
+    total += (res**2)/((x[0]*std+x[1])**2)
+
+    return total
+
+
+def set_llh(df, x):
+    '''
+    Compute the log likelihood for a dataset.
+    '''
+
+    std = df['std'].values
+    res = df['y_test'].values-df['y_test_pred'].values
+
+    opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
+    a, b = opt.x
+
+    likes = llh(std, res, opt.x)
+
+    return a, b, likes
+
+
 def binner(i, data, actual, pred, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, pred)
-    name += '_{}'.format(i)
+    name = os.path.join(save, 'calibration')
 
     df = data[[i, actual, pred]].copy()
 
@@ -34,9 +62,14 @@ def binner(i, data, actual, pred, save, points, sampling):
 
         df = pd.concat(df)
 
+    a, b, likes = set_llh(df, [0, 1])
+    df['loglikelihood'] = likes
+
     # Statistics
     rmses = []
     moderrs = []
+    moderrscal = []
+    likes = []
     bins = []
     counts = []
     for group, values in df.groupby('bin'):
@@ -49,40 +82,70 @@ def binner(i, data, actual, pred, save, points, sampling):
 
         rmse = metrics.mean_squared_error(x, y)**0.5
         moderr = np.mean(values[i].values)
+        moderrcal = a*np.mean(values[i].values)+b
+        like = np.mean(values['loglikelihood'].values)
         count = values[i].values.shape[0]
 
         rmses.append(rmse)
         moderrs.append(moderr)
+        moderrscal.append(moderrcal)
+        likes.append(like)
         bins.append(group)
         counts.append(count)
 
     moderrs = np.array(moderrs)
     rmses = np.array(rmses)
-
-    if 'std' in i:
-        xlabel = r'Average $\sigma_{model}$'
-    else:
-        xlabel = 'Average {}'.format(i)
-        xlabel = xlabel.replace('_', ' ')
+    likes = np.array(likes)
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
-    fig, ax = pl.subplots(2)
+    maximum = max([max(moderrs), max(rmses)])
 
-    ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
-    ax[1].bar(moderrs, counts, widths)
+    fig, ax = pl.subplots(3, figsize=(8, 10))
+
+    ax[0].plot(
+               moderrs,
+               rmses,
+               marker='.',
+               linestyle='none',
+               label='Uncalibrated'
+               )
+    ax[0].plot(
+               moderrscal,
+               rmses,
+               marker='.',
+               linestyle='none',
+               label='Calibrated'
+               )
+    ax[0].plot(
+               [0, maximum],
+               [0, maximum],
+               linestyle=':',
+               label='Ideal Calibrated'
+               )
+
+    ax[1].plot(likes, rmses, marker='.', linestyle='none')
+
+    ax[2].bar(moderrs, counts, widths)
 
     ax[0].set_ylabel(r'$RMSE$')
+    ax[1].set_ylabel(r'$RMSE$')
+    ax[0].legend()
 
-    ax[1].set_xlabel(xlabel)
-    ax[1].set_ylabel('Counts')
-    ax[1].set_yscale('log')
+    ax[0].set_xlabel(r'$\sigma_{model}$')
+    ax[1].set_xlabel('Mimimized Log Likelihood')
+
+    ax[2].set_ylabel('Counts')
+    ax[2].set_yscale('log')
+
+    ax[0].legend()
 
     fig.tight_layout()
     fig.savefig(name)
 
     data = {}
     data[r'$RMSE$'] = list(rmses)
-    data[xlabel] = list(moderrs)
+    data[r'$\sigma_{model}$_uncalibrated'] = list(moderrs)
+    data[r'$\sigma_{model}$_calibrated'] = list(moderrscal)
     data['Counts'] = list(counts)
 
     jsonfile = name+'.json'
@@ -100,9 +163,7 @@ def make_plots(save, points, sampling):
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = values.columns.tolist()
-        cols.remove('y_test')
-        cols.remove('y_test_pred')
+        cols = ['std']
 
         parallel(
                  binner,
