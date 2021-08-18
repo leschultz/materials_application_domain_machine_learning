@@ -22,10 +22,17 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    results = {
-               'result': [rmse, rmse_sig, mae, r2],
-               'metric': [r'$RMSE$', r'$RMSE/\sigma$', r'$MAE$', r'$R^{2}$']
-               }
+    model, scaler, spliter, split_id = group
+
+    results = {}
+    results['model'] = model
+    results['scaler'] = scaler
+    results['spliter'] = spliter
+    results['split_id'] = split_id
+    results[r'$RMSE$'] = rmse
+    results[r'$RMSE/\sigma$'] = rmse_sig
+    results[r'$MAE$'] = mae
+    results[r'$R^{2}$'] = r2
 
     return results
 
@@ -36,6 +43,7 @@ def group_metrics(df, cols):
 
     groups = df.groupby(cols)
     mets = parallel(eval_reg_metrics, groups)
+    mets = pd.DataFrame(mets)
 
     return mets
 
@@ -51,10 +59,12 @@ def stats(df, cols):
     count = groups.count().add_suffix('_count')
     df = mean.merge(sem, on=cols)
     df = df.merge(count, on=cols)
+    df = df.reset_index()
 
     return df
 
-def outer(save):
+
+def folds(save):
     '''
     Save the true values, predicted values, distances, and model error.
 
@@ -68,13 +78,16 @@ def outer(save):
     df = parallel(pd.read_csv, paths)
     df = pd.concat(df)
 
-    met = group_metrics(df, ['model', 'scaler', 'split'])
-    print(met)
+    mets = group_metrics(df, ['model', 'scaler', 'spliter', 'split_id'])
 
     # Get statistics
-    dfstats = stats(df, ['index', 'model', 'scaler', 'split'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter'])
+    metsstats = mets.drop('split_id', axis=1)
+    metsstats = stats(metsstats, ['model', 'scaler', 'spliter'])
 
     # Save data
+    save = os.path.join(save, 'aggregate')
+    os.makedirs(save, exist_ok=True)
     df.to_csv(
               os.path.join(save, 'data.csv'),
               index=False
@@ -91,13 +104,3 @@ def outer(save):
                      os.path.join(save, 'metrics_stats.csv'),
                      index=False
                      )
-
-
-def folds(save):
-    '''
-    Define the machine learning workflow with nested cross validation
-    for gaussian process regression and random forest.
-    '''
-
-    # Nested CV
-    outer(save)

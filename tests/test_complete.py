@@ -37,9 +37,6 @@ class ml_test(unittest.TestCase):
         inner_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
         outer_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
 
-        # inner_split = splitters.repkf(5, 2)
-        # outer_split = splitters.repkf(5, 10)
-
         # Gaussian process regression
         kernel = RBF()
         model = GaussianProcessRegressor()
@@ -65,11 +62,11 @@ class ml_test(unittest.TestCase):
         predict.run(X, y, outer_split, pipes, save, 14987)
         aggregate.folds(save)
 
-        #bins.make_plots(save, points, sampling)
-        #kde.make_plots(df, save)
+        bins.make_plots(save+'/aggregate', points, sampling)
+        kde.make_plots(df, save)
 
         # Clean directory
-        #shutil.rmtree(save)
+        shutil.rmtree(save)
 
 
 if __name__ == '__main__':

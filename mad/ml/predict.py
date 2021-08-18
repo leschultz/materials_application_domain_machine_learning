@@ -54,7 +54,7 @@ def distance(X_train, X_test):
     return dists
 
 
-def inner(indx, X, y, pipes,save):
+def inner(indx, X, y, pipes, save):
     '''
     The inner loop from nested cross validation.
     '''
@@ -74,6 +74,7 @@ def inner(indx, X, y, pipes,save):
         else:
             dists[key] = list(value)
 
+    dfs = []
     for pipe in pipes:
 
         df = {}
@@ -105,7 +106,7 @@ def inner(indx, X, y, pipes,save):
         df['pipe'] = pipe
         df['model'] = model_type
         df['scaler'] = scaler_type
-        df['split'] = split_type
+        df['spliter'] = split_type
         df['y_test'] = y_test
         df['y_test_pred'] = y_test_pred
         df['index'] = te_indx
@@ -114,11 +115,13 @@ def inner(indx, X, y, pipes,save):
 
         name = os.path.join(
                             save,
-                            'split_{}_{}.csv'.format(model_type, count)
+                            'split_{}.csv'.format(count)
                             )
 
         df = pd.DataFrame(df)
-        df.to_csv(name, index=False)
+        dfs.append(df)
+
+    pd.concat(dfs).to_csv(name, index=False)
 
 
 def outer(split, pipes, X, y, save):

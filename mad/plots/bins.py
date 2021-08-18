@@ -96,7 +96,7 @@ def binner(i, data, actual, pred, std, save, points, sampling):
 def make_plots(save, points, sampling):
 
     df = os.path.join(save, 'data.csv')
-    groups = ['scaler', 'model', 'split']
+    groups = ['scaler', 'model', 'spliter']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
