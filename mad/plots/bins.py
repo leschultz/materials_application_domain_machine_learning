@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def binner(i, data, actual, pred, std, save, points, sampling):
+def binner(i, data, actual, pred, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
@@ -60,8 +60,7 @@ def binner(i, data, actual, pred, std, save, points, sampling):
     rmses = np.array(rmses)
 
     if 'std' in i:
-        moderrs /= std
-        xlabel = r'Average $\dfrac{\sigma_{model}}{\sigma_{true}}$'
+        xlabel = r'Average $\sigma_{model}$'
     else:
         xlabel = 'Average {}'.format(i)
         xlabel = xlabel.replace('_', ' ')
@@ -69,12 +68,10 @@ def binner(i, data, actual, pred, std, save, points, sampling):
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)
 
-    rmses_std = rmses/std
-
-    ax[0].plot(moderrs, rmses_std, marker='.', linestyle='none')
+    ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$RMSE/\sigma$')
+    ax[0].set_ylabel(r'$RMSE$')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')
@@ -84,7 +81,7 @@ def binner(i, data, actual, pred, std, save, points, sampling):
     fig.savefig(name)
 
     data = {}
-    data[r'$RMSE/\sigma$'] = list(rmses_std)
+    data[r'$RMSE$'] = list(rmses)
     data[xlabel] = list(moderrs)
     data['Counts'] = list(counts)
 
@@ -95,11 +92,11 @@ def binner(i, data, actual, pred, std, save, points, sampling):
 
 def make_plots(save, points, sampling):
 
-    df = os.path.join(*[save, 'aggregate', 'data.csv'])
+    path = os.path.join(save, 'aggregate')
     groups = ['scaler', 'model', 'spliter']
     drop_cols = groups+['pipe', 'index']
 
-    df = pd.read_csv(df)
+    df = pd.read_csv(os.path.join(path, 'data.csv'))
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
@@ -113,8 +110,7 @@ def make_plots(save, points, sampling):
                  data=values,
                  actual='y_test',
                  pred='y_test_pred',
-                 std=np.std(values['y_test']),
-                 save=os.path.join(save, '_'.join(group)),
+                 save=os.path.join(path, '_'.join(group)),
                  points=points,
                  sampling=sampling
                  )
