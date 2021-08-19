@@ -11,11 +11,11 @@ from mad.functions import parallel
 
 def llh(std, res, x):
     '''
-    Compute the log likelihood for a case.
+    Compute the log likelihood for a case. Function modified
+    for minimization task.
     '''
 
-    total = np.log(2*np.pi)  # Don't need for minimization but formally this
-    total += np.log((x[0]*std+x[1])**2)
+    total = 2*np.log(x[0]*std+x[1])
     total += (res**2)/((x[0]*std+x[1])**2)
 
     return total
