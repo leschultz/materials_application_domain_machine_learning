@@ -103,6 +103,7 @@ def make_plots(save, points, sampling):
         cols = values.columns.tolist()
         cols.remove('y_test')
         cols.remove('y_test_pred')
+        cols.remove('split_id')
 
         parallel(
                  binner,

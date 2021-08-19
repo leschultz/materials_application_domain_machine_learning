@@ -8,8 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.plots import kde, bins, parity, calibration
-from mad.ml import splitters, predict, aggregate
-from mad.datasets import load_data
+from mad.datasets import load_data, aggregate
+from mad.ml import splitters, predict
 
 import numpy as np
 import unittest
@@ -23,10 +23,12 @@ class ml_test(unittest.TestCase):
         Test ml workflow
         '''
 
+        seed = 14987
         save = './test'
         points = 15
-        sampling = 'even'
+        sampling = 'equal'
 
+        # Load data
         data = load_data.test()
         df = data['frame']
         X = data['data']
@@ -59,11 +61,14 @@ class ml_test(unittest.TestCase):
         pipes = [gpr, rf]
 
         # Evaluate
-        predict.run(X, y, outer_split, pipes, save, 14987)
-        aggregate.folds(save)
-        parity.make_plots(save)
+        predict.run(X, y, outer_split, pipes, save, seed)
 
-        #bins.make_plots(save, points, sampling)
+        # Combine split data
+        aggregate.folds(save)
+
+        # Plots
+        parity.make_plots(save)
+        bins.make_plots(save, points, sampling)
         calibration.make_plots(save, points, sampling)
         kde.make_plots(df, save)
 

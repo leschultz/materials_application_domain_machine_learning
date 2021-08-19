@@ -1,4 +1,5 @@
 from sklearn import metrics
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -73,8 +74,9 @@ def folds(save):
     '''
 
     path = os.path.join(save, 'splits')
-    paths = list(map(lambda x: os.path.join(path, x), os.listdir(path)))
+    paths = list(Path(save).rglob('split_*.csv'))
 
+    # Load
     df = parallel(pd.read_csv, paths)
     df = pd.concat(df)
 
