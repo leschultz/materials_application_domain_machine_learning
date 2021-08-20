@@ -41,9 +41,13 @@ def binner(i, data, actual, pred, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'calibration_per_bin')
+    name = os.path.join(save, pred)
+    name += '_per_bin_{}'.format(i)
 
     df = data[[i, actual, pred]].copy()
+
+    a, b, likes = set_llh(data, [0, 1])
+    df['loglikelihood'] = likes
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -63,9 +67,7 @@ def binner(i, data, actual, pred, save, points, sampling):
         df = pd.concat(df)
 
     # Statistics
-    rmses = []
     moderrs = []
-    moderrscal = []
     likes = []
     bins = []
     counts = []
@@ -73,9 +75,6 @@ def binner(i, data, actual, pred, save, points, sampling):
 
         if values.empty:
             continue
-
-        a, b, like = set_llh(values, [0, 1])
-        values['loglikelihood'] = like
 
         x = values[actual].values
         y = values[pred].values
@@ -86,66 +85,45 @@ def binner(i, data, actual, pred, save, points, sampling):
         like = np.mean(values['loglikelihood'].values)
         count = values[i].values.shape[0]
 
-        rmses.append(rmse)
         moderrs.append(moderr)
-        moderrscal.append(moderrcal)
         likes.append(like)
         bins.append(group)
         counts.append(count)
 
     moderrs = np.array(moderrs)
-    rmses = np.array(rmses)
     likes = np.array(likes)
 
-    widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
-    maximum = max([max(moderrs), max(rmses)])
+    if 'std' in i:
+        xlabel = r'Average $\sigma_{model}$'
+    else:
+        xlabel = 'Average {}'.format(i)
+        xlabel = xlabel.replace('_', ' ')
 
-    fig, ax = pl.subplots(3, figsize=(8, 10))
+    widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
+    maximum = max([max(moderrs), max(likes)])
+
+    fig, ax = pl.subplots(2)
 
     ax[0].plot(
                moderrs,
-               rmses,
+               likes,
                marker='.',
                linestyle='none',
-               label='Uncalibrated'
-               )
-    ax[0].plot(
-               moderrscal,
-               rmses,
-               marker='.',
-               linestyle='none',
-               label='Calibrated'
-               )
-    ax[0].plot(
-               [0, maximum],
-               [0, maximum],
-               linestyle=':',
-               label='Ideal Calibrated'
                )
 
-    ax[1].plot(likes, rmses, marker='.', linestyle='none')
+    ax[1].bar(moderrs, counts, widths)
 
-    ax[2].bar(moderrs, counts, widths)
-
-    ax[0].set_ylabel(r'$RMSE$')
-    ax[1].set_ylabel(r'$RMSE$')
-    ax[0].legend()
-
-    ax[0].set_xlabel(r'$\sigma_{model}$')
-    ax[1].set_xlabel('Mimimized Log Likelihood')
-
-    ax[2].set_ylabel('Counts')
-    ax[2].set_yscale('log')
-
-    ax[0].legend()
+    ax[0].set_ylabel('Min Log LLH')
+    ax[1].set_xlabel(xlabel)
+    ax[1].set_ylabel('Counts')
+    ax[1].set_yscale('log')
 
     fig.tight_layout()
     fig.savefig(name)
 
     data = {}
-    data[r'$RMSE$'] = list(rmses)
-    data[r'$\sigma_{model}$_uncalibrated'] = list(moderrs)
-    data[r'$\sigma_{model}$_calibrated'] = list(moderrscal)
+    data['min_llh'] = list(likes)
+    data[xlabel] = list(moderrs)
     data['Counts'] = list(counts)
 
     jsonfile = name+'.json'
@@ -163,7 +141,10 @@ def make_plots(save, points, sampling):
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = ['std']
+        cols = values.columns.tolist()
+        cols.remove('y_test')
+        cols.remove('y_test_pred')
+        cols.remove('split_id')
 
         parallel(
                  binner,
