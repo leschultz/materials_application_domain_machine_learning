@@ -15,9 +15,8 @@ def llh(std, res, x):
     for minimization task.
     '''
 
-    sigma = x[0]*std**2+x[1]*std+x[2]  # Functional for true std
-    total = 2*np.log(sigma)
-    total += (res**2)/(sigma**2)
+    total = 2*np.log(x[0]*std+x[1])
+    total += (res**2)/((x[0]*std+x[1])**2)
 
     return total
 
@@ -31,18 +30,18 @@ def set_llh(df, x):
     res = df['y_test'].values-df['y_test_pred'].values
 
     opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
-    a, b, c = opt.x
+    a, b = opt.x
 
     likes = llh(std, res, opt.x)
 
-    return a, b, c, likes
+    return a, b, likes
 
 
 def binner(i, data, actual, pred, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'calibration')
+    name = os.path.join(save, 'calibration_per_bin')
 
     df = data[[i, actual, pred]].copy()
 
@@ -63,9 +62,6 @@ def binner(i, data, actual, pred, save, points, sampling):
 
         df = pd.concat(df)
 
-    a, b, c, likes = set_llh(df, [0, 1, 1])
-    df['loglikelihood'] = likes
-
     # Statistics
     rmses = []
     moderrs = []
@@ -78,12 +74,15 @@ def binner(i, data, actual, pred, save, points, sampling):
         if values.empty:
             continue
 
+        a, b, like = set_llh(values, [0, 1])
+        values['loglikelihood'] = like
+
         x = values[actual].values
         y = values[pred].values
 
         rmse = metrics.mean_squared_error(x, y)**0.5
         moderr = np.mean(values[i].values)
-        moderrcal = np.mean(a*values[i].values**2+b*values[i].values+c)
+        moderrcal = a*np.mean(values[i].values)+b
         like = np.mean(values['loglikelihood'].values)
         count = values[i].values.shape[0]
 
