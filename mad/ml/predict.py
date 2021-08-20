@@ -42,9 +42,26 @@ def distance(X_train, X_test):
     '''
 
     selected = [
-                'mahalanobis',
                 'euclidean',
+                'minkowski',
                 'cityblock',
+                'seuclidean',
+                'sqeuclidean',
+                'cosine',
+                'correlation',
+                'hamming',
+                'jaccard',
+                'jensenshannon',
+                'chebyshev',
+                'canberra',
+                'braycurtis',
+                'yule',
+                'dice',
+                'kulsinski',
+                'rogerstanimoto',
+                'russellrao',
+                'sokalmichener',
+                'sokalsneath',
                 ]
 
     dists = {}
