@@ -1,4 +1,5 @@
 from scipy.spatial.distance import cdist
+from scipy.optimize import minimize
 
 import statsmodels.api as sm
 import pandas as pd
@@ -7,6 +8,34 @@ import random
 import os
 
 from mad.functions import parallel
+
+
+def llh(std, res, x):
+    '''
+    Compute the log likelihood for a case. Function modified
+    for minimization task.
+    '''
+
+    total = 2*np.log(x[0]*std+x[1])
+    total += (res**2)/((x[0]*std+x[1])**2)
+
+    return total
+
+
+def set_llh(std, y, y_pred, x):
+    '''
+    Compute the log likelihood for a dataset.
+    '''
+
+    std = std
+    res = y-y_pred
+
+    opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
+    a, b = opt.x
+
+    likes = llh(std, res, opt.x)
+
+    return a, b, likes
 
 
 def nearest(vals, val):
@@ -96,6 +125,8 @@ def distance(X_train, X_test):
                 'sokalsneath',
                 ]
 
+    selected = ['ln_likelihood']
+
     dists = {}
     for i in selected:
         dists.update(distance_link(X_train, X_test, i))
@@ -141,16 +172,34 @@ def inner(indx, X, y, pipes, save):
         # If model is random forest regressor
         if model_type == 'RandomForestRegressor':
             y_test_pred = pipe_best.predict(X_test)
-            X_trans = pipe_best_scaler.transform(X_test)
+            y_train_pred = pipe_best.predict(X_train)
+
+            X_test_trans = pipe_best_scaler.transform(X_test)
+            X_train_trans = pipe_best_scaler.transform(X_train)
             pipe_estimators = pipe_best_model.estimators_
-            std = [i.predict(X_trans) for i in pipe_estimators]
-            std = np.std(std, axis=0)
-            df['std'] = std
+
+            # Ensemble predictions
+            std_test = [i.predict(X_test_trans) for i in pipe_estimators]
+            std_train = [i.predict(X_train_trans) for i in pipe_estimators]
+
+            std_test = np.std(std_test, axis=0)
+            std_train = np.std(std_train, axis=0)
+
+            df['std_test'] = std_test
 
         # If model is gaussian process regressor
         elif model_type == 'GaussianProcessRegressor':
-            y_test_pred, std = pipe_best.predict(X_test, return_std=True)
-            df['std'] = std
+            y_test_pred, std_test = pipe_best.predict(X_test, return_std=True)
+            y_train_pred, std_train = pipe_best.predict(
+                                                        X_train,
+                                                        return_std=True
+                                                        )
+
+            df['std_test'] = std_test
+
+        # Add std calibrated here and include as distance metric
+        a, b, likes = set_llh(std_train, y_train, y_train_pred, [0, 1])
+        std_test_cal = a*std_test+b
 
         df['pipe'] = pipe
         df['model'] = model_type
@@ -158,6 +207,8 @@ def inner(indx, X, y, pipes, save):
         df['spliter'] = split_type
         df['y_test'] = y_test
         df['y_test_pred'] = y_test_pred
+        df['std_test'] = std_test
+        df['std_test_cal'] = std_test_cal
         df['index'] = te_indx
         df['split_id'] = count
         df.update(dists)
