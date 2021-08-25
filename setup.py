@@ -24,6 +24,7 @@ install_requires = [
                     'tqdm',
                     'pytest',
                     'openpyxl',
+                    'statsmodels',
                     ]
 long_description=open('README.md').read()
 
