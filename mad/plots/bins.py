@@ -59,11 +59,8 @@ def binner(i, data, actual, pred, save, points, sampling):
     moderrs = np.array(moderrs)
     rmses = np.array(rmses)
 
-    if 'std' in i:
-        xlabel = r'Average $\sigma_{model}$'
-    else:
-        xlabel = 'Average {}'.format(i)
-        xlabel = xlabel.replace('_', ' ')
+    xlabel = 'Average {}'.format(i)
+    xlabel = xlabel.replace('_', ' ')
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)
@@ -105,6 +102,7 @@ def make_plots(save, points, sampling):
         cols.remove('y_test_pred')
         cols.remove('split_id')
 
+        print(cols)
         parallel(
                  binner,
                  cols,
