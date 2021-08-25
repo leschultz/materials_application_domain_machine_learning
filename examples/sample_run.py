@@ -8,11 +8,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.plots import kde, bins, parity, calibration, calibration_per_bin
+from mad.plots import kde_ln_likelihood_counts
 from mad.datasets import load_data, aggregate
 from mad.ml import splitters, predict
 
 import numpy as np
-import unittest
 
 
 def main():
@@ -69,6 +69,7 @@ def main():
     calibration_per_bin.make_plots(save, points, sampling)
     calibration.make_plots(save, points, sampling)
     kde.make_plots(df, save)
+    kde_ln_likelihood_counts.make_plots(save)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,20 @@
 from scipy.spatial.distance import cdist
 
+import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 import random
 import os
 
 from mad.functions import parallel
+
+
+def nearest(vals, val):
+    '''
+    Function for finding nearest index of value in array.
+    '''
+    indx = (np.abs(vals-val)).argmin()
+    return indx
 
 
 def distance_link(X_train, X_test, dist_type):
@@ -21,17 +30,39 @@ def distance_link(X_train, X_test, dist_type):
         dists = A dictionary of distances.
     '''
 
-    # Get the inverse of the covariance matrix from training
     dists = {}
     if dist_type == 'mahalanobis':
+        # Get the inverse of the covariance matrix from training
         vi = np.linalg.inv(np.cov(X_train.T))
         dist = cdist(X_train, X_test, dist_type, VI=vi)
+    elif dist_type == 'ln_likelihood':
+
+        dist = []
+        for i in range(X_train.shape[1]):
+            test_col = X_test[:, i]
+            train_col = X_train[:, i]
+
+            kde_train = sm.nonparametric.KDEUnivariate(train_col)
+            kde_train.fit()
+            x = kde_train.support
+            y = kde_train.density
+
+            likes = list(map(lambda j: y[nearest(x, j)], test_col))
+            dist.append(likes)
+
+        dist = np.array(dist)
+        dist = np.sum(np.log(dist), axis=0)
+
     else:
         dist = cdist(X_train, X_test, dist_type)
 
-    dists[dist_type+'_mean'] = np.mean(dist, axis=0)
-    dists[dist_type+'_max'] = np.max(dist, axis=0)
-    dists[dist_type+'_min'] = np.min(dist, axis=0)
+    # Prepare data for export
+    if dist_type == 'ln_likelihood':
+        dists[dist_type] = dist
+    else:
+        dists[dist_type+'_mean'] = np.mean(dist, axis=0)
+        dists[dist_type+'_max'] = np.max(dist, axis=0)
+        dists[dist_type+'_min'] = np.min(dist, axis=0)
 
     return dists
 
@@ -42,6 +73,7 @@ def distance(X_train, X_test):
     '''
 
     selected = [
+                'ln_likelihood',
                 'euclidean',
                 'minkowski',
                 'cityblock',
