@@ -7,7 +7,8 @@ from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.plots import kde, bins, parity, calibration, calibration_per_bin
+from mad.plots import kde, parity, calibration
+from mad.plots import rmse_versus, cal_versus
 from mad.plots import kde_ln_likelihood_counts
 from mad.datasets import load_data, aggregate
 from mad.ml import splitters, predict
@@ -65,8 +66,8 @@ def main():
 
     # Plots
     parity.make_plots(save)
-    bins.make_plots(save, points, sampling)
-    calibration_per_bin.make_plots(save, points, sampling)
+    rmse_versus.make_plots(save, points, sampling)
+    cal_versus.make_plots(save, points, sampling)
     calibration.make_plots(save, points, sampling)
     kde.make_plots(df, save)
     kde_ln_likelihood_counts.make_plots(save)

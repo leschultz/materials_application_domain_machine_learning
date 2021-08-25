@@ -125,8 +125,6 @@ def distance(X_train, X_test):
                 'sokalsneath',
                 ]
 
-    selected = ['ln_likelihood']
-
     dists = {}
     for i in selected:
         dists.update(distance_link(X_train, X_test, i))

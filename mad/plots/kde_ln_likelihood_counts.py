@@ -105,4 +105,9 @@ def make_plots(save):
         ax.set_ylabel('Counts')
         ax.set_xlabel('Average Ln Likelihood Metric')
         fig.tight_layout()
-        pl.show()
+
+        fig.savefig(os.path.join(*[
+                                   path,
+                                   '_'.join(group),
+                                   'kde_ln_likelihood'
+                                   ]))

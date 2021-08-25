@@ -8,14 +8,14 @@ import os
 from mad.functions import parallel
 
 
-def binner(i, data, actual, pred, save, points, sampling):
+def binner(i, data, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, pred)
+    name = os.path.join(save, 'std_test_cal')
     name += '_{}'.format(i)
 
-    df = data[[i, actual, pred]].copy()
+    df = data.copy()
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -35,7 +35,7 @@ def binner(i, data, actual, pred, save, points, sampling):
         df = pd.concat(df)
 
     # Statistics
-    rmses = []
+    stds = []
     moderrs = []
     bins = []
     counts = []
@@ -44,20 +44,20 @@ def binner(i, data, actual, pred, save, points, sampling):
         if values.empty:
             continue
 
-        x = values[actual].values
-        y = values[pred].values
-
-        rmse = metrics.mean_squared_error(x, y)**0.5
+        std = metrics.mean_squared_error(
+                                         values['std_test'],
+                                         values['std_test_cal']
+                                         )**0.5
         moderr = np.mean(values[i].values)
         count = values[i].values.shape[0]
 
-        rmses.append(rmse)
+        stds.append(std)
         moderrs.append(moderr)
         bins.append(group)
         counts.append(count)
 
     moderrs = np.array(moderrs)
-    rmses = np.array(rmses)
+    stds = np.array(stds)
 
     xlabel = 'Average {}'.format(i)
     xlabel = xlabel.replace('_', ' ')
@@ -65,10 +65,10 @@ def binner(i, data, actual, pred, save, points, sampling):
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)
 
-    ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
+    ax[0].plot(moderrs, stds, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$RMSE$')
+    ax[0].set_ylabel(r'RMSE($\sigma_{true}$, $\sigma_{calibrated}$)')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')
@@ -78,7 +78,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     fig.savefig(name)
 
     data = {}
-    data[r'$RMSE$'] = list(rmses)
+    data[r'$\sigma$_cal'] = list(stds)
     data[xlabel] = list(moderrs)
     data['Counts'] = list(counts)
 
@@ -101,14 +101,13 @@ def make_plots(save, points, sampling):
         cols.remove('y_test')
         cols.remove('y_test_pred')
         cols.remove('split_id')
+        cols.remove('std_test_cal')
+        cols.remove('std_test')
 
-        print(cols)
         parallel(
                  binner,
                  cols,
                  data=values,
-                 actual='y_test',
-                 pred='y_test_pred',
                  save=os.path.join(path, '_'.join(group)),
                  points=points,
                  sampling=sampling
