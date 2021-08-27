@@ -1,3 +1,4 @@
+from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
 from scipy.optimize import minimize
 
@@ -46,7 +47,7 @@ def nearest(vals, val):
     return indx
 
 
-def distance_link(X_train, X_test, dist_type):
+def distance_link(X_train, X_test, dist_type, scaler=True):
     '''
     Get the distances based on a metric.
 
@@ -58,6 +59,12 @@ def distance_link(X_train, X_test, dist_type):
     ouputs:
         dists = A dictionary of distances.
     '''
+
+    if scaler:
+        scaler = StandardScaler()
+        scaler.fit(X_train)
+        X_train = scaler.transform(X_train)
+        X_test = scaler.transform(X_test)
 
     dists = {}
     if dist_type == 'mahalanobis':
