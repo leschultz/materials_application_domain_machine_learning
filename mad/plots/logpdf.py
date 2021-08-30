@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def make_plots(save):
+def make_plots(save, show=False):
 
     path = os.path.join(save, 'aggregate')
     groups = ['scaler', 'model', 'spliter']
@@ -25,8 +25,13 @@ def make_plots(save):
         ax.set_xlabel('logpdf')
         fig.tight_layout()
 
-        fig.savefig(os.path.join(*[
-                                   path,
-                                   '_'.join(group),
-                                   'logpdf'
-                                   ]))
+        new_path = os.path.join(path, '_'.join(group))
+        os.makedirs(new_path, exist_ok=True)
+
+        fig.savefig(os.path.join(
+                                 new_path,
+                                 'logpdf'
+                                 ))
+
+        if show:
+            pl.show()

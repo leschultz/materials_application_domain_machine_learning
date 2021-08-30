@@ -65,12 +65,16 @@ def main():
     aggregate.folds(save)
 
     # Plots
+    logpdf.make_plots(save)
     parity.make_plots(save)
     rmse_versus.make_plots(save, points, sampling)
     cal_versus.make_plots(save, points, sampling)
     calibration.make_plots(save, points, sampling)
     kde.make_plots(df, save)
-    logpdf.make_plots(save)
+
+    # Flag values
+    aggregate.folds(save, low_flag=-68)
+    parity.make_plots(save)
 
 
 if __name__ == '__main__':

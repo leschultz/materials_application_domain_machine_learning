@@ -23,7 +23,7 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, spliter, split_id = group
+    model, scaler, spliter, split_id, flag = group
 
     results = {}
     results['model'] = model
@@ -34,12 +34,14 @@ def eval_reg_metrics(groups):
     results[r'$RMSE/\sigma$'] = rmse_sig
     results[r'$MAE$'] = mae
     results[r'$R^{2}$'] = r2
+    results['flag'] = flag
 
     return results
 
 
 def group_metrics(df, cols):
     '''
+    Get the metrics statistics.
     '''
 
     groups = df.groupby(cols)
@@ -65,12 +67,13 @@ def stats(df, cols):
     return df
 
 
-def folds(save):
+def folds(save, low_flag=None):
     '''
     Save the true values, predicted values, distances, and model error.
 
     inputs:
         save = The directory to save and where split data are.
+        low_flag = Flagg all values with less than this logpdf.
     '''
 
     path = os.path.join(save, 'splits')
@@ -80,12 +83,17 @@ def folds(save):
     df = parallel(pd.read_csv, paths)
     df = pd.concat(df)
 
-    mets = group_metrics(df, ['model', 'scaler', 'spliter', 'split_id'])
+    if low_flag:
+        df['flag'] = ((df['logpdf'] <= low_flag))
+    else:
+        df['flag'] = False
+
+    mets = group_metrics(df, ['model', 'scaler', 'spliter', 'split_id', 'flag'])
 
     # Get statistics
-    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter', 'flag'])
     metsstats = mets.drop('split_id', axis=1)
-    metsstats = stats(metsstats, ['model', 'scaler', 'spliter'])
+    metsstats = stats(metsstats, ['model', 'scaler', 'spliter', 'flag'])
 
     # Save data
     save = os.path.join(save, 'aggregate')

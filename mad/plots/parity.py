@@ -107,7 +107,7 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         json.dump(data, handle)
 
 
-def make_plots(save):
+def make_plots(save, low_flag=None):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
@@ -117,7 +117,7 @@ def make_plots(save):
     df = os.path.join(path, 'data_stats.csv')
     mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'spliter']
+    groups = ['scaler', 'model', 'spliter', 'flag']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
@@ -125,7 +125,12 @@ def make_plots(save):
 
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = '_'.join(d[0])
+        name = '_'.join(d[0][:-1])
+        if d[0][-1] is True:
+            name += '_Flagged'
+        else:
+            name += '_Not-Flagged'
+
         d = d[1]
         m = m[1]
         m.drop(groups, axis=1, inplace=True)
