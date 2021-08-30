@@ -1,10 +1,11 @@
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
+from scipy.stats import gaussian_kde
 from scipy.optimize import minimize
 
-import statsmodels.api as sm
 import pandas as pd
 import numpy as np
+
 import random
 import os
 
@@ -39,14 +40,6 @@ def set_llh(std, y, y_pred, x):
     return a, b, likes
 
 
-def nearest(vals, val):
-    '''
-    Function for finding nearest index of value in array.
-    '''
-    indx = (np.abs(vals-val)).argmin()
-    return indx
-
-
 def distance_link(X_train, X_test, dist_type, scaler=True):
     '''
     Get the distances based on a metric.
@@ -71,31 +64,22 @@ def distance_link(X_train, X_test, dist_type, scaler=True):
         # Get the inverse of the covariance matrix from training
         vi = np.linalg.inv(np.cov(X_train.T))
         dist = cdist(X_train, X_test, dist_type, VI=vi)
-    elif dist_type == 'ln_likelihood':
 
-        dist = []
-        for i in range(X_train.shape[1]):
-            test_col = X_test[:, i]
-            train_col = X_train[:, i]
+        dists[dist_type+'_mean'] = np.mean(dist, axis=0)
+        dists[dist_type+'_max'] = np.max(dist, axis=0)
+        dists[dist_type+'_min'] = np.min(dist, axis=0)
+    elif dist_type == 'logpdf':
 
-            kde_train = sm.nonparametric.KDEUnivariate(train_col)
-            kde_train.fit()
-            x = kde_train.support
-            y = kde_train.density
+        X_train = X_train.T
+        X_test = X_test.T
 
-            likes = list(map(lambda j: y[nearest(x, j)], test_col))
-            dist.append(likes)
-
-        dist = np.array(dist)
-        dist = np.sum(np.log(dist), axis=0)
+        gaus = gaussian_kde(X_train)
+        dist = gaus.logpdf(X_test)
+        dists[dist_type] = dist
 
     else:
         dist = cdist(X_train, X_test, dist_type)
 
-    # Prepare data for export
-    if dist_type == 'ln_likelihood':
-        dists[dist_type] = dist
-    else:
         dists[dist_type+'_mean'] = np.mean(dist, axis=0)
         dists[dist_type+'_max'] = np.max(dist, axis=0)
         dists[dist_type+'_min'] = np.min(dist, axis=0)
@@ -109,7 +93,7 @@ def distance(X_train, X_test):
     '''
 
     selected = [
-                'ln_likelihood',
+                'logpdf',
                 'euclidean',
                 'minkowski',
                 'cityblock',

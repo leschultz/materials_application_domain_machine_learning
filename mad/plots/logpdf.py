@@ -17,15 +17,16 @@ def make_plots(save):
     df = pd.read_csv(os.path.join(path, 'data.csv'))
     for group, values in df.groupby(groups):
 
+        vals = sorted(values['logpdf'].values)
         fig, ax = pl.subplots()
-        ax.hist(values['ln_likelihood'], bins=20, density=True)
+        ax.bar(range(len(vals)), vals)
 
         ax.set_ylabel('Counts')
-        ax.set_xlabel('Sum Ln Likelihood Metric')
+        ax.set_xlabel('logpdf')
         fig.tight_layout()
 
         fig.savefig(os.path.join(*[
                                    path,
                                    '_'.join(group),
-                                   'kde_ln_likelihood'
+                                   'logpdf'
                                    ]))

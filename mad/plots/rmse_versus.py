@@ -59,7 +59,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     moderrs = np.array(moderrs)
     rmses = np.array(rmses)
 
-    xlabel = 'Average {}'.format(i)
+    xlabel = '{}'.format(i).capitalize()
     xlabel = xlabel.replace('_', ' ')
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
