@@ -44,8 +44,12 @@ def binner(i, data, save, points, sampling):
         if values.empty:
             continue
 
+        y = values['y_test'].values
+        y_test_pred = values['y_test_pred'].values
+
+        rmse = abs(y-y_test_pred)
         std = metrics.mean_squared_error(
-                                         values['std_test'],
+                                         rmse,
                                          values['std_test_cal']
                                          )**0.5
         moderr = np.mean(values[i].values)
@@ -68,7 +72,7 @@ def binner(i, data, save, points, sampling):
     ax[0].plot(moderrs, stds, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'RMSE($\sigma_{true}$, $\sigma_{calibrated}$)')
+    ax[0].set_ylabel(r'$RMSE(|y-\hat{y}|,\sigma_{calibrated}$)')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')

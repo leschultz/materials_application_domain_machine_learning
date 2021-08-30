@@ -68,7 +68,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$RMSE$')
+    ax[0].set_ylabel(r'$RMSE(y,\hat{y})$')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')
