@@ -7,10 +7,10 @@ from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+from mad.datasets import load_data, aggregate, statistics
 from mad.plots import kde, parity, calibration
 from mad.plots import rmse_versus, cal_versus
 from mad.plots import logpdf
-from mad.datasets import load_data, aggregate
 from mad.ml import splitters, predict
 
 import numpy as np
@@ -23,7 +23,7 @@ def main():
 
     seed = 14987
     save = 'run'
-    points = 15
+    points = 10
     sampling = 'equal'
 
     # Load data
@@ -58,23 +58,15 @@ def main():
     # Make pipeline
     pipes = [gpr, rf]
 
-    # Evaluate
-    predict.run(X, y, outer_split, pipes, save, seed)
-
-    # Combine split data
-    aggregate.folds(save)
-
-    # Plots
-    logpdf.make_plots(save)
-    parity.make_plots(save)
-    rmse_versus.make_plots(save, points, sampling)
-    cal_versus.make_plots(save, points, sampling)
-    calibration.make_plots(save, points, sampling)
-    kde.make_plots(df, save)
-
-    # Flag values
-    aggregate.folds(save, low_flag=-68)
-    parity.make_plots(save)
+    predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
+    aggregate.folds(save)  # Combine split data from directory recursively
+    logpdf.make_plots(save)  # Make logpdf plot for outlier cutoff
+    statistics.folds(save, low_flag=-65)  # Gather statistics from data
+    parity.make_plots(save)  # Make parity plots
+    rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
+    cal_versus.make_plots(save, points, sampling)  # Calibrated vs metrics
+    calibration.make_plots(save, points, sampling)  # Global calibration plots
+    kde.make_plots(df, save)  # Global KDE plots
 
 
 if __name__ == '__main__':

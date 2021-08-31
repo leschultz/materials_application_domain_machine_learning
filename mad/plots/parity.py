@@ -126,10 +126,7 @@ def make_plots(save, low_flag=None):
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
         name = '_'.join(d[0][:-1])
-        if d[0][-1] is True:
-            name += '_Flagged'
-        else:
-            name += '_Not-Flagged'
+        new_path = os.path.join(*[path, name, 'Flag_{}'.format(d[0][-1])])
 
         d = d[1]
         m = m[1]
@@ -144,5 +141,5 @@ def make_plots(save, low_flag=None):
                d['y_test_pred_sem'],
                '',
                '',
-               os.path.join(path, name)
+               new_path
                )
