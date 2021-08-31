@@ -18,7 +18,8 @@ def llh(std, res, x):
     for minimization task.
     '''
 
-    total = 2*np.log(x[0]*std+x[1])
+    total = np.log(2*np.pi)
+    total += 2*np.log(x[0]*std+x[1])
     total += (res**2)/((x[0]*std+x[1])**2)
 
     return total
@@ -188,7 +189,8 @@ def inner(indx, X, y, pipes, save):
 
         # Add std calibrated here and include as distance metric
         a, b, likes = set_llh(std_train, y_train, y_train_pred, [0, 1])
-        std_test_cal = a*std_test+b
+        std_test_cal = a*std_test+b  # Calibrated values
+        llh_vals = llh(std_test, y_test-y_test_pred, [a, b])  # loglikelihoods
 
         df['pipe'] = pipe
         df['model'] = model_type
@@ -198,6 +200,7 @@ def inner(indx, X, y, pipes, save):
         df['y_test_pred'] = y_test_pred
         df['std_test'] = std_test
         df['std_test_cal'] = std_test_cal
+        df['loglikelihood_test'] = llh_vals
         df['index'] = te_indx
         df['split_id'] = count
         df.update(dists)
