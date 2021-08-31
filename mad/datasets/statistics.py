@@ -81,10 +81,17 @@ def folds(save, low_flag=None):
     # Load
     df_path = os.path.join(save, 'data.csv')
     df = pd.read_csv(df_path)
+    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter'])
 
     if low_flag:
-        df['flag'] = ((df['logpdf'] <= low_flag))
+        dfstats['flag'] = dfstats['logpdf_mean'] <= low_flag
+
+        if 'flag' in df.columns:
+            df.drop('flag', axis=1, inplace=True)
+
+        df = dfstats[['flag', 'index']].merge(df, on='index')
     else:
+        dfstats['flag'] = False
         df['flag'] = False
 
     mets = group_metrics(df, [
@@ -96,7 +103,6 @@ def folds(save, low_flag=None):
                               ])
 
     # Get statistics
-    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter', 'flag'])
     metsstats = mets.drop('split_id', axis=1)
     metsstats = stats(metsstats, ['model', 'scaler', 'spliter', 'flag'])
 
