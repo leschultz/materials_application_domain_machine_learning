@@ -8,14 +8,14 @@ import os
 from mad.functions import parallel
 
 
-def binner(i, data, actual, pred, save, points, sampling):
+def binner(i, data, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'rmse')
+    name = os.path.join(save, 'loglikelihood')
     name += '_{}'.format(i)
 
-    df = data[[i, actual, pred]].copy()
+    df = data[[i, 'loglikelihood_test']].copy()
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -35,7 +35,7 @@ def binner(i, data, actual, pred, save, points, sampling):
         df = pd.concat(df)
 
     # Statistics
-    rmses = []
+    llhs = []
     moderrs = []
     bins = []
     counts = []
@@ -44,20 +44,17 @@ def binner(i, data, actual, pred, save, points, sampling):
         if values.empty:
             continue
 
-        x = values[actual].values
-        y = values[pred].values
-
-        rmse = metrics.mean_squared_error(x, y)**0.5
+        llh = np.mean(values['loglikelihood_test'].values)
         moderr = np.mean(values[i].values)
         count = values[i].values.shape[0]
 
-        rmses.append(rmse)
+        llhs.append(llh)
         moderrs.append(moderr)
         bins.append(group)
         counts.append(count)
 
     moderrs = np.array(moderrs)
-    rmses = np.array(rmses)
+    llhs = np.array(llhs)
 
     xlabel = '{}'.format(i).capitalize()
     xlabel = xlabel.replace('_', ' ')
@@ -65,10 +62,10 @@ def binner(i, data, actual, pred, save, points, sampling):
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)
 
-    ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
+    ax[0].plot(moderrs, llhs, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$RMSE(y,\hat{y})$')
+    ax[0].set_ylabel(r'$LogLikelihood$')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')
@@ -80,7 +77,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     pl.close('all')
 
     data = {}
-    data[r'$RMSE$'] = list(rmses)
+    data['Loglikelihood'] = list(llhs)
     data[xlabel] = list(moderrs)
     data['Counts'] = list(counts)
 
@@ -110,8 +107,6 @@ def make_plots(save, points, sampling):
                  binner,
                  cols,
                  data=values,
-                 actual='y_test',
-                 pred='y_test_pred',
                  save=os.path.join(path, '_'.join(group)),
                  points=points,
                  sampling=sampling

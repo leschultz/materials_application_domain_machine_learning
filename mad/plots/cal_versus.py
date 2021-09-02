@@ -12,10 +12,10 @@ def binner(i, data, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'std_test_cal')
+    name = os.path.join(save, 'calrmse')
     name += '_{}'.format(i)
 
-    df = data.copy()
+    df = data[[i, 'y_test', 'y_test_pred', 'std_test_cal']].copy()
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -81,6 +81,8 @@ def binner(i, data, save, points, sampling):
     fig.tight_layout()
     fig.savefig(name)
 
+    pl.close('all')
+
     data = {}
     data[r'$\sigma$_cal'] = list(stds)
     data[xlabel] = list(moderrs)
@@ -104,9 +106,9 @@ def make_plots(save, points, sampling):
         cols = values.columns.tolist()
         cols.remove('y_test')
         cols.remove('y_test_pred')
-        cols.remove('split_id')
         cols.remove('std_test_cal')
-        cols.remove('std_test')
+        cols.remove('loglikelihood_test')
+        cols.remove('split_id')
 
         parallel(
                  binner,

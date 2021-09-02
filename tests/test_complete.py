@@ -8,8 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
+from mad.plots import rmse_versus, cal_versus, loglikelihood_versus
 from mad.plots import kde, parity, calibration
-from mad.plots import rmse_versus, cal_versus
 from mad.plots import logpdf
 from mad.ml import splitters, predict
 
@@ -71,7 +71,8 @@ class ml_test(unittest.TestCase):
         parity.make_plots(save)  # Make parity plots
         rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
         cal_versus.make_plots(save, points, sampling)  # Calibrated vs metrics
-        calibration.make_plots(save, points, sampling)  # Global calibration
+        loglikelihood_versus.make_plots(save, points, sampling)  # likelihood
+        calibration.make_plots(save, points, sampling)  # Global calibration plots
         kde.make_plots(df, save)  # Global KDE plots
 
         # Clean directory
