@@ -60,6 +60,7 @@ def main():
 
     predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
     aggregate.folds(save)  # Combine split data from directory recursively
+    statistics.folds(save)  # Gather statistics from data
     logpdf.make_plots(save)  # Make logpdf plot for outlier cutoff
     statistics.folds(save, low_flag=-65)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots

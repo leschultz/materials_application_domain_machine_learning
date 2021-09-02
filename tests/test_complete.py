@@ -65,12 +65,13 @@ class ml_test(unittest.TestCase):
         # Evaluate
         predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
         aggregate.folds(save)  # Combine split data from directory recursively
+        statistics.folds(save)  # Gather statistics from data
         logpdf.make_plots(save)  # Make logpdf plot for outlier cutoff
         statistics.folds(save, low_flag=-65)  # Gather statistics from data
         parity.make_plots(save)  # Make parity plots
         rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
         cal_versus.make_plots(save, points, sampling)  # Calibrated vs metrics
-        calibration.make_plots(save, points, sampling)  # Global calibration plots
+        calibration.make_plots(save, points, sampling)  # Global calibration
         kde.make_plots(df, save)  # Global KDE plots
 
         # Clean directory
