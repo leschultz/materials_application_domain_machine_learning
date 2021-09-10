@@ -15,16 +15,24 @@ def folds(save, low_flag=None):
     '''
 
     path = os.path.join(save, 'splits')
-    paths = list(Path(save).rglob('split_*.csv'))
+
+    train_paths = list(Path(save).rglob('train_split_*.csv'))
+    test_paths = list(Path(save).rglob('test_split_*.csv'))
 
     # Load
-    df = parallel(pd.read_csv, paths)
-    df = pd.concat(df)
+    df_train = pd.concat(parallel(pd.read_csv, train_paths))
+    df_test = pd.concat(parallel(pd.read_csv, test_paths))
 
     # Save data
     save = os.path.join(save, 'aggregate')
     os.makedirs(save, exist_ok=True)
-    df.to_csv(
-              os.path.join(save, 'data.csv'),
-              index=False
-              )
+
+    df_train.to_csv(
+                    os.path.join(save, 'train_data.csv'),
+                    index=False
+                    )
+
+    df_test.to_csv(
+                   os.path.join(save, 'test_data.csv'),
+                   index=False
+                   )

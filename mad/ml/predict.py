@@ -144,10 +144,12 @@ def inner(indx, X, y, pipes, save):
         else:
             dists[key] = list(value)
 
-    dfs = []
+    trains = []
+    tests = []
     for pipe in pipes:
 
-        df = {}
+        train = {}
+        test = {}
 
         pipe.fit(X_train, y_train)
         pipe_best = pipe.best_estimator_
@@ -175,7 +177,8 @@ def inner(indx, X, y, pipes, save):
             std_test = np.std(std_test, axis=0)
             std_train = np.std(std_train, axis=0)
 
-            df['std_test'] = std_test
+            train['std'] = std_train
+            test['std'] = std_test
 
         # If model is gaussian process regressor
         elif model_type == 'GaussianProcessRegressor':
@@ -185,35 +188,62 @@ def inner(indx, X, y, pipes, save):
                                                         return_std=True
                                                         )
 
-            df['std_test'] = std_test
+            train['std'] = std_train
+            test['std'] = std_test
 
         # Add std calibrated here and include as distance metric
-        a, b, likes = set_llh(std_train, y_train, y_train_pred, [0, 1])
-        std_test_cal = a*std_test+b  # Calibrated values
-        llh_vals = llh(std_test, y_test-y_test_pred, [a, b])  # loglikelihoods
+        if 'std' in test.keys():
 
-        df['pipe'] = pipe
-        df['model'] = model_type
-        df['scaler'] = scaler_type
-        df['spliter'] = split_type
-        df['y_test'] = y_test
-        df['y_test_pred'] = y_test_pred
-        df['std_test'] = std_test
-        df['std_test_cal'] = std_test_cal
-        df['loglikelihood_test'] = llh_vals
-        df['index'] = te_indx
-        df['split_id'] = count
-        df.update(dists)
+            # Calibration
+            a, b, likes = set_llh(std_train, y_train, y_train_pred, [0, 1])
+            std_train_cal = a*std_train+b
+            std_test_cal = a*std_test+b
 
-        name = os.path.join(
-                            save,
-                            'split_{}.csv'.format(count)
-                            )
+            # Log likelihoods
+            llh_vals_train = llh(std_train, y_train-y_train_pred, [a, b])
+            llh_vals_test = llh(std_test, y_test-y_test_pred, [a, b])
 
-        df = pd.DataFrame(df)
-        dfs.append(df)
+            train['std_cal'] = std_train_cal
+            train['loglikelihood'] = llh_vals_train
+            test['std_cal'] = std_test_cal
+            test['loglikelihood'] = llh_vals_test
 
-    pd.concat(dfs).to_csv(name, index=False)
+        # Assign values that should be the same
+        train['pipe'] = test['pipe'] = pipe
+        train['model'] = test['model'] = model_type
+        train['scaler'] = test['scaler'] = scaler_type
+        train['splitter'] = test['spliter'] = split_type
+        train['split_id'] = test['split_id'] = count
+
+        # Training data
+        train['y_train'] = y_train
+        train['y_train_pred'] = y_train_pred
+        train['index'] = tr_indx
+
+        # Testing data
+        test['y_test'] = y_test
+        test['y_test_pred'] = y_test_pred
+        test['index'] = te_indx
+
+        test.update(dists)  # Only include distances in test
+
+        train = pd.DataFrame(train)
+        test = pd.DataFrame(test)
+
+        trains.append(train)
+        tests.append(test)
+
+    train_name = os.path.join(
+                              save,
+                              'train_split_{}.csv'.format(count)
+                              )
+
+    test_name = os.path.join(
+                             save,
+                             'test_split_{}.csv'.format(count)
+                             )
+    pd.concat(trains).to_csv(train_name, index=False)
+    pd.concat(tests).to_csv(test_name, index=False)
 
 
 def outer(split, pipes, X, y, save):

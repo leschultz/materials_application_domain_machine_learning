@@ -95,15 +95,15 @@ def make_plots(save, points, sampling):
     groups = ['scaler', 'model', 'spliter']
     drop_cols = groups+['pipe', 'index']
 
-    df = pd.read_csv(os.path.join(path, 'data.csv'))
+    df = pd.read_csv(os.path.join(path, 'test_data.csv'))
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
         cols = values.columns.tolist()
         cols.remove('y_test')
         cols.remove('y_test_pred')
-        cols.remove('std_test_cal')
-        cols.remove('loglikelihood_test')
+        cols.remove('std_cal')
+        cols.remove('loglikelihood')
         cols.remove('split_id')
 
         parallel(

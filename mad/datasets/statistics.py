@@ -79,7 +79,7 @@ def folds(save, low_flag=None):
     save = os.path.join(save, 'aggregate')
 
     # Load
-    df_path = os.path.join(save, 'data.csv')
+    df_path = os.path.join(save, 'test_data.csv')
     df = pd.read_csv(df_path)
     dfstats = stats(df, ['index', 'model', 'scaler', 'spliter'])
 

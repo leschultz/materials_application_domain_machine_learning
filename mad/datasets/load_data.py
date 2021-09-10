@@ -56,11 +56,11 @@ def super_cond():
 
     # Dataset information
     df = 'Supercon_data_features_selected.xlsx'
-    target = 'Tc'
+    target = 'ln(Tc)'
     drop_cols = [
                  'name',
                  'group',
-                 'ln(Tc)',
+                 'Tc',
                  ]
 
     return load(df, target, drop_cols)

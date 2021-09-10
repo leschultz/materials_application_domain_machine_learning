@@ -15,7 +15,7 @@ def binner(i, data, save, points, sampling):
     name = os.path.join(save, 'loglikelihood')
     name += '_{}'.format(i)
 
-    df = data[[i, 'loglikelihood_test']].copy()
+    df = data[[i, 'loglikelihood']].copy()
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -44,7 +44,7 @@ def binner(i, data, save, points, sampling):
         if values.empty:
             continue
 
-        llh = np.mean(values['loglikelihood_test'].values)
+        llh = np.mean(values['loglikelihood'].values)
         moderr = np.mean(values[i].values)
         count = values[i].values.shape[0]
 
@@ -92,15 +92,15 @@ def make_plots(save, points, sampling):
     groups = ['scaler', 'model', 'spliter']
     drop_cols = groups+['pipe', 'index']
 
-    df = pd.read_csv(os.path.join(path, 'data.csv'))
+    df = pd.read_csv(os.path.join(path, 'test_data.csv'))
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
         cols = values.columns.tolist()
         cols.remove('y_test')
         cols.remove('y_test_pred')
-        cols.remove('std_test_cal')
-        cols.remove('loglikelihood_test')
+        cols.remove('std_cal')
+        cols.remove('loglikelihood')
         cols.remove('split_id')
 
         parallel(

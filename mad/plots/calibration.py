@@ -27,7 +27,7 @@ def set_llh(df, x):
     Compute the log likelihood for a dataset.
     '''
 
-    std = df['std_test'].values
+    std = df['std'].values
     res = df['y_test'].values-df['y_test_pred'].values
 
     opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
@@ -160,11 +160,11 @@ def make_plots(save, points, sampling):
     groups = ['scaler', 'model', 'spliter']
     drop_cols = groups+['pipe', 'index']
 
-    df = pd.read_csv(os.path.join(path, 'data.csv'))
+    df = pd.read_csv(os.path.join(path, 'test_data.csv'))
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = ['std_test']
+        cols = ['std']
 
         parallel(
                  binner,
