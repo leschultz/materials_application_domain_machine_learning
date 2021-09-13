@@ -1,7 +1,9 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso
 from sklearn import cluster
 
+from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import GridSearchCV
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.preprocessing import StandardScaler
@@ -46,8 +48,9 @@ class ml_test(unittest.TestCase):
         model = GaussianProcessRegressor()
         grid = {}
         grid['model__alpha'] = np.logspace(-2, 2, 5)
-        grid['model__kernel'] = [RBF()]
-        pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
+        grid['model__kernel'] = [RBF()] 
+        selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
+        pipe = Pipeline(steps=[('scaler', scale), ('select', selector), ('model', model)])
         gpr = GridSearchCV(pipe, grid, cv=inner_split)
 
         # Random forest regression
@@ -56,7 +59,8 @@ class ml_test(unittest.TestCase):
         grid['model__n_estimators'] = [100]
         grid['model__max_features'] = [None]
         grid['model__max_depth'] = [None]
-        pipe = Pipeline(steps=[('scaler', scale), ('model', model)])
+        selector = SelectFromModel(model, threshold=-np.inf, max_features=2)
+        pipe = Pipeline(steps=[('scaler', scale), ('select', selector), ('model', model)])
         rf = GridSearchCV(pipe, grid, cv=inner_split)
 
         # Make pipeline

@@ -39,7 +39,7 @@ def set_llh(std, y, y_pred, x):
     return a, b
 
 
-def distance_link(X_train, X_test, dist_type, scaler=True):
+def distance_link(X_train, X_test, dist_type):
     '''
     Get the distances based on a metric.
 
@@ -51,12 +51,6 @@ def distance_link(X_train, X_test, dist_type, scaler=True):
     ouputs:
         dists = A dictionary of distances.
     '''
-
-    if scaler:
-        scaler = StandardScaler()
-        scaler.fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_test = scaler.transform(X_test)
 
     dists = {}
     if dist_type == 'mahalanobis':
@@ -134,14 +128,7 @@ def inner(indx, X, y, pipes, save):
     X_train, X_test = X[tr_indx], X[te_indx]
     y_train, y_test = y[tr_indx], y[te_indx]
 
-    # Calculate distances from test set cases to traning set
-    dists = {}
-    for key, value in distance(X_train, X_test).items():
-        if key in dists:
-            dists[key] += list(value)
-        else:
-            dists[key] = list(value)
-
+    # Do ML for each outer fold
     trains = []
     tests = []
     for pipe in pipes:
@@ -151,26 +138,28 @@ def inner(indx, X, y, pipes, save):
 
         pipe.fit(X_train, y_train)
         pipe_best = pipe.best_estimator_
-
-        pipe_best_model = pipe_best.named_steps['model']
         pipe_best_scaler = pipe_best.named_steps['scaler']
+        pipe_best_select = pipe_best.named_steps['select']
+        pipe_best_model = pipe_best.named_steps['model']
 
         model_type = pipe_best_model.__class__.__name__
         scaler_type = pipe_best_scaler.__class__.__name__
         split_type = pipe.cv.__class__.__name__
+
+        X_test_trans = pipe_best_scaler.transform(X_test)
+        X_train_trans = pipe_best_scaler.transform(X_train)
+        X_train_select = pipe_best_select.transform(X_train_trans)
+        X_test_select = pipe_best_select.transform(X_test_trans)
 
         # If model is random forest regressor
         if model_type == 'RandomForestRegressor':
             y_test_pred = pipe_best.predict(X_test)
             y_train_pred = pipe_best.predict(X_train)
 
-            X_test_trans = pipe_best_scaler.transform(X_test)
-            X_train_trans = pipe_best_scaler.transform(X_train)
-            pipe_estimators = pipe_best_model.estimators_
-
             # Ensemble predictions
-            std_test = [i.predict(X_test_trans) for i in pipe_estimators]
-            std_train = [i.predict(X_train_trans) for i in pipe_estimators]
+            pipe_estimators = pipe_best_model.estimators_
+            std_test = [i.predict(X_test_select) for i in pipe_estimators]
+            std_train = [i.predict(X_train_select) for i in pipe_estimators]
 
             std_test = np.std(std_test, axis=0)
             std_train = np.std(std_train, axis=0)
@@ -205,6 +194,14 @@ def inner(indx, X, y, pipes, save):
             train['loglikelihood'] = llh_vals_train
             test['std_cal'] = std_test_cal
             test['loglikelihood'] = llh_vals_test
+
+        # Calculate distances from test set cases to traning set
+        dists = {}
+        for key, value in distance(X_train_select, X_test_select).items():
+            if key in dists:
+                dists[key] += list(value)
+            else:
+                dists[key] = list(value)
 
         # Assign values that should be the same
         train['pipe'] = test['pipe'] = pipe
