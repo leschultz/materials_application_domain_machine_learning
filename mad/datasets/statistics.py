@@ -15,21 +15,22 @@ def eval_reg_metrics(groups):
 
     group, df = groups
 
-    y = df['y_test']
-    y_pred = df['y_test_pred']
+    y = df['y']
+    y_pred = df['y_pred']
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
     rmse_sig = rmse/np.std(y)
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, spliter, split_id, flag = group
+    model, scaler, spliter, split_id, features, flag = group
 
     results = {}
     results['model'] = model
     results['scaler'] = scaler
     results['spliter'] = spliter
     results['split_id'] = split_id
+    results['features'] = features
     results[r'$RMSE$'] = rmse
     results[r'$RMSE/\sigma$'] = rmse_sig
     results[r'$MAE$'] = mae
@@ -81,7 +82,7 @@ def folds(save, low_flag=None):
     # Load
     df_path = os.path.join(save, 'test_data.csv')
     df = pd.read_csv(df_path)
-    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter', 'features'])
 
     if low_flag:
         dfstats['flag'] = dfstats['logpdf_mean'] <= low_flag
@@ -99,12 +100,19 @@ def folds(save, low_flag=None):
                               'scaler',
                               'spliter',
                               'split_id',
+                              'features',
                               'flag'
                               ])
 
     # Get statistics
     metsstats = mets.drop('split_id', axis=1)
-    metsstats = stats(metsstats, ['model', 'scaler', 'spliter', 'flag'])
+    metsstats = stats(metsstats, [
+                                  'model',
+                                  'scaler',
+                                  'spliter',
+                                  'features',
+                                  'flag'
+                                  ])
 
     # Save data
     df.to_csv(df_path, index=False)

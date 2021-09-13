@@ -11,7 +11,7 @@ from mad.functions import parallel
 def make_plots(save, show=False):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'spliter']
+    groups = ['scaler', 'model', 'spliter', 'features']
 
     df = pd.read_csv(os.path.join(path, 'data_stats.csv'))
     for group, values in df.groupby(groups):
@@ -24,6 +24,7 @@ def make_plots(save, show=False):
         ax.set_xlabel('Mean logpdf')
         fig.tight_layout()
 
+        group = list(map(str, group))
         new_path = os.path.join(path, '_'.join(group))
         os.makedirs(new_path, exist_ok=True)
 

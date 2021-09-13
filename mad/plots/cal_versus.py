@@ -15,7 +15,7 @@ def binner(i, data, save, points, sampling):
     name = os.path.join(save, 'calrmse')
     name += '_{}'.format(i)
 
-    df = data[[i, 'y_test', 'y_test_pred', 'std_cal']].copy()
+    df = data[[i, 'y', 'y_pred', 'std_cal']].copy()
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -44,10 +44,10 @@ def binner(i, data, save, points, sampling):
         if values.empty:
             continue
 
-        y = values['y_test'].values
-        y_test_pred = values['y_test_pred'].values
+        y = values['y'].values
+        y_pred = values['y_pred'].values
 
-        rmse = abs(y-y_test_pred)
+        rmse = abs(y-y_pred)
         std = metrics.mean_squared_error(
                                          rmse,
                                          values['std_cal']
@@ -101,7 +101,7 @@ def binner(i, data, save, points, sampling):
 def make_plots(save, points, sampling):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'spliter']
+    groups = ['scaler', 'model', 'spliter', 'features']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'test_data.csv'))
@@ -109,12 +109,13 @@ def make_plots(save, points, sampling):
 
         values.drop(drop_cols, axis=1, inplace=True)
         cols = values.columns.tolist()
-        cols.remove('y_test')
-        cols.remove('y_test_pred')
+        cols.remove('y')
+        cols.remove('y_pred')
         cols.remove('std_cal')
         cols.remove('loglikelihood')
         cols.remove('split_id')
 
+        group = list(map(str, group))
         parallel(
                  binner,
                  cols,

@@ -117,7 +117,7 @@ def make_plots(save, low_flag=None):
     df = os.path.join(path, 'data_stats.csv')
     mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'spliter', 'flag']
+    groups = ['scaler', 'model', 'spliter', 'features', 'flag']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
@@ -125,7 +125,8 @@ def make_plots(save, low_flag=None):
 
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = '_'.join(d[0][:-1])
+        name = list(map(str, d[0][:-1]))
+        name = '_'.join(name)
         new_path = os.path.join(*[path, name, 'Flag_{}'.format(d[0][-1])])
 
         d = d[1]
@@ -136,9 +137,9 @@ def make_plots(save, low_flag=None):
 
         parity(
                m,
-               d['y_test_mean'],
-               d['y_test_pred_mean'],
-               d['y_test_pred_sem'],
+               d['y_mean'],
+               d['y_pred_mean'],
+               d['y_pred_sem'],
                '',
                '',
                new_path

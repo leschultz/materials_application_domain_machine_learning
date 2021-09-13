@@ -1,7 +1,6 @@
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
 from scipy.stats import gaussian_kde
-from scipy.optimize import minimize
 
 import pandas as pd
 import numpy as np
@@ -9,34 +8,7 @@ import numpy as np
 import random
 import os
 
-from mad.functions import parallel
-
-
-def llh(std, res, x):
-    '''
-    Compute the log likelihood.
-    '''
-
-    total = np.log(2*np.pi)
-    total += 2*np.log(x[0]*std+x[1])
-    total += (res**2)/((x[0]*std+x[1])**2)
-    total *= -0.5/len(std)
-
-    return total
-
-
-def set_llh(std, y, y_pred, x):
-    '''
-    Compute the log likelihood for a dataset.
-    '''
-
-    res = y-y_pred
-
-    # Get negative to use minimization instead of maximization of llh
-    opt = minimize(lambda x: -sum(llh(std, res, x)), x, method='nelder-mead')
-    a, b = opt.x
-
-    return a, b
+from mad.functions import parallel, llh, set_llh
 
 
 def distance_link(X_train, X_test, dist_type):
@@ -151,6 +123,8 @@ def inner(indx, X, y, pipes, save):
         X_train_select = pipe_best_select.transform(X_train_trans)
         X_test_select = pipe_best_select.transform(X_test_trans)
 
+        n_features = X_train_select.shape[-1]
+
         # If model is random forest regressor
         if model_type == 'RandomForestRegressor':
             y_test_pred = pipe_best.predict(X_test)
@@ -207,17 +181,18 @@ def inner(indx, X, y, pipes, save):
         train['pipe'] = test['pipe'] = pipe
         train['model'] = test['model'] = model_type
         train['scaler'] = test['scaler'] = scaler_type
+        train['features'] = test['features'] = n_features
         train['splitter'] = test['spliter'] = split_type
         train['split_id'] = test['split_id'] = count
 
         # Training data
-        train['y_train'] = y_train
-        train['y_train_pred'] = y_train_pred
+        train['y'] = y_train
+        train['y_pred'] = y_train_pred
         train['index'] = tr_indx
 
         # Testing data
-        test['y_test'] = y_test
-        test['y_test_pred'] = y_test_pred
+        test['y'] = y_test
+        test['y_pred'] = y_test_pred
         test['index'] = te_indx
 
         test.update(dists)  # Only include distances in test

@@ -97,7 +97,7 @@ def binner(i, data, actual, pred, save, points, sampling):
 def make_plots(save, points, sampling):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'spliter']
+    groups = ['scaler', 'model', 'spliter', 'features']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'test_data.csv'))
@@ -105,18 +105,19 @@ def make_plots(save, points, sampling):
 
         values.drop(drop_cols, axis=1, inplace=True)
         cols = values.columns.tolist()
-        cols.remove('y_test')
-        cols.remove('y_test_pred')
+        cols.remove('y')
+        cols.remove('y_pred')
         cols.remove('std_cal')
         cols.remove('loglikelihood')
         cols.remove('split_id')
 
+        group = list(map(str, group))
         parallel(
                  binner,
                  cols,
                  data=values,
-                 actual='y_test',
-                 pred='y_test_pred',
+                 actual='y',
+                 pred='y_pred',
                  save=os.path.join(path, '_'.join(group)),
                  points=points,
                  sampling=sampling

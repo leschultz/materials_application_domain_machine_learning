@@ -1,41 +1,11 @@
 from matplotlib import pyplot as pl
-from scipy.optimize import minimize
 from sklearn import metrics
 import pandas as pd
 import numpy as np
 import json
 import os
 
-from mad.functions import parallel
-
-
-def llh(std, res, x):
-    '''
-    Compute the log likelihood for a case. Function modified
-    for minimization task.
-    '''
-
-    sigma = x[0]*std+x[1]  # Functional for true std
-    total = 2*np.log(sigma)
-    total += (res**2)/(sigma**2)
-
-    return total
-
-
-def set_llh(df, x):
-    '''
-    Compute the log likelihood for a dataset.
-    '''
-
-    std = df['std'].values
-    res = df['y_test'].values-df['y_test_pred'].values
-
-    opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
-    a, b = opt.x
-
-    likes = llh(std, res, opt.x)
-
-    return a, b, likes
+from mad.functions import parallel, llh, set_llh
 
 
 def binner(i, data, actual, pred, save, points, sampling):
@@ -63,8 +33,11 @@ def binner(i, data, actual, pred, save, points, sampling):
 
         df = pd.concat(df)
 
-    a, b, likes = set_llh(df, [0, 1])
-    df['loglikelihood'] = likes
+    std = df['std'].values
+    y = df['y'].values
+    y_pred = df['y_pred'].values
+    a, b = set_llh(std, y, y_pred, [0, 1])
+    df['loglikelihood'] = a*std+b
 
     # Statistics
     rmses = []
@@ -157,7 +130,7 @@ def binner(i, data, actual, pred, save, points, sampling):
 def make_plots(save, points, sampling):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'spliter']
+    groups = ['scaler', 'model', 'spliter', 'features']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'test_data.csv'))
@@ -166,12 +139,13 @@ def make_plots(save, points, sampling):
         values.drop(drop_cols, axis=1, inplace=True)
         cols = ['std']
 
+        group = list(map(str, group))
         parallel(
                  binner,
                  cols,
                  data=values,
-                 actual='y_test',
-                 pred='y_test_pred',
+                 actual='y',
+                 pred='y_pred',
                  save=os.path.join(path, '_'.join(group)),
                  points=points,
                  sampling=sampling
