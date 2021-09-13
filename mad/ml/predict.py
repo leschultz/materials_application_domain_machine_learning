@@ -20,7 +20,7 @@ def llh(std, res, x):
     total = np.log(2*np.pi)
     total += 2*np.log(x[0]*std+x[1])
     total += (res**2)/((x[0]*std+x[1])**2)
-    total *= -0.5
+    total *= -0.5/len(std)
 
     return total
 
@@ -30,15 +30,13 @@ def set_llh(std, y, y_pred, x):
     Compute the log likelihood for a dataset.
     '''
 
-    std = std
     res = y-y_pred
 
+    # Get negative to use minimization instead of maximization of llh
     opt = minimize(lambda x: -sum(llh(std, res, x)), x, method='nelder-mead')
     a, b = opt.x
 
-    likes = llh(std, res, opt.x)
-
-    return a, b, likes
+    return a, b
 
 
 def distance_link(X_train, X_test, dist_type, scaler=True):
@@ -195,7 +193,7 @@ def inner(indx, X, y, pipes, save):
         if 'std' in test.keys():
 
             # Calibration
-            a, b, likes = set_llh(std_train, y_train, y_train_pred, [0, 1])
+            a, b = set_llh(std_train, y_train, y_train_pred, [0, 1])
             std_train_cal = a*std_train+b
             std_test_cal = a*std_test+b
 
