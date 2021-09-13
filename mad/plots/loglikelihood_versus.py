@@ -44,7 +44,7 @@ def binner(i, data, save, points, sampling):
         if values.empty:
             continue
 
-        llh = np.mean(values['loglikelihood'].values)
+        llh = -np.mean(values['loglikelihood'].values)
         moderr = np.mean(values[i].values)
         count = values[i].values.shape[0]
 
@@ -56,16 +56,22 @@ def binner(i, data, save, points, sampling):
     moderrs = np.array(moderrs)
     llhs = np.array(llhs)
 
-    xlabel = '{}'.format(i).capitalize()
-    xlabel = xlabel.replace('_', ' ')
+    xlabel = '{}'.format(i)
+    if 'logpdf' == i:
+        xlabel = 'Negative '+xlabel
+        moderrs = -1*moderrs
+    else:
+        xlabel = xlabel.capitalize()
+        xlabel = xlabel.replace('_', ' ')
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
+
     fig, ax = pl.subplots(2)
 
     ax[0].plot(moderrs, llhs, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$LogLikelihood$')
+    ax[0].set_ylabel(r'Negative $LogLikelihood$')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')

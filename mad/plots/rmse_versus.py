@@ -59,8 +59,13 @@ def binner(i, data, actual, pred, save, points, sampling):
     moderrs = np.array(moderrs)
     rmses = np.array(rmses)
 
-    xlabel = '{}'.format(i).capitalize()
-    xlabel = xlabel.replace('_', ' ')
+    xlabel = '{}'.format(i)
+    if 'logpdf' == i:
+        xlabel = 'Negative '+xlabel
+        moderrs = -1*moderrs
+    else:
+        xlabel = xlabel.capitalize()
+        xlabel = xlabel.replace('_', ' ')
 
     widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
     fig, ax = pl.subplots(2)

@@ -14,13 +14,13 @@ from mad.functions import parallel
 
 def llh(std, res, x):
     '''
-    Compute the log likelihood for a case. Function modified
-    for minimization task.
+    Compute the log likelihood.
     '''
 
     total = np.log(2*np.pi)
     total += 2*np.log(x[0]*std+x[1])
     total += (res**2)/((x[0]*std+x[1])**2)
+    total *= -0.5
 
     return total
 
@@ -33,7 +33,7 @@ def set_llh(std, y, y_pred, x):
     std = std
     res = y-y_pred
 
-    opt = minimize(lambda x: sum(llh(std, res, x)), x, method='nelder-mead')
+    opt = minimize(lambda x: -sum(llh(std, res, x)), x, method='nelder-mead')
     a, b = opt.x
 
     likes = llh(std, res, opt.x)
