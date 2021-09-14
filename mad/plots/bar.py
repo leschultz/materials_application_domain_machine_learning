@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def graphic(save, set_name, show):
+def graphic(save, x, set_name, show):
 
     path = os.path.join(save, 'aggregate')
     groups = ['scaler', 'model', 'splitter', 'features']
@@ -16,15 +16,15 @@ def graphic(save, set_name, show):
     df = pd.read_csv(os.path.join(path, set_name+'_data_stats.csv'))
     for group, values in df.groupby(groups):
 
-        if 'logpdf_mean' not in values.columns:
+        if x+'_mean' not in values.columns:
             continue
 
-        vals = sorted(values['logpdf_mean'].values)
+        vals = sorted(values[x+'_mean'].values)
         fig, ax = pl.subplots()
         ax.bar(range(len(vals)), vals)
 
         ax.set_ylabel('Counts')
-        ax.set_xlabel('Mean logpdf')
+        ax.set_xlabel(x.capitalize())
         fig.tight_layout()
 
         group = list(map(str, group))
@@ -34,7 +34,7 @@ def graphic(save, set_name, show):
 
         fig.savefig(os.path.join(
                                  new_path,
-                                 'logpdf'
+                                 x
                                  ))
 
         if show:
@@ -43,5 +43,7 @@ def graphic(save, set_name, show):
 
 def make_plots(save, show=False):
 
-    graphic(save, 'test', show)
-    graphic(save, 'train', show)
+    graphic(save, 'logpdf', 'test', show)
+    graphic(save, 'logpdf', 'train', show)
+    graphic(save, 'loglikelihood', 'test', show)
+    graphic(save, 'loglikelihood', 'train', show)
