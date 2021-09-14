@@ -152,6 +152,10 @@ def inner(indx, X, y, pipes, save):
             train['std'] = std_train
             test['std'] = std_test
 
+        else:
+            y_test_pred = pipe_best.predict(X_test)
+            y_train_pred = pipe_best.predict(X_train)
+
         # Add std calibrated here and include as distance metric
         if 'std' in test.keys():
 

@@ -99,15 +99,16 @@ def make_plots(save, points, sampling):
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'test_data.csv'))
+    remove = {'y', 'y_pred', 'split_id', 'loglikelihood'}
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = values.columns.tolist()
-        cols.remove('y')
-        cols.remove('y_pred')
-        cols.remove('std_cal')
-        cols.remove('loglikelihood')
-        cols.remove('split_id')
+        cols = set(values.columns.tolist())
+
+        if 'loglikelihood' not in cols:
+            continue
+
+        cols = cols.difference(remove)
 
         group = list(map(str, group))
         parallel(

@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import rmse_versus, cal_versus, loglikelihood_versus
+from mad.plots import rmse_versus, loglikelihood_versus
 from mad.plots import kde, parity, calibration
 from mad.plots import logpdf
 from mad.ml import splitters, predict
@@ -46,7 +46,11 @@ def main():
     grid['model__alpha'] = np.logspace(-2, 2, 5)
     grid['model__kernel'] = [RBF()]
     selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
-    pipe = Pipeline(steps=[('scaler', scale), ('select', selector), ('model', model)])
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
     gpr = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Random forest regression
@@ -55,12 +59,28 @@ def main():
     grid['model__n_estimators'] = [100]
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
-    selector = SelectFromModel(model, threshold=-np.inf, max_features=2)
-    pipe = Pipeline(steps=[('scaler', scale), ('select', selector), ('model', model)])
+    selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
     rf = GridSearchCV(pipe, grid, cv=inner_split)
 
+    # Do LASSO
+    model = Lasso()
+    grid = {}
+    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
+    lasso = GridSearchCV(pipe, grid, cv=inner_split)
+
     # Make pipeline
-    pipes = [gpr, rf]
+    pipes = [gpr, rf, lasso]
 
     # Evaluate
     predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
@@ -70,7 +90,6 @@ def main():
     statistics.folds(save, low_flag=-65)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
     rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
-    cal_versus.make_plots(save, points, sampling)  # Calibrated vs metrics
     loglikelihood_versus.make_plots(save, points, sampling)  # likelihood
     calibration.make_plots(save, points, sampling)  # Global calibration plots
     kde.make_plots(df, save)  # Global KDE plots

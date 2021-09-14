@@ -137,12 +137,13 @@ def make_plots(save, points, sampling):
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = ['std']
+        if 'std' not in values.columns:
+            continue
 
         group = list(map(str, group))
         parallel(
                  binner,
-                 cols,
+                 ['std'],
                  data=values,
                  actual='y',
                  pred='y_pred',
