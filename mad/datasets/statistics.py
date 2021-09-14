@@ -23,12 +23,12 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, spliter, split_id, features, flag = group
+    model, scaler, splitter, split_id, features, flag = group
 
     results = {}
     results['model'] = model
     results['scaler'] = scaler
-    results['spliter'] = spliter
+    results['splitter'] = splitter
     results['split_id'] = split_id
     results['features'] = features
     results[r'$RMSE$'] = rmse
@@ -68,7 +68,7 @@ def stats(df, cols):
     return df
 
 
-def folds(save, low_flag=None):
+def folds_opperation(save, file_name, low_flag):
     '''
     Save the true values, predicted values, distances, and model error.
 
@@ -80,11 +80,11 @@ def folds(save, low_flag=None):
     save = os.path.join(save, 'aggregate')
 
     # Load
-    df_path = os.path.join(save, 'test_data.csv')
+    df_path = os.path.join(save, file_name)
     df = pd.read_csv(df_path)
-    dfstats = stats(df, ['index', 'model', 'scaler', 'spliter', 'features'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'splitter', 'features'])
 
-    if low_flag:
+    if isinstance(low_flag, float) & ('logpdf_mean' in dfstats.columns):
         dfstats['flag'] = dfstats['logpdf_mean'] <= low_flag
 
         if 'flag' in df.columns:
@@ -98,7 +98,7 @@ def folds(save, low_flag=None):
     mets = group_metrics(df, [
                               'model',
                               'scaler',
-                              'spliter',
+                              'splitter',
                               'split_id',
                               'features',
                               'flag'
@@ -109,22 +109,36 @@ def folds(save, low_flag=None):
     metsstats = stats(metsstats, [
                                   'model',
                                   'scaler',
-                                  'spliter',
+                                  'splitter',
                                   'features',
                                   'flag'
                                   ])
 
     # Save data
     df.to_csv(df_path, index=False)
+    set_type = file_name.split('_')[0]
     dfstats.to_csv(
-                   os.path.join(save, 'data_stats.csv'),
+                   os.path.join(save, set_type+'_data_stats.csv'),
                    index=False
                    )
     mets.to_csv(
-                os.path.join(save, 'metrics.csv'),
+                os.path.join(save, set_type+'_metrics.csv'),
                 index=False
                 )
     metsstats.to_csv(
-                     os.path.join(save, 'metrics_stats.csv'),
+                     os.path.join(save, set_type+'_metrics_stats.csv'),
                      index=False
                      )
+
+
+def folds(save, low_flag=None):
+    '''
+    Save the true values, predicted values, distances, and model error.
+
+    inputs:
+        save = The directory to save and where split data are.
+        low_flag = Flagg all values with less than this logpdf.
+    '''
+
+    folds_opperation(save, 'test_data.csv', low_flag)
+    folds_opperation(save, 'train_data.csv', low_flag)

@@ -127,13 +127,13 @@ def binner(i, data, actual, pred, save, points, sampling):
         json.dump(data, handle)
 
 
-def make_plots(save, points, sampling):
+def graphics(save, set_type, points, sampling):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'spliter', 'features']
+    groups = ['scaler', 'model', 'splitter', 'features']
     drop_cols = groups+['pipe', 'index']
 
-    df = pd.read_csv(os.path.join(path, 'test_data.csv'))
+    df = pd.read_csv(os.path.join(path, set_type+'_data.csv'))
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
@@ -141,6 +141,7 @@ def make_plots(save, points, sampling):
             continue
 
         group = list(map(str, group))
+        group.append(set_type)
         parallel(
                  binner,
                  ['std'],
@@ -151,3 +152,8 @@ def make_plots(save, points, sampling):
                  points=points,
                  sampling=sampling
                  )
+
+
+def make_plots(save, points, sampling):
+    graphics(save, 'test', points, sampling)
+    graphics(save, 'train', points, sampling)

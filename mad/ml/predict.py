@@ -186,7 +186,7 @@ def inner(indx, X, y, pipes, save):
         train['model'] = test['model'] = model_type
         train['scaler'] = test['scaler'] = scaler_type
         train['features'] = test['features'] = n_features
-        train['splitter'] = test['spliter'] = split_type
+        train['splitter'] = test['splitter'] = split_type
         train['split_id'] = test['split_id'] = count
 
         # Training data
