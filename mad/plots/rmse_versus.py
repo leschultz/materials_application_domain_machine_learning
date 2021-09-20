@@ -97,7 +97,7 @@ def binner(i, data, actual, pred, save, points, sampling):
 def graphics(save, set_type, points, sampling):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'splitter', 'features']
+    groups = ['scaler', 'model', 'splitter']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, set_type+'_data.csv'))
