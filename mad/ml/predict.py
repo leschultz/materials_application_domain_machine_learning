@@ -2,6 +2,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
 from scipy.stats import gaussian_kde
 
+import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 
@@ -33,13 +34,15 @@ def distance_link(X_train, X_test, dist_type):
         dists[dist_type+'_mean'] = np.mean(dist, axis=0)
         dists[dist_type+'_max'] = np.max(dist, axis=0)
         dists[dist_type+'_min'] = np.min(dist, axis=0)
+
     elif dist_type == 'logpdf':
 
-        X_train = X_train.T
-        X_test = X_test.T
-
-        gaus = gaussian_kde(X_train)
-        dist = gaus.logpdf(X_test)
+        col_types = 'c'*X_train.shape[-1]
+        model = sm.nonparametric.KDEMultivariate(
+                                                 X_train,
+                                                 var_type=col_types
+                                                 )
+        dist = model.pdf(X_test)
         dists[dist_type] = dist
 
     else:
