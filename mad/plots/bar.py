@@ -11,7 +11,7 @@ from mad.functions import parallel
 def graphic(save, x, set_name, show):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'splitter', 'features']
+    groups = ['scaler', 'model', 'splitter']
 
     df = pd.read_csv(os.path.join(path, set_name+'_data_stats.csv'))
     for group, values in df.groupby(groups):

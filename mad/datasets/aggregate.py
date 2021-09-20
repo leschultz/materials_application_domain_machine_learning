@@ -6,6 +6,17 @@ import os
 from mad.functions import parallel
 
 
+def try_load(df):
+    '''
+    A function to try to load a dataset.
+    '''
+
+    try:
+        return pd.read_csv(df)
+    except Exception:
+        pass
+
+
 def folds(save, low_flag=None):
     '''
     Save aggregate data.
@@ -20,8 +31,8 @@ def folds(save, low_flag=None):
     test_paths = list(Path(save).rglob('test_split_*.csv'))
 
     # Load
-    df_train = pd.concat(parallel(pd.read_csv, train_paths))
-    df_test = pd.concat(parallel(pd.read_csv, test_paths))
+    df_train = pd.concat(parallel(try_load, train_paths))
+    df_test = pd.concat(parallel(try_load, test_paths))
 
     # Save data
     save = os.path.join(save, 'aggregate')

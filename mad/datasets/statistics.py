@@ -23,14 +23,13 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, splitter, split_id, features, flag = group
+    model, scaler, splitter, split_id, flag = group
 
     results = {}
     results['model'] = model
     results['scaler'] = scaler
     results['splitter'] = splitter
     results['split_id'] = split_id
-    results['features'] = features
     results[r'$RMSE$'] = rmse
     results[r'$RMSE/\sigma$'] = rmse_sig
     results[r'$MAE$'] = mae
@@ -82,7 +81,7 @@ def folds_opperation(save, file_name, low_flag):
     # Load
     df_path = os.path.join(save, file_name)
     df = pd.read_csv(df_path)
-    dfstats = stats(df, ['index', 'model', 'scaler', 'splitter', 'features'])
+    dfstats = stats(df, ['index', 'model', 'scaler', 'splitter'])
 
     if isinstance(low_flag, float) & ('logpdf_mean' in dfstats.columns):
         dfstats['flag'] = dfstats['logpdf_mean'] <= low_flag
@@ -100,7 +99,6 @@ def folds_opperation(save, file_name, low_flag):
                               'scaler',
                               'splitter',
                               'split_id',
-                              'features',
                               'flag'
                               ])
 
@@ -110,7 +108,6 @@ def folds_opperation(save, file_name, low_flag):
                                   'model',
                                   'scaler',
                                   'splitter',
-                                  'features',
                                   'flag'
                                   ])
 
