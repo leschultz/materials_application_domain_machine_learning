@@ -42,7 +42,7 @@ def distance_link(X_train, X_test, dist_type):
                                                  X_train,
                                                  var_type=col_types
                                                  )
-        dist = model.pdf(X_test)
+        dist = np.log(model.pdf(X_test))
         dists[dist_type] = dist
 
     else:
