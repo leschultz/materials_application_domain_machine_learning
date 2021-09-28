@@ -61,13 +61,14 @@ def super_cond():
     # Dataset information
     df = 'Supercon_data_features_selected.xlsx'
     target = 'ln(Tc)'
+    class_name = 'group'
     drop_cols = [
                  'name',
                  'group',
                  'Tc',
                  ]
 
-    return load(df, target, drop_cols)
+    return load(df, target, drop_cols, class_name)
 
 
 def diffusion():
