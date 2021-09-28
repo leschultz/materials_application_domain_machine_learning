@@ -13,7 +13,7 @@ from mad.datasets import load_data, aggregate, statistics
 from mad.plots import rmse_versus, loglikelihood_versus
 from mad.plots import kde, parity, calibration
 from mad.plots import bar
-from mad.ml import splitters, predict
+from mad.ml import splitters, predict, feature_selectors
 
 import numpy as np
 
@@ -38,6 +38,7 @@ def main():
     scale = StandardScaler()
     inner_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
     outer_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
+    selector = feature_selectors.no_selection()
 
     # Gaussian process regression
     kernel = RBF()
@@ -45,7 +46,6 @@ def main():
     grid = {}
     grid['model__alpha'] = np.logspace(-2, 2, 5)
     grid['model__kernel'] = [RBF()]
-    selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
@@ -54,12 +54,11 @@ def main():
     gpr = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Random forest regression
-    model = RandomForestRegressor()
     grid = {}
+    model = RandomForestRegressor()
     grid['model__n_estimators'] = [100]
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
-    selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
@@ -71,7 +70,6 @@ def main():
     model = Lasso()
     grid = {}
     grid['model__alpha'] = np.logspace(-2, 2, 5)
-    selector = SelectFromModel(Lasso(), threshold=-np.inf, max_features=2)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
