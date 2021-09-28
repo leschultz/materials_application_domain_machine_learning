@@ -5,19 +5,24 @@ import os
 data_path = pkg_resources.resource_filename('mad', 'datasets/data')
 
 
-def load(df, target, drop_cols=None):
+def load(df, target, drop_cols=None, class_name=None):
     '''
     Returns data for regression task
     '''
 
     path = os.path.join(data_path, df)
+    data = {}
 
     if '.csv' == df[-4:]:
         df = pd.read_csv(path)
     else:
         df = pd.read_excel(path, engine='openpyxl')
 
+    if class_name:
+        data['class_name'] = df[class_name].values
+
     if drop_cols:
+        data['dropped'] = df[drop_cols]
         df.drop(drop_cols, axis=1, inplace=True)
 
     # Prepare data
@@ -26,7 +31,6 @@ def load(df, target, drop_cols=None):
     X = X.values
     y = df[target].values
 
-    data = {}
     data['data'] = X
     data['target'] = y
     data['feature_names'] = X_names
@@ -74,13 +78,14 @@ def diffusion():
     # Dataset information
     df = 'Diffusion_Data_haijinlogfeaturesnobarrier_alldata.xlsx'
     target = 'E_regression'
+    class_name = 'Material compositions 2'
     drop_cols = [
                  'Material compositions 1',
                  'Material compositions 2',
                  'E_regression_shift',
                  ]
 
-    return load(df, target, drop_cols)
+    return load(df, target, drop_cols, class_name)
 
 
 def perovskite_stability():

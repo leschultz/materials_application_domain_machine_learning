@@ -42,7 +42,13 @@ def distance_link(X_train, X_test, dist_type):
                                                  X_train,
                                                  var_type=col_types
                                                  )
-        dist = np.log(model.pdf(X_test))
+        dist = model.pdf(X_test)
+        dist = np.log(dist)
+
+        # Correct return of data
+        if isinstance(dist, np.float64):
+            dist = [dist]
+
         dists[dist_type] = dist
 
     else:
@@ -224,7 +230,7 @@ def inner(indx, X, y, pipes, save):
     pd.concat(tests).to_csv(test_name, index=False)
 
 
-def outer(split, pipes, X, y, save):
+def outer(split, pipes, X, y, save, groups):
     '''
     Save the true values, predicted values, distances, and model error.
 
@@ -233,7 +239,8 @@ def outer(split, pipes, X, y, save):
         pipes = The machine learning pipeline.
         X = The feature matrix.
         y = The target values.
-        save = The directory to save values
+        save = The directory to save values.
+        groups = The class to group by.
     '''
 
     # Output directory creation
@@ -241,7 +248,11 @@ def outer(split, pipes, X, y, save):
     os.makedirs(save, exist_ok=True)
 
     # Gather split data in parallel
-    splits = list(split.split(X))
+    if groups is not None:
+        splits = list(split.split(X, y, groups))
+    else:
+        splits = list(split.split(X))
+
     counts = list(range(len(splits)))
     parallel(
              inner,
@@ -253,7 +264,7 @@ def outer(split, pipes, X, y, save):
              )
 
 
-def run(X, y, split, pipes, save, seed=1):
+def run(X, y, split, pipes, save, seed=1, groups=None):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
@@ -265,4 +276,4 @@ def run(X, y, split, pipes, save, seed=1):
     random.seed(seed)
 
     # Nested CV
-    outer(split, pipes, X, y, save)
+    outer(split, pipes, X, y, save, groups)

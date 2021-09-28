@@ -8,13 +8,6 @@ class split:
     A class used to handle splitter types.
     '''
 
-    def repkf(*argv, **kargv):
-        '''
-        Repeated K-fold cross validation.
-        '''
-
-        return RepeatedKFold(*argv, **kargv)
-
     def repcf(*argv, **kargv):
         '''
         Custom cluster splitter by fraction.
@@ -25,7 +18,7 @@ class split:
 
 class RepeatedClusterSplit:
     '''
-    Custom slitting class which pre-clusters data and then splits on a
+    Custom splitting class which pre-clusters data and then splits on a
     fraction.
     '''
 
