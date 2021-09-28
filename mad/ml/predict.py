@@ -128,12 +128,13 @@ def inner(indx, X, y, pipes, save):
 
         n_features = X_train_select.shape[-1]
 
-        # If model is random forest regressor
-        if model_type == 'RandomForestRegressor':
+        # If model is ensemble regressor
+        ensemble_methods = ['RandomForestRegressor', 'BaggingRegressor']
+        if model_type in ensemble_methods:
             y_test_pred = pipe_best.predict(X_test)
             y_train_pred = pipe_best.predict(X_train)
 
-            # Ensemble predictions
+            # Ensemble predictions with correct feature set
             pipe_estimators = pipe_best_model.estimators_
             std_test = [i.predict(X_test_select) for i in pipe_estimators]
             std_train = [i.predict(X_train_select) for i in pipe_estimators]
