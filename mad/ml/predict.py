@@ -97,7 +97,7 @@ def distance(X_train, X_test):
     return dists
 
 
-def inner(indx, X, y, pipes, save):
+def inner(indx, X, y, pipes, save, groups=None):
     '''
     The inner loop from nested cross validation.
     '''
@@ -109,6 +109,9 @@ def inner(indx, X, y, pipes, save):
     X_train, X_test = X[tr_indx], X[te_indx]
     y_train, y_test = y[tr_indx], y[te_indx]
 
+    if groups is not None:
+        g_train, g_test = groups[tr_indx], groups[te_indx]
+
     # Do ML for each outer fold
     trains = []
     tests = []
@@ -117,7 +120,11 @@ def inner(indx, X, y, pipes, save):
         train = {}
         test = {}
 
-        pipe.fit(X_train, y_train)
+        if groups is None:
+            pipe.fit(X_train, y_train)
+        else:
+            pipe.fit(X_train, y_train, g_train)
+
         pipe_best = pipe.best_estimator_
         pipe_best_scaler = pipe_best.named_steps['scaler']
         pipe_best_select = pipe_best.named_steps['select']
@@ -230,7 +237,7 @@ def inner(indx, X, y, pipes, save):
     pd.concat(tests).to_csv(test_name, index=False)
 
 
-def outer(split, pipes, X, y, save, groups):
+def outer(split, pipes, X, y, save, groups=None):
     '''
     Save the true values, predicted values, distances, and model error.
 
@@ -261,6 +268,7 @@ def outer(split, pipes, X, y, save, groups):
              y=y,
              pipes=pipes,
              save=save,
+             groups=groups,
              )
 
 

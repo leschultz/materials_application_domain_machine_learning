@@ -44,7 +44,7 @@ def main():
     # ML setup
     scale = StandardScaler()
     outer_split = LeaveOneGroupOut()
-    inner_split = RepeatedKFold(n_splits=5, n_repeats=2)
+    inner_split = LeaveOneGroupOut()
     selector = feature_selectors.no_selection()
 
     # Do LASSO
