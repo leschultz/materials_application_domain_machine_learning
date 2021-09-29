@@ -33,7 +33,7 @@ def llh(std, res, x):
     total = np.log(2*np.pi)
     total += 2*np.log(x[0]*std+x[1])
     total += (res**2)/((x[0]*std+x[1])**2)
-    total *= -0.5/len(std)
+    total *= -0.5
 
     return total
 
@@ -46,7 +46,12 @@ def set_llh(std, y, y_pred, x):
     res = y-y_pred
 
     # Get negative to use minimization instead of maximization of llh
-    opt = minimize(lambda x: -sum(llh(std, res, x)), x, method='nelder-mead')
+    opt = minimize(
+                   lambda x: -sum(llh(std, res, x))/len(res),
+                   x,
+                   method='nelder-mead'
+                   )
+
     a, b = opt.x
 
     return a, b
