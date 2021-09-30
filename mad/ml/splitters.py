@@ -3,17 +3,26 @@ import numpy as np
 import random
 
 
-class split:
+class NoSplit:
     '''
-    A class used to handle splitter types.
+    Class to not split data
     '''
 
-    def repcf(*argv, **kargv):
+    def get_n_splits(self):
         '''
-        Custom cluster splitter by fraction.
+        Should only have one split.
         '''
 
-        return RepeatedClusterSplit(*argv, **kargv)
+        return 1
+
+    def split(self, X, y=None, groups=None):
+        '''
+        The training and testing indexes are the same.
+        '''
+
+        indx = range(X.shape[0])
+
+        yield indx, indx
 
 
 class RepeatedClusterSplit:

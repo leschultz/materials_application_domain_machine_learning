@@ -40,8 +40,8 @@ class ml_test(unittest.TestCase):
 
         # ML setup
         scale = StandardScaler()
-        inner_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
-        outer_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
+        inner_split = splitters.RepeatedClusterSplit(cluster.OPTICS, 5, 2)
+        outer_split = splitters.NoSplit()
         selector = feature_selectors.no_selection()
 
         # Gaussian process regression

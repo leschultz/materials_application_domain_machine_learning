@@ -29,15 +29,15 @@ def main():
     sampling = 'equal'
 
     # Load data
-    data = load_data.diffusion()
+    data = load_data.test()
     df = data['frame']
     X = data['data']
     y = data['target']
 
     # ML setup
     scale = StandardScaler()
-    inner_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
-    outer_split = splitters.split.repcf(cluster.OPTICS, 5, 2)
+    inner_split = splitters.RepeatedClusterSplit(cluster.OPTICS, 5, 2)
+    outer_split = splitters.RepeatedClusterSplit(cluster.OPTICS, 5, 2)
     selector = feature_selectors.no_selection()
 
     # Do LASSO
