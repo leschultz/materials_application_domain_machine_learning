@@ -1,3 +1,4 @@
+import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 import random
@@ -27,15 +28,16 @@ class NoSplit:
 
 class RepeatedClusterSplit:
     '''
-    Custom splitting class which pre-clusters data and then splits on a
-    fraction.
+    Custom splitting class which pre-clusters data and then splits
+    to folds.
     '''
 
     def __init__(self, clust, n_splits, n_repeats, *args, **kwargs):
         '''
         inputs:
             clust = The class of cluster from Scikit-learn.
-            reps = The number of times to apply splitting.
+            n_splits = The number of splits to apply.
+            n_reps = The number of times to apply splitting.
         '''
 
         self.clust = clust(*args, **kwargs)
@@ -95,3 +97,67 @@ class RepeatedClusterSplit:
                 test = te.index.tolist()
 
                 yield train, test
+
+
+class PDFSplit:
+    '''
+    Custom splitting class which groups data on a multivariate probability
+    distribution function and then splits to folds. Folds should have
+    least probable cases.
+    '''
+
+    def __init__(self, n_splits, *args, **kwargs):
+        '''
+        inputs:
+            n_splits = The number of splits to apply.
+        '''
+
+        self.n_splits = n_splits
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        '''
+        A method to return the number of splits.
+        '''
+
+        return self.n_splits
+
+    def split(self, X, y=None, groups=None):
+        '''
+        Cluster data, randomize cluster order, randomize case order,
+        and then split into train and test sets self.reps number of times.
+
+        inputs:
+            X = The features.
+        outputs:
+            A generator for train and test splits.
+        '''
+
+        # Do group based on pdf
+        col_types = 'c'*X.shape[-1]  # Assume continuous features
+        model = sm.nonparametric.KDEMultivariate(
+                                                 X,
+                                                 var_type=col_types
+                                                 )
+        dist = model.pdf(X)
+
+        # Correct return of data
+        if isinstance(dist, np.float64):
+            dist = [dist]
+
+        df = {'dist': dist, 'index': list(range(X.shape[0]))}
+        df = pd.DataFrame(df)
+        df.sort_values(by='dist', inplace=True)
+
+        df = np.array_split(df, self.n_splits)
+        range_splits = range(self.n_splits)
+
+        for i in range_splits:
+
+            te = df[i]  # Test
+            tr = pd.concat(df[:i]+df[i+1:])  # Train
+
+            # Get the indexes
+            train = tr.index.tolist()
+            test = te.index.tolist()
+
+            yield train, test

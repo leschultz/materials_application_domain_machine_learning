@@ -1,9 +1,7 @@
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
 from sklearn import cluster
 
-from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.feature_selection import RFE
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -19,9 +17,6 @@ from mad.ml import splitters, predict, feature_selectors
 
 import numpy as np
 
-import warnings
-warnings.filterwarnings('ignore')
-
 
 def main():
     '''
@@ -35,15 +30,14 @@ def main():
 
     # Load data
     data = load_data.diffusion()
-    grouping = data['class_name']
     df = data['frame']
     X = data['data']
     y = data['target']
 
     # ML setup
     scale = StandardScaler()
-    outer_split = LeaveOneGroupOut()
-    inner_split = LeaveOneGroupOut()
+    inner_split = splitters.PDFSplit(100)
+    outer_split = splitters.PDFSplit(100)
     selector = feature_selectors.no_selection()
 
     # Do LASSO
@@ -61,7 +55,7 @@ def main():
     pipes = [lasso]
 
     # Evaluate
-    predict.run(X, y, outer_split, pipes, save, seed, groups=grouping)
+    predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
     bar.make_plots(save)  # Make logpdf plot for outlier cutoff
