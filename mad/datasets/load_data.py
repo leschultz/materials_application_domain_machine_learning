@@ -77,13 +77,14 @@ def diffusion():
     '''
 
     # Dataset information
-    df = 'Diffusion_Data_haijinlogfeaturesnobarrier_alldata.xlsx'
+    df = 'Diffusion_Data.csv'
     target = 'E_regression'
-    class_name = 'Material compositions 2'
+    class_name = 'group'
     drop_cols = [
                  'Material compositions 1',
                  'Material compositions 2',
                  'E_regression_shift',
+                 'group'
                  ]
 
     return load(df, target, drop_cols, class_name)
