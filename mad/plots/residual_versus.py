@@ -12,7 +12,7 @@ def binner(i, data, actual, pred, save, points, sampling):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'rmse')
+    name = os.path.join(save, 'residual')
     name += '_{}'.format(i)
 
     df = data[[i, actual, pred]].copy()
@@ -50,7 +50,7 @@ def binner(i, data, actual, pred, save, points, sampling):
         x = values[actual].values
         y = values[pred].values
 
-        rmse = metrics.mean_squared_error(x, y)**0.5
+        rmse = np.mean(x-y)
         moderr = np.mean(values[i].values)
         count = values[i].values.shape[0]
 
@@ -76,7 +76,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
     ax[1].bar(moderrs, counts, widths)
 
-    ax[0].set_ylabel(r'$RMSE(y,\hat{y})$')
+    ax[0].set_ylabel(r'$y-\hat{y}$')
 
     ax[1].set_xlabel(xlabel)
     ax[1].set_ylabel('Counts')
@@ -88,7 +88,7 @@ def binner(i, data, actual, pred, save, points, sampling):
     pl.close('all')
 
     data = {}
-    data[r'$RMSE$'] = list(rmses)
+    data['residual'] = list(rmses)
     data[xlabel] = list(moderrs)
     data['Counts'] = list(counts)
 

@@ -34,6 +34,9 @@ def binner(i, data, save, points, sampling):
 
         df = pd.concat(df)
 
+    else:
+        df['bin'] = list(range(df.shape[0]))  # Each point a bin
+
     # Statistics
     llhs = []
     moderrs = []
@@ -122,6 +125,6 @@ def graphics(save, set_type, points, sampling):
                  )
 
 
-def make_plots(save, points, sampling):
+def make_plots(save, points=None, sampling=None):
     graphics(save, 'test', points, sampling)
     graphics(save, 'train', points, sampling)
