@@ -8,7 +8,23 @@ import os
 from mad.functions import parallel
 
 
-def find_bin(df):
+def operation(y, y_pred, llh, op):
+    '''
+    Returns the desired y-axis.
+    '''
+
+    if op == 'residual':
+        return np.mean(y-y_pred)
+    elif op == 'rmse':
+        if isinstance(y, float) and isinstance(y_pred, float):
+            y = [y]
+            y_pred = [y_pred]
+        return metrics.mean_squared_error(y, y_pred)**0.5
+    elif op == 'llh':
+        return -np.mean(llh)
+
+
+def find_bin(df, i, sampling, points):
 
     if sampling == 'even':
         df['bin'] = pd.cut(
@@ -27,64 +43,133 @@ def find_bin(df):
 
         df = pd.concat(df)
 
-    else:
-        df['bin'] = list(range(df.shape[0]))  # Each point a bin
+    return df
 
 
-def binner(i, data, actual, pred, save, points, sampling):
+def binner(i, data, actual, pred, save, points, sampling, ops):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, 'residual')
+    name = os.path.join(save, ops)
     name += '_{}'.format(i)
 
-    df = data[[i, actual, pred]].copy()
-    df = find_bin(df)  # Bin the data
+    df = data[[i, actual, pred, 'set', 'loglikelihood']].copy()
+    train = df.loc[df['set'] == 'train'].copy()
+    test = df.loc[df['set'] == 'test'].copy()
 
-    # Statistics
-    rmses = []
-    moderrs = []
-    bins = []
-    counts = []
-    for group, values in df.groupby('bin'):
+    # Get bin averaging
+    if (sampling is not None) and (points is not None):
 
-        if values.empty:
-            continue
+        # Bin individually by set
+        train = find_bin(train, i, sampling, points)  # Bin the data
+        test = find_bin(test, i, sampling, points)  # Bin the data
+        df = pd.concat([test, train])
 
-        x = values[actual].values
-        y = values[pred].values
+        ys_train = []
+        xs_train = []
+        ys_test = []
+        xs_test = []
+        counts_train = []
+        counts_test = []
 
-        rmse = np.mean(x-y)
-        moderr = np.mean(values[i].values)
-        count = values[i].values.shape[0]
+        for group, values in df.groupby('bin'):
 
-        rmses.append(rmse)
-        moderrs.append(moderr)
-        bins.append(group)
-        counts.append(count)
+            if values.empty:
+                continue
 
-    moderrs = np.array(moderrs)
-    rmses = np.array(rmses)
+            train = values.loc[values['set'] == 'train']
+            test = values.loc[values['set'] == 'test']
+
+            x_train = train[actual].values
+            y_train = train[pred].values
+
+            x_test = test[actual].values
+            y_test = test[pred].values
+
+            llh_train = train['loglikelihood'].values
+            llh_test = test['loglikelihood'].values
+
+            y_train = operation(x_train, y_train, llh_train, ops)
+            x_train = np.mean(train[i].values)
+
+            y_test = operation(x_test, y_test, llh_test, ops)
+            x_test = np.mean(test[i].values)
+
+            count_train = train[i].values.shape[0]
+            count_test = test[i].values.shape[0]
+
+            ys_train.append(y_train)
+            xs_train.append(x_train)
+
+            ys_test.append(y_test)
+            xs_test.append(x_test)
+
+            counts_train.append(count_train)
+            counts_test.append(count_test)
+
+        ys_train = np.array(ys_train)
+        xs_train = np.array(xs_train)
+
+        ys_test = np.array(ys_test)
+        xs_test = np.array(xs_test)
+
+    else:
+
+        ys_train = zip(train[actual], train[pred], train['loglikelihood'])
+        ys_test = zip(test[actual], test[pred], test['loglikelihood'])
+
+        ys_train = [operation(i, j, k, ops) for i, j, k in ys_train]
+        ys_test = [operation(i, j, k, ops) for i, j, k in ys_test]
+
+        xs_train = train[i].values
+        xs_test = test[i].values
 
     xlabel = '{}'.format(i)
     if 'logpdf' == i:
         xlabel = 'Negative '+xlabel
-        moderrs = -1*moderrs
+
+        xs_test = -1*xs_test
+        xs_train = -1*xs_train
     else:
         xlabel = xlabel.capitalize()
         xlabel = xlabel.replace('_', ' ')
 
-    widths = (max(moderrs)-min(moderrs))/len(moderrs)*0.5
-    fig, ax = pl.subplots(2)
+    if ops == 'residual':
+        ylabel = r'$y-\hat{y}$'
+    elif ops == 'rmse':
+        ylabel = r'$RMSE(y, \hat{y})$'
+    elif ops == 'llh':
+        ylabel = '- Log Likelihood'
 
-    ax[0].plot(moderrs, rmses, marker='.', linestyle='none')
-    ax[1].bar(moderrs, counts, widths)
+    if (sampling is not None) and (points is not None):
 
-    ax[0].set_ylabel(r'$y-\hat{y}$')
+        widths_train = (max(xs_train)-min(xs_train))/len(xs_train)*0.5
+        widths_test = (max(xs_test)-min(xs_test))/len(xs_test)*0.5
 
-    ax[1].set_xlabel(xlabel)
-    ax[1].set_ylabel('Counts')
-    ax[1].set_yscale('log')
+        fig, ax = pl.subplots(2)
+
+        ax[0].scatter(xs_train, ys_train, marker='2', label='Train')
+        ax[0].scatter(xs_test, ys_test, marker='.', label='Test')
+
+        ax[1].bar(xs_train, counts_train, widths_train, label='Train')
+        ax[1].bar(xs_test, counts_test, widths_test, label='Test')
+
+        ax[0].set_ylabel(ylabel)
+
+        ax[1].set_xlabel(xlabel)
+        ax[1].set_ylabel('Counts')
+        ax[1].set_yscale('log')
+
+        ax[0].legend()
+        ax[1].legend()
+
+    else:
+        fig, ax = pl.subplots()
+        ax.scatter(xs_test, ys_test, marker='.', label='Test')
+        ax.scatter(xs_train, ys_train, marker='2', label='Train')
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel(xlabel)
+        ax.legend()
 
     fig.tight_layout()
     fig.savefig(name)
@@ -92,16 +177,21 @@ def binner(i, data, actual, pred, save, points, sampling):
     pl.close('all')
 
     data = {}
-    data['residual'] = list(rmses)
-    data[xlabel] = list(moderrs)
-    data['Counts'] = list(counts)
+    data[ops+'_train'] = list(ys_train)
+    data[xlabel+'_train'] = list(xs_train)
+    data[ops+'_test'] = list(ys_test)
+    data[xlabel+'_test'] = list(xs_test)
+
+    if (sampling is not None) and (points is not None):
+        data['counts_test'] = list(counts_test)
+        data['counts_train'] = list(counts_train)
 
     jsonfile = name+'.json'
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 
 
-def graphics(save, points, sampling):
+def graphics(save, points, sampling, ops):
 
     path = os.path.join(save, 'aggregate')
     groups = ['scaler', 'model', 'splitter']
@@ -115,7 +205,19 @@ def graphics(save, points, sampling):
 
     df = pd.concat([train, test])
 
-    remove = {'y', 'y_pred', 'split_id', 'flag'}
+    # Do not include on x axis
+    remove = {
+              'y',
+              'y_pred',
+              'split_id',
+              'flag',
+              'set',
+              'std',
+              'std_cal',
+              'features',
+              'loglikelihood'
+              }
+
     for group, values in df.groupby(groups):
 
         values.drop(drop_cols, axis=1, inplace=True)
@@ -131,9 +233,12 @@ def graphics(save, points, sampling):
                  pred='y_pred',
                  save=os.path.join(path, '_'.join(group)),
                  points=points,
-                 sampling=sampling
+                 sampling=sampling,
+                 ops=ops
                  )
 
 
 def make_plots(save, points=None, sampling=None):
-    graphics(save, points, sampling)
+    graphics(save, points, sampling, ops='residual')
+    graphics(save, points, sampling, ops='rmse')
+    graphics(save, points, sampling, ops='llh')
