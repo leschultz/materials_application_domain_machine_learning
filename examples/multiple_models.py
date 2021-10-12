@@ -85,7 +85,7 @@ def main():
     statistics.folds(save)  # Gather statistics from data
     statistics.folds(save, low_flag=-65)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    versus.make_plots(save, points, sampling)  # RMSE vs metrics
+    versus.make_plots(save, points, sampling)
     kde.make_plots(df, save)  # Global KDE plots
 
 

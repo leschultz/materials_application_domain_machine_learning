@@ -64,7 +64,7 @@ def main():
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    versus.make_plots(save, points, sampling)  # RMSE vs metrics
+    versus.make_plots(save, points, sampling)
 
 
 if __name__ == '__main__':
