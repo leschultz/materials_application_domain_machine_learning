@@ -24,8 +24,8 @@ def main():
 
     seed = 14987
     save = 'run'
-    points = 10
-    sampling = 'equal'
+    points = None
+    sampling = None
 
     # Load data
     data = load_data.diffusion()
@@ -35,8 +35,8 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    inner_split = splitters.PDFSplit(10)
-    outer_split = splitters.PDFSplit(10)
+    inner_split = splitters.RepeatedPDFSplit(5, 10)
+    outer_split = splitters.RepeatedPDFSplit(5, 10)
     selector = feature_selectors.no_selection()
 
     # Do LASSO
