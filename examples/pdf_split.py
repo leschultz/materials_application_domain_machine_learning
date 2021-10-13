@@ -1,3 +1,4 @@
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
 from sklearn import cluster
@@ -35,9 +36,22 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    inner_split = splitters.RepeatedPDFSplit(0.8, 10)
-    outer_split = splitters.RepeatedPDFSplit(0.8, 10)
+    inner_split = splitters.RepeatedPDFSplit(0.2, 10)
+    outer_split = splitters.RepeatedPDFSplit(0.2, 10)
     selector = feature_selectors.no_selection()
+
+    # Random forest regression
+    grid = {}
+    model = RandomForestRegressor()
+    grid['model__n_estimators'] = [100]
+    grid['model__max_features'] = [None]
+    grid['model__max_depth'] = [None]
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
+    rf = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Do LASSO
     model = BaggingRegressor(base_estimator=Lasso())
@@ -51,7 +65,7 @@ def main():
     lasso = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Make pipeline
-    pipes = [lasso]
+    pipes = [lasso, rf]
 
     # Evaluate
     predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML

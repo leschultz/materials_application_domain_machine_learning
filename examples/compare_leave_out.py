@@ -81,7 +81,7 @@ def main():
     # ML setup
     scale = StandardScaler()
     outer_split = RepeatedKFold(5, 10)
-    inner_split = RepeatedKFold(5, 2)
+    inner_split = RepeatedKFold(5, 10)
     selector = feature_selectors.no_selection()
 
     # Do LASSO
@@ -113,6 +113,43 @@ def main():
 
     # Evaluate
     new_save = os.path.join(save, 'repkfold')
+    predict.run(X, y, outer_split, pipes, new_save, seed, groups=grouping)
+
+    # ML setup
+    scale = StandardScaler()
+    inner_split = splitters.RepeatedPDFSplit(0.2, 10)
+    outer_split = splitters.RepeatedPDFSplit(0.2, 10)
+    selector = feature_selectors.no_selection()
+
+    # Do LASSO
+    model = BaggingRegressor(base_estimator=Lasso())
+    grid = {}
+    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
+    lasso = GridSearchCV(pipe, grid, cv=inner_split)
+
+    # Random forest regression
+    grid = {}
+    model = RandomForestRegressor()
+    grid['model__n_estimators'] = [100]
+    grid['model__max_features'] = [None]
+    grid['model__max_depth'] = [None]
+    pipe = Pipeline(steps=[
+                           ('scaler', scale),
+                           ('select', selector),
+                           ('model', model)
+                           ])
+    rf = GridSearchCV(pipe, grid, cv=inner_split)
+
+    # Make pipeline
+    pipes = [lasso, rf]
+
+    # Evaluate
+    new_save = os.path.join(save, 'reppdfout')
     predict.run(X, y, outer_split, pipes, new_save, seed, groups=grouping)
 
     # Combine and analyize data together
