@@ -38,7 +38,7 @@ class RepeatedClusterSplit:
         inputs:
             clust = The class of cluster from Scikit-learn.
             n_splits = The number of splits to apply.
-            n_reps = The number of times to apply splitting.
+            n_repeats = The number of times to apply splitting.
         '''
 
         self.clust = clust(*args, **kwargs)
@@ -107,13 +107,14 @@ class RepeatedPDFSplit:
     least probable cases.
     '''
 
-    def __init__(self, n_splits, n_repeats, *args, **kwargs):
+    def __init__(self, frac, n_repeats, *args, **kwargs):
         '''
         inputs:
-            n_splits = The number of splits to apply.
+            frac = The fraction of the split.
+            n_repeats = The number of times to apply splitting.
         '''
 
-        self.n_splits = n_splits
+        self.frac = frac
         self.n_repeats = n_repeats
 
     def get_n_splits(self, X=None, y=None, groups=None):
@@ -121,7 +122,7 @@ class RepeatedPDFSplit:
         A method to return the number of splits.
         '''
 
-        return self.n_splits*self.n_repeats
+        return self.n_repeats
 
     def split(self, X, y=None, groups=None):
         '''
@@ -136,6 +137,7 @@ class RepeatedPDFSplit:
 
         for i in range(self.n_repeats):
 
+            # Sample with replacement
             X = resample(X)
 
             # Do group based on pdf
@@ -154,16 +156,8 @@ class RepeatedPDFSplit:
             df = pd.DataFrame(df)
             df.sort_values(by='dist', inplace=True)
 
-            df = np.array_split(df, self.n_splits)
-            range_splits = range(self.n_splits)
+            split = int(df.shape[0]*self.frac)
+            test = df[split:].index.tolist()
+            train = df[:split].index.tolist()
 
-            for i in range_splits:
-
-                te = df[i]  # Test
-                tr = pd.concat(df[:i]+df[i+1:])  # Train
-
-                # Get the indexes
-                train = tr.index.tolist()
-                test = te.index.tolist()
-
-                yield train, test
+            yield train, test

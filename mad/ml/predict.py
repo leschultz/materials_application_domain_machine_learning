@@ -68,6 +68,7 @@ def distance(X_train, X_test):
 
     selected = [
                 'logpdf',
+                'mahalanobis',
                 'euclidean',
                 'minkowski',
                 'cityblock',

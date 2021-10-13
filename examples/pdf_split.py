@@ -35,8 +35,8 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    inner_split = splitters.RepeatedPDFSplit(5, 10)
-    outer_split = splitters.RepeatedPDFSplit(5, 10)
+    inner_split = splitters.RepeatedPDFSplit(0.8, 10)
+    outer_split = splitters.RepeatedPDFSplit(0.8, 10)
     selector = feature_selectors.no_selection()
 
     # Do LASSO
