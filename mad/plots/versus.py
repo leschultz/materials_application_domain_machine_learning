@@ -19,7 +19,10 @@ def operation(y, y_pred, llh, std, std_cal, op):
         if isinstance(y, float) and isinstance(y_pred, float):
             y = [y]
             y_pred = [y_pred]
-        return metrics.mean_squared_error(y, y_pred)**0.5
+        if len(y) == 0:
+            return np.nan
+        else:
+            return metrics.mean_squared_error(y, y_pred)**0.5
     elif op == 'llh':
         return -np.mean(llh)
     elif op == 'std':
@@ -87,6 +90,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
         for group, values in df.groupby('bin'):
 
+            # Compensate for empty bins
             if values.empty:
                 continue
 
@@ -273,6 +277,7 @@ def graphics(save, points, sampling, ops):
 
     for group, values in df.groupby(groups):
 
+        print('Plotting set {} for {}'.format(group, ops))
         values.drop(drop_cols, axis=1, inplace=True)
         cols = set(values.columns.tolist())
         cols = cols.difference(remove)
