@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def operation(y, y_pred, llh, op):
+def operation(y, y_pred, llh, std, std_cal, op):
     '''
     Returns the desired y-axis.
     '''
@@ -22,6 +22,10 @@ def operation(y, y_pred, llh, op):
         return metrics.mean_squared_error(y, y_pred)**0.5
     elif op == 'llh':
         return -np.mean(llh)
+    elif op == 'std':
+        return np.mean(std)
+    elif op == 'std_cal':
+        return np.mean(std_cal)
 
 
 def find_bin(df, i, sampling, points):
@@ -53,7 +57,16 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
     name = os.path.join(save, ops)
     name += '_{}'.format(i)
 
-    df = data[[i, actual, pred, 'set', 'loglikelihood']].copy()
+    df = data[[
+               i,
+               actual,
+               pred,
+               'set',
+               'loglikelihood',
+               'std',
+               'std_cal'
+               ]].copy()
+
     train = df.loc[df['set'] == 'train'].copy()
     test = df.loc[df['set'] == 'test'].copy()
 
@@ -89,10 +102,30 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             llh_train = train['loglikelihood'].values
             llh_test = test['loglikelihood'].values
 
-            y_train = operation(x_train, y_train, llh_train, ops)
+            std_train = train['std'].values
+            std_test = test['std'].values
+
+            std_cal_train = train['std_cal'].values
+            std_cal_test = test['std_cal'].values
+
+            y_train = operation(
+                                x_train,
+                                y_train,
+                                llh_train,
+                                std_train,
+                                std_cal_train,
+                                ops
+                                )
             x_train = np.mean(train[i].values)
 
-            y_test = operation(x_test, y_test, llh_test, ops)
+            y_test = operation(
+                               x_test,
+                               y_test,
+                               llh_test,
+                               std_test,
+                               std_cal_test,
+                               ops
+                               )
             x_test = np.mean(test[i].values)
 
             count_train = train[i].values.shape[0]
@@ -115,11 +148,23 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     else:
 
-        ys_train = zip(train[actual], train[pred], train['loglikelihood'])
-        ys_test = zip(test[actual], test[pred], test['loglikelihood'])
+        ys_train = zip(
+                       train[actual],
+                       train[pred],
+                       train['loglikelihood'],
+                       train['std'],
+                       train['std_cal']
+                       )
+        ys_test = zip(
+                      test[actual],
+                      test[pred],
+                      test['loglikelihood'],
+                      test['std'],
+                      test['std_cal']
+                      )
 
-        ys_train = [operation(i, j, k, ops) for i, j, k in ys_train]
-        ys_test = [operation(i, j, k, ops) for i, j, k in ys_test]
+        ys_train = [operation(*i, ops) for i in ys_train]
+        ys_test = [operation(*i, ops) for i in ys_test]
 
         xs_train = train[i].values
         xs_test = test[i].values
@@ -140,6 +185,10 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         ylabel = r'$RMSE(y, \hat{y})$'
     elif ops == 'llh':
         ylabel = '- Log Likelihood'
+    elif ops == 'std':
+        ylabel = r'$\sigma$'
+    elif ops == 'std_cal':
+        ylabel = r'$\sigma_{cal}$'
 
     if (sampling is not None) and (points is not None):
 
@@ -205,6 +254,10 @@ def graphics(save, points, sampling, ops):
 
     df = pd.concat([train, test])
 
+    # Filter for bad columns.
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.dropna(axis='columns', inplace=True)
+
     # Do not include on x axis
     remove = {
               'y',
@@ -242,3 +295,5 @@ def make_plots(save, points=None, sampling=None):
     graphics(save, points, sampling, ops='residual')
     graphics(save, points, sampling, ops='rmse')
     graphics(save, points, sampling, ops='llh')
+    graphics(save, points, sampling, ops='std_cal')
+    graphics(save, points, sampling, ops='std')
