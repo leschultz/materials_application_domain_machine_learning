@@ -201,11 +201,11 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
         fig, ax = pl.subplots(2)
 
-        ax[0].scatter(xs_train, ys_train, marker='2', label='Train')
-        ax[0].scatter(xs_test, ys_test, marker='.', label='Test')
+        ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='Test')
+        ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='Train')
 
-        ax[1].bar(xs_train, counts_train, widths_train, label='Train')
-        ax[1].bar(xs_test, counts_test, widths_test, label='Test')
+        ax[1].bar(xs_train, counts_train, widths_train, color='b', label='Train')
+        ax[1].bar(xs_test, counts_test, widths_test, color='r', label='Test')
 
         ax[0].set_ylabel(ylabel)
 
@@ -218,8 +218,8 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     else:
         fig, ax = pl.subplots()
-        ax.scatter(xs_test, ys_test, marker='.', label='Test')
-        ax.scatter(xs_train, ys_train, marker='2', label='Train')
+        ax.scatter(xs_test, ys_test, marker='.', color='r', label='Test')
+        ax.scatter(xs_train, ys_train, marker='2', color='b', label='Train')
         ax.set_ylabel(ylabel)
         ax.set_xlabel(xlabel)
         ax.legend()

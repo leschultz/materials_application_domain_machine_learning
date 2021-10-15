@@ -1,5 +1,6 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
 from sklearn import cluster
 
@@ -66,9 +67,9 @@ def main():
     rf = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Do LASSO
-    model = Lasso()
+    model = BaggingRegressor(base_estimator=Lasso())
     grid = {}
-    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
