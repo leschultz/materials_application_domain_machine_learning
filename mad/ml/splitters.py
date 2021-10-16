@@ -25,9 +25,9 @@ class NoSplit:
 
         yield indx, indx
 
-class LeaveOneGroupOutKSplit:
+class BootstrappedLeaveOneGroupOut:
     '''
-    Custom splitting class which with every iteration of n_repeats it will bootstrap the dataset with replacement and leave every group out once.
+    Custom splitting class which with every iteration of n_repeats it will bootstrap the dataset with replacement and leave every group out once with a given class column.
     '''
 
     def __init__(self, n_repeats, *args, **kwargs):
@@ -52,7 +52,6 @@ class LeaveOneGroupOutKSplit:
         grouping_df =  pd.DataFrame(grouping, columns=['group'])
         unique_groups = list(set(groups))
         for rep in range(self.n_repeats):
-            bootstrapped_df = df.copy().sample(frac=1, replace=True, random_state=random_state)
             bootstrapped_grouping = grouping_df.copy().sample(frac=1, replace=True, random_state=random_state)
             for unique_group in unique_groups:
                 if len( bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group]) > 0 :
