@@ -28,6 +28,7 @@ class NoSplit:
 class BootstrappedLeaveOneGroupOut:
     '''
     Custom splitting class which with every iteration of n_repeats it will bootstrap the dataset with replacement and leave every group out once with a given class column.
+    Developed by Angelo Cortez and Yiqi Wang.
     '''
 
     def __init__(self, n_repeats, *args, **kwargs):
