@@ -38,7 +38,7 @@ class BootstrappedLeaveOneGroupOut:
         '''
         self.n_repeats = n_repeats
 
-    def get_n_splits(self, X=None, y=None, groups):
+    def get_n_splits(self, groups, X=None, y=None):
         '''
         A method to return the O(N) number of splits.
         '''
@@ -50,7 +50,7 @@ class BootstrappedLeaveOneGroupOut:
         '''
         random_state = 0
         df = pd.DataFrame(X)
-        grouping_df =  pd.DataFrame(grouping, columns=['group'])
+        grouping_df =  pd.DataFrame(groups, columns=['group'])
         unique_groups = list(set(groups))
         for rep in range(self.n_repeats):
             bootstrapped_grouping = grouping_df.copy().sample(frac=1, replace=True, random_state=random_state)
