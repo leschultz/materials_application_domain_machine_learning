@@ -25,6 +25,45 @@ class NoSplit:
 
         yield indx, indx
 
+class LeaveOneGroupOutKSplit:
+    '''
+    
+    '''
+
+    def __init__(self, n_repeats, *args, **kwargs):
+        '''
+        inputs:
+            n_repeats = The number of times to apply splitting.
+        '''
+        self.n_repeats = n_repeats
+
+    def get_n_splits(self, X=None, y=None, groups):
+        '''
+        A method to return the O(N) number of splits.
+        '''
+        return self.n_repeats * len(set(groups))
+
+    def split(self, X, y=None, groups=None):
+        '''
+        For every iteration, leave every group out as the testing set one time. 
+        
+        '''
+        random_state = 0
+        df = pd.DataFrame(X)
+        grouping_df =  pd.DataFrame(grouping, columns=['group'])
+        unique_groups = list(set(groups))
+        for rep in range(self.n_repeats):
+            bootstrapped_df = df.copy().sample(frac=1, replace=True, random_state=random_state)
+            bootstrapped_grouping = grouping_df.copy().sample(frac=1, replace=True, random_state=random_state)
+            for unique_group in unique_groups:
+                if len( bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group]) > 0 :
+                    test = bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group].index.tolist()
+                    train = bootstrapped_grouping[bootstrapped_grouping['group'] != unique_group].index.tolist()
+                    yield train,test
+            random_state += 1
+
+    
+
 
 class RepeatedClusterSplit:
     '''
