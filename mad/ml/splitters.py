@@ -27,7 +27,7 @@ class NoSplit:
 
 class LeaveOneGroupOutKSplit:
     '''
-    
+    Custom splitting class which with every iteration of n_repeats it will bootstrap the dataset with replacement and leave every group out once.
     '''
 
     def __init__(self, n_repeats, *args, **kwargs):
@@ -46,7 +46,6 @@ class LeaveOneGroupOutKSplit:
     def split(self, X, y=None, groups=None):
         '''
         For every iteration, leave every group out as the testing set one time. 
-        
         '''
         random_state = 0
         df = pd.DataFrame(X)
