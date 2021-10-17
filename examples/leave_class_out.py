@@ -10,9 +10,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import aggregate, statistics
-from mad.plots import rmse_versus, loglikelihood_versus
-from mad.plots import parity, calibration
-from mad.plots import bar
+from mad.plots import versus
+from mad.plots import parity
 
 from mad.datasets import load_data
 from mad.ml import splitters, predict, feature_selectors
@@ -64,11 +63,8 @@ def main():
     predict.run(X, y, outer_split, pipes, save, seed, groups=grouping)
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
-    bar.make_plots(save)  # Make logpdf plot for outlier cutoff
     parity.make_plots(save)  # Make parity plots
-    rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
-    loglikelihood_versus.make_plots(save, points, sampling)  # likelihood
-    calibration.make_plots(save, points, sampling)  # Global calibration plots
+    versus.make_plots(save, points, sampling)
 
 
 if __name__ == '__main__':

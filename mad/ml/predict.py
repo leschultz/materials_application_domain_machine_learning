@@ -68,6 +68,7 @@ def distance(X_train, X_test):
 
     selected = [
                 'logpdf',
+                'mahalanobis',
                 'euclidean',
                 'minkowski',
                 'cityblock',
@@ -191,12 +192,20 @@ def inner(indx, X, y, pipes, save, groups=None):
             test['loglikelihood'] = llh_vals_test
 
         # Calculate distances from test set cases to traning set
-        dists = {}
+        dists_test = {}
         for key, value in distance(X_train_select, X_test_select).items():
-            if key in dists:
-                dists[key] += list(value)
+            if key in dists_test:
+                dists_test[key] += list(value)
             else:
-                dists[key] = list(value)
+                dists_test[key] = list(value)
+
+        # Calculate the distances from train set cases to training set
+        dists_train = {}
+        for key, value in distance(X_train_select, X_train_select).items():
+            if key in dists_train:
+                dists_train[key] += list(value)
+            else:
+                dists_train[key] = list(value)
 
         # Assign values that should be the same
         train['pipe'] = test['pipe'] = pipe
@@ -216,7 +225,8 @@ def inner(indx, X, y, pipes, save, groups=None):
         test['y_pred'] = y_test_pred
         test['index'] = te_indx
 
-        test.update(dists)  # Only include distances in test
+        train.update(dists_train)
+        test.update(dists_test)
 
         train = pd.DataFrame(train)
         test = pd.DataFrame(test)

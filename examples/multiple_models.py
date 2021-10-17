@@ -1,5 +1,6 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
 from sklearn import cluster
 
@@ -10,9 +11,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import rmse_versus, loglikelihood_versus
-from mad.plots import kde, parity, calibration
-from mad.plots import bar
+from mad.plots import versus
+from mad.plots import kde, parity
 from mad.ml import splitters, predict, feature_selectors
 
 import numpy as np
@@ -67,9 +67,9 @@ def main():
     rf = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Do LASSO
-    model = Lasso()
+    model = BaggingRegressor(base_estimator=Lasso())
     grid = {}
-    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
@@ -84,12 +84,9 @@ def main():
     predict.run(X, y, outer_split, pipes, save, seed)  # Perform ML
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
-    bar.make_plots(save)  # Make logpdf plot for outlier cutoff
     statistics.folds(save, low_flag=-65)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    rmse_versus.make_plots(save, points, sampling)  # RMSE vs metrics
-    loglikelihood_versus.make_plots(save, points, sampling)  # likelihood
-    calibration.make_plots(save, points, sampling)  # Global calibration plots
+    versus.make_plots(save, points, sampling)
     kde.make_plots(df, save)  # Global KDE plots
 
 

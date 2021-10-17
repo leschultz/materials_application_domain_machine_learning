@@ -1,3 +1,4 @@
+from sklearn.utils import resample
 import statsmodels.api as sm
 import pandas as pd
 import numpy as np
@@ -74,7 +75,7 @@ class RepeatedClusterSplit:
         inputs:
             clust = The class of cluster from Scikit-learn.
             n_splits = The number of splits to apply.
-            n_reps = The number of times to apply splitting.
+            n_repeats = The number of times to apply splitting.
         '''
 
         self.clust = clust(*args, **kwargs)
@@ -136,27 +137,29 @@ class RepeatedClusterSplit:
                 yield train, test
 
 
-class PDFSplit:
+class RepeatedPDFSplit:
     '''
     Custom splitting class which groups data on a multivariate probability
     distribution function and then splits to folds. Folds should have
     least probable cases.
     '''
 
-    def __init__(self, n_splits, *args, **kwargs):
+    def __init__(self, frac, n_repeats, *args, **kwargs):
         '''
         inputs:
-            n_splits = The number of splits to apply.
+            frac = The fraction of the split.
+            n_repeats = The number of times to apply splitting.
         '''
 
-        self.n_splits = n_splits
+        self.frac = frac
+        self.n_repeats = n_repeats
 
     def get_n_splits(self, X=None, y=None, groups=None):
         '''
         A method to return the number of splits.
         '''
 
-        return self.n_splits
+        return self.n_repeats
 
     def split(self, X, y=None, groups=None):
         '''
@@ -169,32 +172,29 @@ class PDFSplit:
             A generator for train and test splits.
         '''
 
-        # Do group based on pdf
-        col_types = 'c'*X.shape[-1]  # Assume continuous features
-        model = sm.nonparametric.KDEMultivariate(
-                                                 X,
-                                                 var_type=col_types
-                                                 )
-        dist = model.pdf(X)
+        for i in range(self.n_repeats):
 
-        # Correct return of data
-        if isinstance(dist, np.float64):
-            dist = [dist]
+            # Sample with replacement
+            X = resample(X)
 
-        df = {'dist': dist, 'index': list(range(X.shape[0]))}
-        df = pd.DataFrame(df)
-        df.sort_values(by='dist', inplace=True)
+            # Do group based on pdf
+            col_types = 'c'*X.shape[-1]  # Assume continuous features
+            model = sm.nonparametric.KDEMultivariate(
+                                                     X,
+                                                     var_type=col_types
+                                                     )
+            dist = model.pdf(X)
 
-        df = np.array_split(df, self.n_splits)
-        range_splits = range(self.n_splits)
+            # Correct return of data
+            if isinstance(dist, np.float64):
+                dist = [dist]
 
-        for i in range_splits:
+            df = {'dist': dist, 'index': list(range(X.shape[0]))}
+            df = pd.DataFrame(df)
+            df.sort_values(by='dist', inplace=True)
 
-            te = df[i]  # Test
-            tr = pd.concat(df[:i]+df[i+1:])  # Train
-
-            # Get the indexes
-            train = tr.index.tolist()
-            test = te.index.tolist()
+            split = int(df.shape[0]*self.frac)
+            test = df[split:].index.tolist()
+            train = df[:split].index.tolist()
 
             yield train, test
