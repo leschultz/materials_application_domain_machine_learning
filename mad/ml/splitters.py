@@ -49,7 +49,6 @@ class BootstrappedLeaveOneGroupOut:
         For every iteration, bootstrap the original dataset, and leave every group out as the testing set one time. 
         '''
         random_state = 0
-        df = pd.DataFrame(X)
         grouping_df =  pd.DataFrame(groups, columns=['group'])
         unique_groups = list(set(groups))
         for rep in range(self.n_repeats):
