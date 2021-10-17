@@ -46,7 +46,7 @@ class BootstrappedLeaveOneGroupOut:
 
     def split(self, X, y=None, groups=None):
         '''
-        For every iteration, leave every group out as the testing set one time. 
+        For every iteration, bootstrap the original dataset, and leave every group out as the testing set one time. 
         '''
         random_state = 0
         df = pd.DataFrame(X)
