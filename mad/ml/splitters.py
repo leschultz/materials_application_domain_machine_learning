@@ -200,8 +200,6 @@ class RepeatedPDFSplit:
             df.sort_values(by='dist', inplace=True)
 
             split = int(df.shape[0]*self.frac)
-            # print(split, '\n'*2)
-            # print(df[split:])
             test = df[split:].index.tolist()
             train = df[:split].index.tolist()
 
