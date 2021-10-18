@@ -203,5 +203,4 @@ class RepeatedPDFSplit:
             test = df[split:].index.tolist()
             train = df[:split].index.tolist()
 
-
             yield train, test
