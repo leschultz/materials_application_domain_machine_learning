@@ -44,7 +44,6 @@ class BootstrappedLeaveOneGroupOut:
         '''
         A method to return the O(N) number of splits.
         '''
-        # print( (groups) )
         return self.n_repeats * len( set( list(self.groups) ))
 
     def split(self, X=None, y=None, groups=None):
@@ -53,19 +52,15 @@ class BootstrappedLeaveOneGroupOut:
         '''
         random_state = 0
         grouping_df =  pd.DataFrame(self.groups, columns=['group'])
-        # print(grouping_df.shape)
         unique_groups = list( set( self.groups ) )
 
         for rep in range(self.n_repeats):
-            # sample(frac=1, replace=True, random_state=random_state)
             bootstrapped_grouping = resample(grouping_df, random_state=random_state)
-
-            for unique_group in unique_groups:
+            for unique_group in unique_groups: 
+                # Check first if the group is in the bootstrapped dataset   
                 if len( bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group]) > 0 :
-
                     test = bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group].index.tolist()
                     train = bootstrapped_grouping[bootstrapped_grouping['group'] != unique_group].index.tolist()
-
                     yield train,test
             random_state += 1
 
