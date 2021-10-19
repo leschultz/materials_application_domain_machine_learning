@@ -36,6 +36,7 @@ class BootstrappedLeaveOneGroupOut:
         '''
         inputs:
             n_repeats = The number of times to apply splitting.
+            groups =  np.array of group classes for the dataset. 
         '''
         self.n_repeats = n_repeats
         self.groups = groups

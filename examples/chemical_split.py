@@ -34,12 +34,11 @@ def main():
     X = data['data']
     y = data['target']
 
-    groups = data['class_name']
-    # print(len(set(groups)))
-    #
+    grouping = data['class_name']
+
     # ML setup
     scale = StandardScaler()
-    outer_split = splitters.BootstrappedLeaveOneGroupOut(10, groups)
+    outer_split = splitters.BootstrappedLeaveOneGroupOut(10, grouping)
     inner_split = splitters.RepeatedPDFSplit(0.3, 10)
     selector = feature_selectors.no_selection()
 
@@ -73,7 +72,7 @@ def main():
     # print(type(X), type(y), type(groups))
 
     # Evaluates
-    predict.run(X, y, outer_split, pipes, save, seed, groups=groups)  # Perform ML
+    predict.run(X, y, outer_split, pipes, save, seed, groups=grouping)  # Perform ML
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
