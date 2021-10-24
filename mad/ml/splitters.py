@@ -40,28 +40,39 @@ class BootstrappedLeaveOneGroupOut:
         '''
         self.n_repeats = n_repeats
         self.groups = groups
+        self.n_splits = self.n_repeats * len( set( list(self.groups) ))
 
     def get_n_splits(self,  X=None, y=None, groups=None):
         '''
         A method to return the O(N) number of splits.
         '''
-        return self.n_repeats * len( set( list(self.groups) ))
+        self.groups = groups
+        self.n_splits = self.n_repeats * len( set( list(self.groups) ))
+        return self.n_splits
 
     def split(self, X=None, y=None, groups=None):
         '''
         For every iteration, bootstrap the original dataset, and leave every group out as the testing set one time.
         '''
+
+        self.group = groups
+        
         random_state = 0
+
         grouping_df =  pd.DataFrame(self.groups, columns=['group'])
         unique_groups = list( set( self.groups ) )
-
+        print("\n")
         for rep in range(self.n_repeats):
+            print("BOOTSTRAPPING \t")
+            print(rep)
             bootstrapped_grouping = resample(grouping_df, random_state=random_state)
             for unique_group in unique_groups: 
                 # Check first if the group is in the bootstrapped dataset   
                 if len( bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group]) > 0 :
                     test = bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group].index.tolist()
                     train = bootstrapped_grouping[bootstrapped_grouping['group'] != unique_group].index.tolist()
+                    print("LO GROUP: "+ unique_group)
+                    print(len(test), len(train))
                     yield train,test
             random_state += 1
 
