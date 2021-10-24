@@ -16,6 +16,8 @@ from mad.datasets import load_data
 from mad.ml import splitters, predict, feature_selectors
 
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
 
 def main():
@@ -38,8 +40,8 @@ def main():
 
     # ML setup
     scale = StandardScaler()
-    outer_split = splitters.BootstrappedLeaveOneGroupOut(10, grouping)
-    inner_split = splitters.RepeatedPDFSplit(0.3, 10)
+    outer_split = splitters.BootstrappedLeaveOneGroupOut(2, grouping)
+    inner_split = splitters.BootstrappedLeaveOneGroupOut(2, grouping)
     selector = feature_selectors.no_selection()
 
     # Random forest regression
@@ -67,7 +69,7 @@ def main():
     lasso = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Make pipeline
-    pipes = [lasso, rf]
+    pipes = [ rf]
 
     # print(type(X), type(y), type(groups))
 
