@@ -16,7 +16,7 @@ packages = setuptools.find_packages()
 install_requires = [
                     'matplotlib',
                     'scipy',
-                    'scikit-learn',
+                    'scikit-learn==0.24.0',
                     'pandas',
                     'numpy',
                     'seaborn',
