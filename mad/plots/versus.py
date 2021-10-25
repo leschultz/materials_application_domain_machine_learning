@@ -174,7 +174,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         xs_test = test[i].values
 
     xlabel = '{}'.format(i)
-    if 'logpdf' == i:
+    if ('logpdf' == i) or ('pdf' == i):
         xlabel = 'Negative '+xlabel
 
         xs_test = -1*xs_test

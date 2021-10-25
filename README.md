@@ -2,6 +2,22 @@
 
 Research with respect to application domain with a materials science emphasis is contained within. The GitHub repo can be found in [here](https://github.com/leschultz/application_domain.git).
 
+## Structure
+The structure of the code packages is as follows:
+
+```
+├── LICENSE
+├── README.md
+├── examples
+├── mad
+│   ├── datasets
+│   │   ├── data
+│   ├── ml
+│   └── plots
+├── setup.py
+└── tests
+```
+
 ## Coding Style
 
 Python scripts follow PEP 8 guidelines. A usefull tool to use to check a coding style is pycodestyle.
@@ -19,4 +35,4 @@ pycodestyle <script>
 ## Acknowledgments
 
 * The Computational Materials Group (CMG) at the University of Wisconsin - Madison
-* Dr. Dane Morgan for computational material science guidence
+* Professor Dane Morgan for computational material science guidence

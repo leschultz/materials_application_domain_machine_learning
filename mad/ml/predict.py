@@ -35,7 +35,7 @@ def distance_link(X_train, X_test, dist_type):
         dists[dist_type+'_max'] = np.max(dist, axis=0)
         dists[dist_type+'_min'] = np.min(dist, axis=0)
 
-    elif dist_type == 'logpdf':
+    elif dist_type == 'pdf':
 
         col_types = 'c'*X_train.shape[-1]
         model = sm.nonparametric.KDEMultivariate(
@@ -43,13 +43,13 @@ def distance_link(X_train, X_test, dist_type):
                                                  var_type=col_types
                                                  )
         dist = model.pdf(X_test)
-        dist = np.log(dist)
 
         # Correct return of data
         if isinstance(dist, np.float64):
             dist = [dist]
 
         dists[dist_type] = dist
+        dists['log'+dist_type] = np.log(dist)
 
     else:
         dist = cdist(X_train, X_test, dist_type)
@@ -67,7 +67,7 @@ def distance(X_train, X_test):
     '''
 
     selected = [
-                'logpdf',
+                'pdf',
                 'mahalanobis',
                 'euclidean',
                 'minkowski',
