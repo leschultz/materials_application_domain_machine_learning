@@ -26,50 +26,60 @@ class NoSplit:
 
         yield indx, indx
 
+
 class BootstrappedLeaveOneGroupOut:
     '''
-    Custom splitting class which with every iteration of n_repeats it will bootstrap the dataset with replacement and leave every group out once with a given class column.
-    Developed by Angelo Cortez and Yiqi Wang.
+    Custom splitting class which with every iteration of n_repeats it will
+    bootstrap the dataset with replacement and leave every group out once
+    with a given class column. (Special thanks to Angelo Cortez and Yiqi Wang
+    for development).
     '''
 
     def __init__(self, n_repeats, groups, *args, **kwargs):
         '''
         inputs:
             n_repeats = The number of times to apply splitting.
-            groups =  np.array of group classes for the dataset. 
+            groups =  np.array of group classes for the dataset.
         '''
-        self.n_repeats = n_repeats
-        self.groups = groups
-        self.n_splits = self.n_repeats * len( set( list(self.groups) ))
 
-    def get_n_splits(self,  X=None, y=None, groups=None):
+        self.groups = groups
+        self.n_repeats = n_repeats
+
+    def get_n_splits(self, X=None, y=None, groups=None):
         '''
         A method to return the O(N) number of splits.
         '''
+
         self.groups = groups
-        self.n_splits = self.n_repeats * len( set( list(self.groups) ))
+        self.n_splits = self.n_repeats*len(set(list(self.groups)))
+
         return self.n_splits
 
     def split(self, X=None, y=None, groups=None):
         '''
-        For every iteration, bootstrap the original dataset, and leave every group out as the testing set one time.
+        For every iteration, bootstrap the original dataset, and leave
+        every group out as the testing set one time.
         '''
 
-        self.group = groups
-        
-        random_state = 0
+        grouping_df = pd.DataFrame(self.groups, columns=['group'])
+        unique_groups = list(set(self.groups))
 
-        grouping_df =  pd.DataFrame(self.groups, columns=['group'])
-        unique_groups = list( set( self.groups ) )
+        # Resample self.n_repeats times
         for rep in range(self.n_repeats):
-            bootstrapped_grouping = resample(grouping_df, random_state=random_state)
-            for unique_group in unique_groups: 
-                # Check first if the group is in the bootstrapped dataset   
-                if len( bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group]) > 0 :
-                    test = bootstrapped_grouping[bootstrapped_grouping['group'] == unique_group].index.tolist()
-                    train = bootstrapped_grouping[bootstrapped_grouping['group'] != unique_group].index.tolist()
-                    yield train,test
-            random_state += 1
+
+            sample = resample(grouping_df)  # Boostrap
+            for unique_group in unique_groups:
+
+                # Check first if the group is in the bootstrapped dataset
+                if len(sample[sample['group'] == unique_group]) > 0:
+
+                    test = sample[sample['group'] == unique_group]
+                    train = sample[sample['group'] != unique_group]
+
+                    test = test.index.tolist()
+                    train = train.index.tolist()
+
+                    yield train, test
 
 
 class RepeatedClusterSplit:

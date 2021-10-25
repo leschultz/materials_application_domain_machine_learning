@@ -69,12 +69,10 @@ def main():
     lasso = GridSearchCV(pipe, grid, cv=inner_split)
 
     # Make pipeline
-    pipes = [ rf]
-
-    # print(type(X), type(y), type(groups))
+    pipes = [lasso, rf]
 
     # Evaluates
-    predict.run(X, y, outer_split, pipes, save, seed, groups=grouping)  # Perform ML
+    predict.run(X, y, outer_split, pipes, save, seed, groups=grouping)
     aggregate.folds(save)  # Combine split data from directory recursively
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
