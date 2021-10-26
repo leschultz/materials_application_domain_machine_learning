@@ -155,7 +155,7 @@ class RepeatedClusterSplit:
                 yield train, test
 
 
-class         :
+class RepeatedPDFSplit:
     '''
     Custom splitting class which groups data on a multivariate probability
     distribution function and then splits to folds. Folds should have
