@@ -260,7 +260,6 @@ def graphics(save, points, sampling, ops):
 
     # Filter for bad columns.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.dropna(axis='columns', inplace=True)
 
     # Do not include on x axis
     remove = {

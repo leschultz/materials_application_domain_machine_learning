@@ -1,6 +1,5 @@
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
-from scipy.stats import gaussian_kde
 
 import statsmodels.api as sm
 import pandas as pd
@@ -28,19 +27,27 @@ def distance_link(X_train, X_test, dist_type):
     dists = {}
     if dist_type == 'mahalanobis':
         # Get the inverse of the covariance matrix from training
-        vi = np.linalg.inv(np.cov(X_train.T))
-        dist = cdist(X_train, X_test, dist_type, VI=vi)
+        if X_train.shape[1] < 2:
 
-        dists[dist_type+'_mean'] = np.mean(dist, axis=0)
-        dists[dist_type+'_max'] = np.max(dist, axis=0)
-        dists[dist_type+'_min'] = np.min(dist, axis=0)
+            vals = np.empty(X_test.shape[0])
+            dists[dist_type+'_mean'] = vals
+            dists[dist_type+'_max'] = vals
+            dists[dist_type+'_min'] = vals
+
+        else:
+            vi = np.linalg.inv(np.cov(X_train.T))
+            dist = cdist(X_train, X_test, dist_type, VI=vi)
+
+            dists[dist_type+'_mean'] = np.mean(dist, axis=0)
+            dists[dist_type+'_max'] = np.max(dist, axis=0)
+            dists[dist_type+'_min'] = np.min(dist, axis=0)
 
     elif dist_type == 'pdf':
 
         col_types = 'c'*X_train.shape[-1]
         model = sm.nonparametric.KDEMultivariate(
                                                  X_train,
-                                                 var_type=col_types
+                                                 var_type=col_types,
                                                  )
         dist = model.pdf(X_test)
 
