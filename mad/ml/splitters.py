@@ -193,12 +193,12 @@ class RepeatedPDFSplit:
         for i in range(self.n_repeats):
 
             # Sample with replacement
-            X = resample(X)
+            bootstrapped_df = resample(X)
 
             # Do group based on pdf
             col_types = 'c'*X.shape[-1]  # Assume continuous features
             model = sm.nonparametric.KDEMultivariate(
-                                                     X,
+                                                     bootstrapped_df,
                                                      var_type=col_types
                                                      )
             dist = model.pdf(X)
@@ -207,7 +207,7 @@ class RepeatedPDFSplit:
             if isinstance(dist, np.float64):
                 dist = [dist]
 
-            df = {'dist': dist, 'index': list(range(X.shape[0]))}
+            df = {'dist': dist, 'index': list(range(bootstrapped_df.shape[0]))}
             df = pd.DataFrame(df)
             df.sort_values(by='dist', inplace=True)
 
