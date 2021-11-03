@@ -1,7 +1,7 @@
-from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import estimate_bandwidth
+from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
-import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 
@@ -44,19 +44,14 @@ def distance_link(X_train, X_test, dist_type):
 
     elif dist_type == 'pdf':
 
-        col_types = 'c'*X_train.shape[-1]
-        model = sm.nonparametric.KDEMultivariate(
-                                                 X_train,
-                                                 var_type=col_types,
-                                                 )
-        dist = model.pdf(X_test)
+        bw = estimate_bandwidth(X_train)
+        model = KernelDensity(kernel='gaussian', bandwidth=bw)
+        model.fit(X_train)
 
-        # Correct return of data
-        if isinstance(dist, np.float64):
-            dist = [dist]
+        log_dist = model.score_samples(X_test)
 
-        dists[dist_type] = dist
-        dists['log'+dist_type] = np.log(dist)
+        dists[dist_type] = np.exp(log_dist)
+        dists['log'+dist_type] = log_dist
 
     else:
         dist = cdist(X_train, X_test, dist_type)
