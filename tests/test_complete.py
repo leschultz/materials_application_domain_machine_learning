@@ -11,8 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import versus
-from mad.plots import kde, parity
+from mad.plots import kde, parity, versus, calibration
 from mad.ml import splitters, predict, feature_selectors
 
 import numpy as np
@@ -90,6 +89,7 @@ class ml_test(unittest.TestCase):
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save)  # Make parity plots
         versus.make_plots(save, points, sampling)
+        calibration.make_plots(save, points, sampling)
         kde.make_plots(df, save)  # Global KDE plots
 
         # Clean directory
