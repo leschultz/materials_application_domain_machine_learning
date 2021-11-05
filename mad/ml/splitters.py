@@ -1,5 +1,7 @@
+from sklearn.cluster import estimate_bandwidth
+from sklearn.neighbors import KernelDensity
 from sklearn.utils import resample
-import statsmodels.api as sm
+
 import pandas as pd
 import numpy as np
 import random
@@ -195,17 +197,11 @@ class RepeatedPDFSplit:
             # Sample with replacement
             bootstrapped_df = resample(X)
 
-            # Do group based on pdf
-            col_types = 'c'*X.shape[-1]  # Assume continuous features
-            model = sm.nonparametric.KDEMultivariate(
-                                                     bootstrapped_df,
-                                                     var_type=col_types
-                                                     )
-            dist = model.pdf(X)
+            bw = estimate_bandwidth(X)
+            model = KernelDensity(kernel='gaussian', bandwidth=bw)
+            model.fit(X)
 
-            # Correct return of data
-            if isinstance(dist, np.float64):
-                dist = [dist]
+            dist = model.score_samples(X)  # Natural log distance
 
             df = {'dist': dist, 'index': list(range(bootstrapped_df.shape[0]))}
             df = pd.DataFrame(df)
