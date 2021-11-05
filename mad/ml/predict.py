@@ -1,3 +1,5 @@
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import *
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
@@ -11,7 +13,7 @@ import os
 from mad.functions import parallel, llh, set_llh
 
 
-def distance_link(X_train, X_test, dist_type):
+def distance_link(X_train, X_test, dist_type, append_name = ""):
     '''
     Get the distances based on a metric.
 
@@ -19,6 +21,7 @@ def distance_link(X_train, X_test, dist_type):
         X_train = The features of the training set.
         X_test = The features of the test set.
         dist = The distance to consider.
+        append_name = string to append to name of distance metric.
 
     ouputs:
         dists = A dictionary of distances.
@@ -30,17 +33,17 @@ def distance_link(X_train, X_test, dist_type):
         if X_train.shape[1] < 2:
 
             vals = np.empty(X_test.shape[0])
-            dists[dist_type+'_mean'] = vals
-            dists[dist_type+'_max'] = vals
-            dists[dist_type+'_min'] = vals
+            dists[append_name + dist_type + '_mean'] = vals
+            dists[append_name + dist_type+'_max'] = vals
+            dists[append_name + dist_type+'_min'] = vals
 
         else:
             vi = np.linalg.inv(np.cov(X_train.T))
             dist = cdist(X_train, X_test, dist_type, VI=vi)
 
-            dists[dist_type+'_mean'] = np.mean(dist, axis=0)
-            dists[dist_type+'_max'] = np.max(dist, axis=0)
-            dists[dist_type+'_min'] = np.min(dist, axis=0)
+            dists[append_name + dist_type+'_mean'] = np.mean(dist, axis=0)
+            dists[append_name + dist_type+'_max'] = np.max(dist, axis=0)
+            dists[append_name + dist_type+'_min'] = np.min(dist, axis=0)
 
     elif dist_type == 'pdf':
 
@@ -56,9 +59,9 @@ def distance_link(X_train, X_test, dist_type):
     else:
         dist = cdist(X_train, X_test, dist_type)
 
-        dists[dist_type+'_mean'] = np.mean(dist, axis=0)
-        dists[dist_type+'_max'] = np.max(dist, axis=0)
-        dists[dist_type+'_min'] = np.min(dist, axis=0)
+        dists[append_name + dist_type+'_mean'] = np.mean(dist, axis=0)
+        dists[append_name + dist_type+'_max'] = np.max(dist, axis=0)
+        dists[append_name + dist_type+'_min'] = np.min(dist, axis=0)
 
     return dists
 
@@ -68,7 +71,7 @@ def distance(X_train, X_test):
     Determine the distance from set X_test to set X_train.
     '''
 
-    selected = [
+    distance_list = [
                 'pdf',
                 'mahalanobis',
                 'euclidean',
@@ -92,10 +95,20 @@ def distance(X_train, X_test):
                 'sokalmichener',
                 'sokalsneath',
                 ]
-
+    matrix_decomp_methods = [  
+                PCA(),
+                SparsePCA(),
+                # KernelPCA()
+    ]
     dists = {}
-    for i in selected:
-        dists.update(distance_link(X_train, X_test, i))
+    for distance in distance_list:
+        dists.update(distance_link(X_train, X_test, distance))
+        for matrix_decomp in matrix_decomp_methods:
+            cur_method = matrix_decomp
+            cur_method.fit(X_train)
+            X_test_transformed = cur_method.transform(X_test)
+            name_append_str = str(cur_method).replace('(','').replace(')','') + '_'
+            dists.update(distance_link(X_train, X_test_transformed, distance, name_append_str))
 
     return dists
 
