@@ -90,6 +90,10 @@ def distance(X_train, X_test):
     matrix_decomp_methods = [
                              PCA(),
                              SparsePCA(),
+                             KernelPCA(n_components=X_train.shape[1]),
+                             SparsePCA(),
+                             IncrementalPCA(),
+                             MiniBatchSparsePCA(),
                              ]
 
     dists = {}
@@ -100,8 +104,10 @@ def distance(X_train, X_test):
 
         # Compute transformed distances
         for cur_method in matrix_decomp_methods:
+            if cur_method.__class__.__name__ != "SparseCoder":
 
-            cur_method.fit(X_train)  # Refit object
+
+                cur_method.fit(X_train)  # Refit object
             X_test_transformed = cur_method.transform(X_test)
             name = cur_method.__class__.__name__+'_'
             dists.update(distance_link(
