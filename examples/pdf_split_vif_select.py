@@ -18,7 +18,6 @@ from mad.ml import splitters, predict, feature_selectors
 import numpy as np
 
 
-
 def main():
     '''
     Test ml workflow
@@ -39,7 +38,7 @@ def main():
     scale = StandardScaler()
     inner_split = splitters.RepeatedPDFSplit(0.2, 10)
     outer_split = splitters.RepeatedPDFSplit(0.2, 10)
-    selector = feature_selectors.no_selection()
+    selector = feature_selectors.vif_selection()
 
     # Random forest regression
     grid = {}
