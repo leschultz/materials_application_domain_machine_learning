@@ -3,6 +3,7 @@ from mad.ml import distances
 
 import pandas as pd
 import numpy as np
+import glob
 import os
 
 import warnings
@@ -14,13 +15,15 @@ class builder:
     Class to use the ingredients of splits to build a model and assessment.
     '''
 
-    def __init__(self, pipe, X, y, d, splitters, save):
+    def __init__(self, pipe, X, y, d, top_splitter, mid_splitter, save):
         '''
         inputs:
             pipe = The machine learning pipeline.
             X = The features.
             y = The target variable.
             d = The domain for each case.
+            top_splitter = The top level domain splitter.
+            mid_splitter = The middle level splitter for nested cv.
             splitters = The splitting oject to create 2 layers.
             save = The directory to save splits.
         '''
@@ -29,11 +32,11 @@ class builder:
         self.X = X
         self.y = y
         self.d = d
-        self.top_splitter, self.mid_splitter = splitters
+        self.top_splitter = top_splitter
+        self.mid_splitter = mid_splitter
 
         # Output directory creation
-        self.save = os.path.join(save, 'splits')
-        os.makedirs(self.save, exist_ok=True)
+        self.save = save
 
     def assess_domain(self):
         '''
@@ -47,6 +50,10 @@ class builder:
         pipe = self.pipe
 
         o = np.array(range(X.shape[0]))  # Tracking cases
+
+        # Setup saving directory
+        save = os.path.join(self.save, 'splits')
+        os.makedirs(save, exist_ok=True)
 
         # In domain (ID) and other domain (OD) splits.
         domain_count = 0
@@ -71,7 +78,8 @@ class builder:
                      o_id=o_id,
                      o_od=o_od,
                      pipe=pipe,
-                     domain_count=domain_count
+                     domain_count=domain_count,
+                     save=save,
                      )
 
             domain_count += 1
@@ -89,6 +97,7 @@ class builder:
                  o_od,
                  pipe,
                  domain_count,
+                 save,
                  ):
         '''
         A class for nesetd cross validation.
@@ -105,6 +114,7 @@ class builder:
             o_od = The other domain indexes.
             pipe = The machine learning pipe.
             domain_count = The count of the domain split.
+            save = The saving directory.
 
         outputs:
             df = The dataframe for all evaluation.
@@ -269,8 +279,25 @@ class builder:
 
         name = 'split_{}_{}.csv'.format(domain_count, split_count)
         name = os.path.join(
-                            self.save,
+                            save,
                             name
                             )
 
         df.to_csv(name, index=False)
+
+    def aggregate(self):
+        '''
+        Gather all data from domain analysis.
+        '''
+
+        files = glob.glob(self.save+'/splits/*')
+
+        df = parallel(pd.read_csv, files)
+        df = pd.concat(df)
+
+        name = os.path.join(self.save, 'aggregate')
+        os.makedirs(name, exist_ok=True)
+        name = os.path.join(name, 'data.csv')
+        df.to_csv(name, index=False)
+
+        return df

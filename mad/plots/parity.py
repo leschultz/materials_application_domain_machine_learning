@@ -107,17 +107,17 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         json.dump(data, handle)
 
 
-def graphic(save, set_name, low_flag):
+def graphic(save):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
     '''
 
     path = os.path.join(save, 'aggregate')
-    df = os.path.join(path, set_name+'_data_stats.csv')
-    mets = os.path.join(path, set_name+'_metrics_stats.csv')
+    df = os.path.join(path, 'data_stats.csv')
+    mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'splitter', 'flag']
+    groups = ['scaler', 'model', 'splitter', 'in_domain']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
@@ -125,9 +125,10 @@ def graphic(save, set_name, low_flag):
 
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = list(map(str, d[0][:-1]))
-        name = '_'.join(name)+'_'+set_name
-        new_path = os.path.join(*[path, name, 'Flag_{}'.format(d[0][-1])])
+        name = list(map(str, d[0]))
+        name = '_'.join(name)
+        new_path = os.path.join(path, name)
+
 
         d = d[1]
         m = m[1]
@@ -146,6 +147,5 @@ def graphic(save, set_name, low_flag):
                )
 
 
-def make_plots(save, low_flag=None):
-    graphic(save, 'test', low_flag)
-    graphic(save, 'train', low_flag)
+def make_plots(save):
+    graphic(save)
