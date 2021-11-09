@@ -3,6 +3,10 @@ from mad.ml import distances
 
 import pandas as pd
 import numpy as np
+import os
+
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class builder:
@@ -10,14 +14,15 @@ class builder:
     Class to use the ingredients of splits to build a model and assessment.
     '''
 
-    def __init__(self, pipe, X, y, d, splitters):
+    def __init__(self, pipe, X, y, d, splitters, save):
         '''
         inputs:
             pipe = The machine learning pipeline.
             X = The features.
             y = The target variable.
             d = The domain for each case.
-            splitters = The splitting oject to create 3 layers.
+            splitters = The splitting oject to create 2 layers.
+            save = The directory to save splits.
         '''
 
         self.pipe = pipe
@@ -26,9 +31,13 @@ class builder:
         self.d = d
         self.top_splitter, self.mid_splitter = splitters
 
-    def assess_model(self):
+        # Output directory creation
+        self.save = os.path.join(save, 'splits')
+        os.makedirs(self.save, exist_ok=True)
+
+    def assess_domain(self):
         '''
-        Asses the model through nested CV.
+        Asses the model through nested CV with a domain layer.
         '''
 
         # Renaming conviance
@@ -40,6 +49,7 @@ class builder:
         o = np.array(range(X.shape[0]))  # Tracking cases
 
         # In domain (ID) and other domain (OD) splits.
+        domain_count = 0
         for id_index, od_index in top.split(X, y, d):
 
             X_id, X_od = X[id_index], X[od_index]
@@ -48,10 +58,10 @@ class builder:
             o_id, o_od = o[id_index], o[od_index]
 
             splits = list(mid.split(X_id, y_id, d_id))
-            counts = list(range(len(splits)))
+            nested_counts = list(range(len(splits)))
             parallel(
                      self.nestedcv,
-                     list(zip(splits, counts)),
+                     list(zip(splits, nested_counts)),
                      X_id=X_id,
                      X_od=X_od,
                      y_id=y_id,
@@ -61,7 +71,10 @@ class builder:
                      o_id=o_id,
                      o_od=o_od,
                      pipe=pipe,
+                     domain_count=domain_count
                      )
+
+            domain_count += 1
 
     def nestedcv(
                  self,
@@ -74,7 +87,8 @@ class builder:
                  d_od,
                  o_id,
                  o_od,
-                 pipe
+                 pipe,
+                 domain_count,
                  ):
         '''
         A class for nesetd cross validation.
@@ -90,13 +104,14 @@ class builder:
             o_id = The in domain indexes.
             o_od = The other domain indexes.
             pipe = The machine learning pipe.
+            domain_count = The count of the domain split.
 
         outputs:
             df = The dataframe for all evaluation.
         '''
 
         # Training and testing splits.
-        indexes, count = indexes
+        indexes, split_count = indexes
         tr_index, te_index = indexes
 
         X_id_train, X_id_test = X_id[tr_index], X_id[te_index]
@@ -249,5 +264,13 @@ class builder:
         df['scaler'] = scaler_type
         df['features'] = n_features
         df['splitter'] = split_type
+        df['split_count'] = split_count
+        df['domain_count'] = domain_count
 
-        return df
+        name = 'split_{}_{}.csv'.format(domain_count, split_count)
+        name = os.path.join(
+                            self.save,
+                            name
+                            )
+
+        df.to_csv(name, index=False)
