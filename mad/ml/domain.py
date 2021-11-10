@@ -49,14 +49,14 @@ class builder:
         mid = self.mid_splitter
         pipe = self.pipe
 
-        o = np.array(range(X.shape[0]))  # Tracking cases
+        o = np.array(range(X.shape[0]))  # Tracking cases.
 
-        # Setup saving directory
+        # Setup saving directory.
         save = os.path.join(self.save, 'splits')
         os.makedirs(save, exist_ok=True)
 
-        # In domain (ID) and other domain (OD) splits.
-        domain_count = 0
+        # Make all of the train, test in domain, and test other domain splits.
+        splits = []
         for id_index, od_index in top.split(X, y, d):
 
             X_id, X_od = X[id_index], X[od_index]
@@ -64,39 +64,36 @@ class builder:
             d_id, d_od = d[id_index], d[od_index]
             o_id, o_od = o[id_index], o[od_index]
 
-            splits = list(mid.split(X_id, y_id, d_id))
-            nested_counts = list(range(len(splits)))
-            parallel(
-                     self.nestedcv,
-                     list(zip(splits, nested_counts)),
-                     X_id=X_id,
-                     X_od=X_od,
-                     y_id=y_id,
-                     y_od=y_od,
-                     d_id=d_id,
-                     d_od=d_od,
-                     o_id=o_id,
-                     o_od=o_od,
-                     pipe=pipe,
-                     domain_count=domain_count,
-                     save=save,
-                     )
+            for i in mid.split(X_id, y_id, d_id):
 
-            domain_count += 1
+                tr_index = o_id[i[0]]  # The in domain train.
+                te_index = o_id[i[1]]  # The in domain test.
+                teod_index = od_index  # The other domain.
+
+                trid_teid_teod = (tr_index, te_index, teod_index)
+                splits.append(trid_teid_teod)
+
+        split_counts = range(len(splits))
+
+        # Do nested CV
+        parallel(
+                 self.nestedcv,
+                 list(zip(splits, split_counts)),
+                 X=X,
+                 y=y,
+                 d=d,
+                 pipe=pipe,
+                 save=save,
+                 )
+
 
     def nestedcv(
                  self,
                  indexes,
-                 X_id,
-                 X_od,
-                 y_id,
-                 y_od,
-                 d_id,
-                 d_od,
-                 o_id,
-                 o_od,
+                 X,
+                 y,
+                 d,
                  pipe,
-                 domain_count,
                  save,
                  ):
         '''
@@ -104,34 +101,27 @@ class builder:
 
         inputs:
             indexes = The in domain test and training indexes.
-            X_id = The in domain feature set.
-            X_od = The other domain feature set.
-            y_id = The in domain target variable.
-            y_od = The other domain target variable.
-            d_id = The in domain class.
-            d_od = The other domain class.
-            o_id = The in domain indexes.
-            o_od = The other domain indexes.
+            X = The feature set.
+            y = The target variable.
+            d = The class.
             pipe = The machine learning pipe.
-            domain_count = The count of the domain split.
             save = The saving directory.
 
         outputs:
             df = The dataframe for all evaluation.
         '''
 
-        # Training and testing splits.
+        # Split indexes and spit count
         indexes, split_count = indexes
-        tr_index, te_index = indexes
+        trid, teid, teod = indexes
 
-        X_id_train, X_id_test = X_id[tr_index], X_id[te_index]
-        y_id_train, y_id_test = y_id[tr_index], y_id[te_index]
-        d_id_train, d_id_test = d_id[tr_index], d_id[te_index]
-        o_id_train, o_id_test = o_id[tr_index], o_id[te_index]
+        X_id_train, X_id_test, X_od_test = X[trid], X[teid], X[teod]
+        y_id_train, y_id_test, y_od_test = y[trid], y[teid], y[teod]
+        d_id_train, d_id_test, d_od_test = d[trid], d[teid], d[teod]
 
         # Calculate distances.
         df_id = distances.distance(X_id_train, X_id_test)
-        df_od = distances.distance(X_id_train, X_od)
+        df_od = distances.distance(X_id_train, X_od_test)
 
         # Fit the model on training data in domain.
         self.pipe.fit(X_id_train, y_id_train)
@@ -150,7 +140,7 @@ class builder:
         # Feature transformations
         X_id_train_trans = pipe_best_scaler.transform(X_id_train)
         X_id_test_trans = pipe_best_scaler.transform(X_id_test)
-        X_od_test_trans = pipe_best_scaler.transform(X_od)
+        X_od_test_trans = pipe_best_scaler.transform(X_od_test)
 
         # Feature selection
         X_id_train_select = pipe_best_select.transform(X_id_train_trans)
@@ -164,7 +154,7 @@ class builder:
         if model_type in ensemble_methods:
             y_id_train_pred = pipe_best.predict(X_id_train)
             y_id_test_pred = pipe_best.predict(X_id_test)
-            y_od_test_pred = pipe_best.predict(X_od)
+            y_od_test_pred = pipe_best.predict(X_od_test)
 
             # Ensemble predictions with correct feature set
             pipe_estimators = pipe_best_model.estimators_
@@ -187,7 +177,7 @@ class builder:
 
             # Log likelihoods.
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
-            llh_od_test = llh(std_od_test, y_od-y_od_test_pred, [a, b])
+            llh_od_test = llh(std_od_test, y_od_test-y_od_test_pred, [a, b])
 
             # Grab standard deviations.
             df_id['std'] = std_id_test
@@ -224,7 +214,7 @@ class builder:
 
             # Log likelihoods.
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
-            llh_od_test = llh(std_od_test, y_od-y_od_test_pred, [a, b])
+            llh_od_test = llh(std_od_test, y_od_test-y_od_test_pred, [a, b])
 
             # Grab standard deviations.
             df_id['std'] = std_id_test
@@ -245,19 +235,19 @@ class builder:
 
         # Assign boolean for in domain.
         df_id['in_domain'] = [True]*X_id_test.shape[0]
-        df_od['in_domain'] = [False]*X_od.shape[0]
+        df_od['in_domain'] = [False]*X_od_test.shape[0]
 
         # Grab indexes of tests.
-        df_id['index'] = o_id_test
-        df_od['index'] = o_od
+        df_id['index'] = teid
+        df_od['index'] = teod
 
         # Grab the domain of tests.
         df_id['domain'] = d_id_test
-        df_od['domain'] = d_od
+        df_od['domain'] = d_od_test
 
         # Grab the true target variables of test.
         df_id['y'] = y_id_test
-        df_od['y'] = y_od
+        df_od['y'] = y_od_test
 
         # Grab the predictions of tests.
         df_id['y_pred'] = y_id_test_pred
@@ -275,9 +265,8 @@ class builder:
         df['features'] = n_features
         df['splitter'] = split_type
         df['split_count'] = split_count
-        df['domain_count'] = domain_count
 
-        name = 'split_{}_{}.csv'.format(domain_count, split_count)
+        name = 'split_{}.csv'.format(split_count)
         name = os.path.join(
                             save,
                             name
