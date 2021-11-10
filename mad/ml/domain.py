@@ -56,36 +56,47 @@ class builder:
         os.makedirs(save, exist_ok=True)
 
         # Make all of the train, test in domain, and test other domain splits.
-        splits = []
+        splits = []  # Collect splits
+        od_count = 0  # Other domain count
         for id_index, od_index in top.split(X, y, d):
 
+            # Domain splits
             X_id, X_od = X[id_index], X[od_index]
             y_id, y_od = y[id_index], y[od_index]
             d_id, d_od = d[id_index], d[od_index]
             o_id, o_od = o[id_index], o[od_index]
 
+            id_count = 0  # In domain count
             for i in mid.split(X_id, y_id, d_id):
 
                 tr_index = o_id[i[0]]  # The in domain train.
                 te_index = o_id[i[1]]  # The in domain test.
                 teod_index = od_index  # The other domain.
 
-                trid_teid_teod = (tr_index, te_index, teod_index)
+                trid_teid_teod = (
+                                  tr_index,
+                                  te_index,
+                                  teod_index,
+                                  id_count,
+                                  od_count
+                                  )
+
                 splits.append(trid_teid_teod)
 
-        split_counts = range(len(splits))
+                id_count += 1  # Increment in domain count
+
+            od_count += 1  # Increment other domain count
 
         # Do nested CV
         parallel(
                  self.nestedcv,
-                 list(zip(splits, split_counts)),
+                 splits,
                  X=X,
                  y=y,
                  d=d,
                  pipe=pipe,
                  save=save,
                  )
-
 
     def nestedcv(
                  self,
@@ -112,8 +123,7 @@ class builder:
         '''
 
         # Split indexes and spit count
-        indexes, split_count = indexes
-        trid, teid, teod = indexes
+        trid, teid, teod, id_count, od_count = indexes
 
         X_id_train, X_id_test, X_od_test = X[trid], X[teid], X[teod]
         y_id_train, y_id_test, y_od_test = y[trid], y[teid], y[teod]
@@ -264,9 +274,10 @@ class builder:
         df['scaler'] = scaler_type
         df['features'] = n_features
         df['splitter'] = split_type
-        df['split_count'] = split_count
+        df['id_count'] = id_count
+        df['od_count'] = od_count
 
-        name = 'split_{}.csv'.format(split_count)
+        name = 'split_id_{}_od_{}.csv'.format(id_count, od_count)
         name = os.path.join(
                             save,
                             name

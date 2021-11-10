@@ -23,15 +23,15 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, splitter, in_domain, split_count, domain_count = group
+    model, scaler, splitter, in_domain, id_count, od_count = group
 
     results = {}
     results['model'] = model
     results['scaler'] = scaler
     results['splitter'] = splitter
     results['in_domain'] = in_domain
-    results['split_count'] = split_count
-    results['domain_count'] = domain_count
+    results['id_count'] = id_count
+    results['od_count'] = od_count
     results[r'$RMSE$'] = rmse
     results[r'$RMSE/\sigma$'] = rmse_sig
     results[r'$MAE$'] = mae
@@ -81,23 +81,34 @@ def folds_opperation(save, file_name):
     # Load
     df_path = os.path.join(save, file_name)
     df = pd.read_csv(df_path)
-    dfstats = stats(df, ['index', 'model', 'scaler', 'splitter', 'in_domain'])
 
+    # Get statistics
+    dfstats = stats(df, [
+                         'index',
+                         'model',
+                         'scaler',
+                         'splitter',
+                         'in_domain',
+                         'od_count'
+                         ])
+
+    # Get metrics
     mets = group_metrics(df, [
                               'model',
                               'scaler',
                               'splitter',
                               'in_domain',
-                              'split_count',
-                              'domain_count',
+                              'id_count',
+                              'od_count',
                               ])
 
-    metsstats = mets.drop(['split_count', 'domain_count'], axis=1)
+    metsstats = mets.drop(['id_count'], axis=1)
     metsstats = stats(metsstats, [
                                   'model',
                                   'scaler',
                                   'splitter',
-                                  'in_domain'
+                                  'in_domain',
+                                  'od_count',
                                   ])
 
     # Save data

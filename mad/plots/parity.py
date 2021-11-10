@@ -117,7 +117,7 @@ def graphic(save):
     df = os.path.join(path, 'data_stats.csv')
     mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'splitter', 'in_domain']
+    groups = ['scaler', 'model', 'splitter', 'in_domain', 'od_count']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
@@ -128,7 +128,6 @@ def graphic(save):
         name = list(map(str, d[0]))
         name = '_'.join(name)
         new_path = os.path.join(path, name)
-
 
         d = d[1]
         m = m[1]
