@@ -1,4 +1,4 @@
-from sklearn.cluster import estimate_bandwidth
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 from sklearn.decomposition import *
@@ -40,8 +40,24 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
 
     elif dist_type == 'pdf':
 
-        bw = estimate_bandwidth(X_train)
-        model = KernelDensity(kernel='gaussian', bandwidth=bw)
+        # Estimate bandwidth
+        grid = {
+                'kernel': [
+                           'gaussian',
+                           'tophat',
+                           'epanechnikov',
+                           'exponential',
+                           'linear',
+                           'cosine'
+                           ],
+                'bandwidth': np.logspace(0, 5)
+                }
+        model = GridSearchCV(
+                             KernelDensity(),
+                             grid,
+                             cv=5,
+                             )
+
         model.fit(X_train)
 
         log_dist = model.score_samples(X_test)
@@ -91,7 +107,7 @@ def distance(X_train, X_test):
 
 
     # For development
-    distance_list = ['pdf']
+    distance_list = ['pdf', 'mahalanobis', 'euclidean']
     matrix_decomp_methods = []
 
     dists = {}

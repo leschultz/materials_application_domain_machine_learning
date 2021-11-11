@@ -3,6 +3,7 @@ from mad.ml import distances
 
 import pandas as pd
 import numpy as np
+import random
 import glob
 import os
 
@@ -15,7 +16,17 @@ class builder:
     Class to use the ingredients of splits to build a model and assessment.
     '''
 
-    def __init__(self, pipe, X, y, d, top_splitter, mid_splitter, save):
+    def __init__(
+                 self,
+                 pipe,
+                 X,
+                 y,
+                 d,
+                 top_splitter,
+                 mid_splitter,
+                 save,
+                 seed=1
+                 ):
         '''
         inputs:
             pipe = The machine learning pipeline.
@@ -26,7 +37,13 @@ class builder:
             mid_splitter = The middle level splitter for nested cv.
             splitters = The splitting oject to create 2 layers.
             save = The directory to save splits.
+            seed = The seed option for reproducibility.
         '''
+
+        # Setting seed for reproducibility
+        np.random.seed(seed)
+        np.random.RandomState(seed)
+        random.seed(seed)
 
         self.pipe = pipe
         self.X = X
