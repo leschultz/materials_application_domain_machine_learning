@@ -65,20 +65,20 @@ def distance(X_train, X_test):
     '''
 
     distance_list = [
-                'pdf',
-                'mahalanobis',
-                'euclidean',
-                'minkowski',
-                'cityblock',
-                'seuclidean',
-                'sqeuclidean',
-                'cosine',
-                'correlation',
-                'chebyshev',
-                'canberra',
-                'braycurtis',
-                'sokalsneath',
-                ]
+                     'pdf',
+                     'mahalanobis',
+                     'euclidean',
+                     'minkowski',
+                     'cityblock',
+                     'seuclidean',
+                     'sqeuclidean',
+                     'cosine',
+                     'correlation',
+                     'chebyshev',
+                     'canberra',
+                     'braycurtis',
+                     'sokalsneath',
+                     ]
 
     matrix_decomp_methods = [
                              PCA(),
@@ -88,6 +88,11 @@ def distance(X_train, X_test):
                              IncrementalPCA(),
                              MiniBatchSparsePCA(),
                              ]
+
+
+    # For development
+    distance_list = ['pdf']
+    matrix_decomp_methods = []
 
     dists = {}
     for distance in distance_list:

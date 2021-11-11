@@ -12,7 +12,7 @@ def plot(cols, df, save):
     cols = list(cols)
     data = df[cols]
 
-    fig = sns.pairplot(data, kind="kde")
+    fig = sns.pairplot(data, kind='kde')
     fig.tight_layout()
     fig.savefig(os.path.join(save, '_'.join(cols)))
 

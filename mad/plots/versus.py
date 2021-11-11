@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def operation(y, y_pred, llh, std, std_cal, op):
+def operation(y, y_pred, llh, std, stdcal, op):
     '''
     Returns the desired y-axis.
     '''
@@ -27,8 +27,8 @@ def operation(y, y_pred, llh, std, std_cal, op):
         return -np.mean(llh)
     elif op == 'std':
         return np.mean(std)
-    elif op == 'std_cal':
-        return np.mean(std_cal)
+    elif op == 'stdcal':
+        return np.mean(stdcal)
 
 
 def find_bin(df, i, sampling, points):
@@ -64,14 +64,14 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                i,
                actual,
                pred,
-               'set',
-               'loglikelihood',
+               'in_domain',
+               'llh',
                'std',
-               'std_cal'
+               'stdcal'
                ]].copy()
 
-    train = df.loc[df['set'] == 'train'].copy()
-    test = df.loc[df['set'] == 'test'].copy()
+    train = df.loc[df['in_domain'] == True].copy()
+    test = df.loc[df['in_domain'] == False].copy()
 
     # Get bin averaging
     if (sampling is not None) and (points is not None):
@@ -94,8 +94,8 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             if values.empty:
                 continue
 
-            train = values.loc[values['set'] == 'train']
-            test = values.loc[values['set'] == 'test']
+            train = values.loc[values['in_domain'] == True]
+            test = values.loc[values['in_domain'] == False]
 
             x_train = train[actual].values
             y_train = train[pred].values
@@ -103,21 +103,21 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             x_test = test[actual].values
             y_test = test[pred].values
 
-            llh_train = train['loglikelihood'].values
-            llh_test = test['loglikelihood'].values
+            llh_train = train['llh'].values
+            llh_test = test['llh'].values
 
             std_train = train['std'].values
             std_test = test['std'].values
 
-            std_cal_train = train['std_cal'].values
-            std_cal_test = test['std_cal'].values
+            stdcal_train = train['stdcal'].values
+            stdcal_test = test['stdcal'].values
 
             y_train = operation(
                                 x_train,
                                 y_train,
                                 llh_train,
                                 std_train,
-                                std_cal_train,
+                                stdcal_train,
                                 ops
                                 )
             x_train = np.mean(train[i].values)
@@ -127,7 +127,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                                y_test,
                                llh_test,
                                std_test,
-                               std_cal_test,
+                               stdcal_test,
                                ops
                                )
             x_test = np.mean(test[i].values)
@@ -155,16 +155,16 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         ys_train = zip(
                        train[actual],
                        train[pred],
-                       train['loglikelihood'],
+                       train['llh'],
                        train['std'],
-                       train['std_cal']
+                       train['stdcal']
                        )
         ys_test = zip(
                       test[actual],
                       test[pred],
-                      test['loglikelihood'],
+                      test['llh'],
                       test['std'],
-                      test['std_cal']
+                      test['stdcal']
                       )
 
         ys_train = [operation(*i, ops) for i in ys_train]
@@ -191,7 +191,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         ylabel = '- Log Likelihood'
     elif ops == 'std':
         ylabel = r'$\sigma$'
-    elif ops == 'std_cal':
+    elif ops == 'stdcal':
         ylabel = r'$\sigma_{cal}$'
 
     if (sampling is not None) and (points is not None):
@@ -201,8 +201,8 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
         fig, ax = pl.subplots(2)
 
-        ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='Test')
-        ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='Train')
+        ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='UD')
+        ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='IN')
 
         ax[1].bar(
                   xs_train,
@@ -211,7 +211,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                   color='b',
                   label='Train'
                   )
-        ax[1].bar(xs_test, counts_test, widths_test, color='r', label='Test')
+        ax[1].bar(xs_test, counts_test, widths_test, color='r', label='UD')
 
         ax[0].set_ylabel(ylabel)
 
@@ -224,8 +224,8 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     else:
         fig, ax = pl.subplots()
-        ax.scatter(xs_test, ys_test, marker='.', color='r', label='Test')
-        ax.scatter(xs_train, ys_train, marker='2', color='b', label='Train')
+        ax.scatter(xs_test, ys_test, marker='.', color='r', label='UD')
+        ax.scatter(xs_train, ys_train, marker='2', color='b', label='ID')
         ax.set_ylabel(ylabel)
         ax.set_xlabel(xlabel)
         ax.legend()
@@ -236,14 +236,14 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
     pl.close('all')
 
     data = {}
-    data[ops+'_train'] = list(ys_train)
-    data[xlabel+'_train'] = list(xs_train)
-    data[ops+'_test'] = list(ys_test)
-    data[xlabel+'_test'] = list(xs_test)
+    data[ops+'_id'] = list(ys_train)
+    data[xlabel+'_id'] = list(xs_train)
+    data[ops+'_ud'] = list(ys_test)
+    data[xlabel+'_ud'] = list(xs_test)
 
     if (sampling is not None) and (points is not None):
-        data['counts_test'] = list(counts_test)
-        data['counts_train'] = list(counts_train)
+        data['counts_ud'] = list(counts_test)
+        data['counts_id'] = list(counts_train)
 
     jsonfile = name+'.json'
     with open(jsonfile, 'w') as handle:
@@ -253,16 +253,10 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 def graphics(save, points, sampling, ops):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'splitter']
+    groups = ['scaler', 'model', 'splitter', 'ud_count']
     drop_cols = groups+['pipe', 'index']
 
-    test = pd.read_csv(os.path.join(path, 'test_data.csv'))
-    train = pd.read_csv(os.path.join(path, 'train_data.csv'))
-
-    test['set'] = 'test'
-    train['set'] = 'train'
-
-    df = pd.concat([train, test])
+    df = pd.read_csv(os.path.join(path, 'data.csv'))
 
     # Filter for bad columns.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -272,12 +266,13 @@ def graphics(save, points, sampling, ops):
               'y',
               'y_pred',
               'split_id',
-              'flag',
-              'set',
+              'id_count',
+              'domain',
+              'in_domain',
               'std',
-              'std_cal',
+              'stdcal',
               'features',
-              'loglikelihood'
+              'llh'
               }
 
     for group, values in df.groupby(groups):
@@ -305,5 +300,5 @@ def make_plots(save, points=None, sampling=None):
     graphics(save, points, sampling, ops='residual')
     graphics(save, points, sampling, ops='rmse')
     graphics(save, points, sampling, ops='llh')
-    graphics(save, points, sampling, ops='std_cal')
+    graphics(save, points, sampling, ops='stdcal')
     graphics(save, points, sampling, ops='std')
