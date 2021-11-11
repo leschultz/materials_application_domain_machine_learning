@@ -23,13 +23,14 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, splitter, in_domain, id_count, ud_count = group
+    model, scaler, splitter, in_domain, id_count, ud_count, domain = group
 
     results = {}
     results['model'] = model
     results['scaler'] = scaler
     results['splitter'] = splitter
     results['in_domain'] = in_domain
+    results['domain'] = domain
     results['id_count'] = id_count
     results['ud_count'] = ud_count
     results[r'$RMSE$'] = rmse
@@ -89,7 +90,7 @@ def folds_opperation(save, file_name):
                          'scaler',
                          'splitter',
                          'in_domain',
-                         'ud_count'
+                         'domain'
                          ])
 
     # Get metrics
@@ -100,15 +101,16 @@ def folds_opperation(save, file_name):
                               'in_domain',
                               'id_count',
                               'ud_count',
+                              'domain',
                               ])
 
-    metsstats = mets.drop(['id_count'], axis=1)
+    metsstats = mets.drop(['id_count', 'ud_count'], axis=1)
     metsstats = stats(metsstats, [
                                   'model',
                                   'scaler',
                                   'splitter',
                                   'in_domain',
-                                  'ud_count',
+                                  'domain',
                                   ])
 
     # Save data

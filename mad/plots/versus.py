@@ -253,7 +253,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 def graphics(save, points, sampling, ops):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'splitter', 'ud_count']
+    groups = ['scaler', 'model', 'splitter', 'domain']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'data.csv'))
@@ -269,6 +269,7 @@ def graphics(save, points, sampling, ops):
               'id_count',
               'domain',
               'in_domain',
+              'ud_count',
               'std',
               'stdcal',
               'features',
