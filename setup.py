@@ -16,7 +16,7 @@ packages = setuptools.find_packages()
 install_requires = [
                     'matplotlib',
                     'scipy',
-                    'scikit-learn',
+                    'scikit-learn==0.24.1',
                     'pandas',
                     'numpy',
                     'seaborn',
@@ -24,7 +24,7 @@ install_requires = [
                     'tqdm',
                     'pytest',
                     'openpyxl',
-		    'statsmodels'
+		            'statsmodels'
                     ]
 long_description = open('README.md').read()
 
