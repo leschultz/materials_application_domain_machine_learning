@@ -57,203 +57,207 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     os.makedirs(save, exist_ok=True)
 
-    name = os.path.join(save, ops)
-    name += '_{}'.format(i)
-
     df = data[[
                i,
                actual,
                pred,
                'in_domain',
+               'domain',
                'llh',
                'std',
                'stdcal'
                ]].copy()
 
     train = df.loc[df['in_domain'] == True].copy()
-    test = df.loc[df['in_domain'] == False].copy()
+    domains = df.loc[df['in_domain'] == False].copy()
 
-    # Get bin averaging
-    if (sampling is not None) and (points is not None):
+    for group, test in domains.groupby('domain'):
 
-        # Bin individually by set
-        train = find_bin(train, i, sampling, points)  # Bin the data
-        test = find_bin(test, i, sampling, points)  # Bin the data
-        df = pd.concat([test, train])
+        name = os.path.join(*[save, group, ops])
+        os.makedirs(name, exist_ok=True)
+        name = os.path.join(name, i)
 
-        ys_train = []
-        xs_train = []
-        ys_test = []
-        xs_test = []
-        counts_train = []
-        counts_test = []
+        # Get bin averaging
+        if (sampling is not None) and (points is not None):
 
-        for group, values in df.groupby('bin'):
+            # Bin individually by set
+            train = find_bin(train, i, sampling, points)  # Bin the data
+            test = find_bin(test, i, sampling, points)  # Bin the data
+            df = pd.concat([test, train])
 
-            # Compensate for empty bins
-            if values.empty:
-                continue
+            ys_train = []
+            xs_train = []
+            ys_test = []
+            xs_test = []
+            counts_train = []
+            counts_test = []
 
-            train = values.loc[values['in_domain'] == True]
-            test = values.loc[values['in_domain'] == False]
+            for group, values in df.groupby('bin'):
 
-            x_train = train[actual].values
-            y_train = train[pred].values
+                # Compensate for empty bins
+                if values.empty:
+                    continue
 
-            x_test = test[actual].values
-            y_test = test[pred].values
+                train = values.loc[values['in_domain'] == True]
+                test = values.loc[values['in_domain'] == False]
 
-            llh_train = train['llh'].values
-            llh_test = test['llh'].values
+                x_train = train[actual].values
+                y_train = train[pred].values
 
-            std_train = train['std'].values
-            std_test = test['std'].values
+                x_test = test[actual].values
+                y_test = test[pred].values
 
-            stdcal_train = train['stdcal'].values
-            stdcal_test = test['stdcal'].values
+                llh_train = train['llh'].values
+                llh_test = test['llh'].values
 
-            y_train = operation(
-                                x_train,
-                                y_train,
-                                llh_train,
-                                std_train,
-                                stdcal_train,
-                                ops
-                                )
-            x_train = np.mean(train[i].values)
+                std_train = train['std'].values
+                std_test = test['std'].values
 
-            y_test = operation(
-                               x_test,
-                               y_test,
-                               llh_test,
-                               std_test,
-                               stdcal_test,
-                               ops
-                               )
-            x_test = np.mean(test[i].values)
+                stdcal_train = train['stdcal'].values
+                stdcal_test = test['stdcal'].values
 
-            count_train = train[i].values.shape[0]
-            count_test = test[i].values.shape[0]
+                y_train = operation(
+                                    x_train,
+                                    y_train,
+                                    llh_train,
+                                    std_train,
+                                    stdcal_train,
+                                    ops
+                                    )
+                x_train = np.mean(train[i].values)
 
-            ys_train.append(y_train)
-            xs_train.append(x_train)
+                y_test = operation(
+                                   x_test,
+                                   y_test,
+                                   llh_test,
+                                   std_test,
+                                   stdcal_test,
+                                   ops
+                                   )
+                x_test = np.mean(test[i].values)
 
-            ys_test.append(y_test)
-            xs_test.append(x_test)
+                count_train = train[i].values.shape[0]
+                count_test = test[i].values.shape[0]
 
-            counts_train.append(count_train)
-            counts_test.append(count_test)
+                ys_train.append(y_train)
+                xs_train.append(x_train)
 
-        ys_train = np.array(ys_train)
-        xs_train = np.array(xs_train)
+                ys_test.append(y_test)
+                xs_test.append(x_test)
 
-        ys_test = np.array(ys_test)
-        xs_test = np.array(xs_test)
+                counts_train.append(count_train)
+                counts_test.append(count_test)
 
-    else:
+            ys_train = np.array(ys_train)
+            xs_train = np.array(xs_train)
 
-        ys_train = zip(
-                       train[actual],
-                       train[pred],
-                       train['llh'],
-                       train['std'],
-                       train['stdcal']
-                       )
-        ys_test = zip(
-                      test[actual],
-                      test[pred],
-                      test['llh'],
-                      test['std'],
-                      test['stdcal']
+            ys_test = np.array(ys_test)
+            xs_test = np.array(xs_test)
+
+        else:
+
+            ys_train = zip(
+                           train[actual],
+                           train[pred],
+                           train['llh'],
+                           train['std'],
+                           train['stdcal']
+                           )
+            ys_test = zip(
+                          test[actual],
+                          test[pred],
+                          test['llh'],
+                          test['std'],
+                          test['stdcal']
+                          )
+
+            ys_train = [operation(*i, ops) for i in ys_train]
+            ys_test = [operation(*i, ops) for i in ys_test]
+
+            xs_train = train[i].values
+            xs_test = test[i].values
+
+        xlabel = '{}'.format(i)
+        if ('logpdf' == i) or ('pdf' == i):
+            xlabel = 'Negative '+xlabel
+
+            xs_test = -1*xs_test
+            xs_train = -1*xs_train
+        else:
+            xlabel = xlabel.capitalize()
+            xlabel = xlabel.replace('_', ' ')
+
+        if ops == 'residual':
+            ylabel = r'$y-\hat{y}$'
+        elif ops == 'rmse':
+            ylabel = r'$RMSE(y, \hat{y})$'
+        elif ops == 'llh':
+            ylabel = '- Log Likelihood'
+        elif ops == 'std':
+            ylabel = r'$\sigma$'
+        elif ops == 'stdcal':
+            ylabel = r'$\sigma_{cal}$'
+
+        if (sampling is not None) and (points is not None):
+
+            widths_train = (max(xs_train)-min(xs_train))/len(xs_train)*0.5
+            widths_test = (max(xs_test)-min(xs_test))/len(xs_test)*0.5
+
+            fig, ax = pl.subplots(2)
+
+            ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='UD')
+            ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='IN')
+
+            ax[1].bar(
+                      xs_train,
+                      counts_train,
+                      widths_train,
+                      color='b',
+                      label='Train'
                       )
+            ax[1].bar(xs_test, counts_test, widths_test, color='r', label='UD')
 
-        ys_train = [operation(*i, ops) for i in ys_train]
-        ys_test = [operation(*i, ops) for i in ys_test]
+            ax[0].set_ylabel(ylabel)
 
-        xs_train = train[i].values
-        xs_test = test[i].values
+            ax[1].set_xlabel(xlabel)
+            ax[1].set_ylabel('Counts')
+            ax[1].set_yscale('log')
 
-    xlabel = '{}'.format(i)
-    if ('logpdf' == i) or ('pdf' == i):
-        xlabel = 'Negative '+xlabel
+            ax[0].legend()
+            ax[1].legend()
 
-        xs_test = -1*xs_test
-        xs_train = -1*xs_train
-    else:
-        xlabel = xlabel.capitalize()
-        xlabel = xlabel.replace('_', ' ')
+        else:
+            fig, ax = pl.subplots()
+            ax.scatter(xs_test, ys_test, marker='.', color='r', label='UD')
+            ax.scatter(xs_train, ys_train, marker='2', color='b', label='ID')
+            ax.set_ylabel(ylabel)
+            ax.set_xlabel(xlabel)
+            ax.legend()
 
-    if ops == 'residual':
-        ylabel = r'$y-\hat{y}$'
-    elif ops == 'rmse':
-        ylabel = r'$RMSE(y, \hat{y})$'
-    elif ops == 'llh':
-        ylabel = '- Log Likelihood'
-    elif ops == 'std':
-        ylabel = r'$\sigma$'
-    elif ops == 'stdcal':
-        ylabel = r'$\sigma_{cal}$'
+        fig.tight_layout()
+        fig.savefig(name)
 
-    if (sampling is not None) and (points is not None):
+        pl.close('all')
 
-        widths_train = (max(xs_train)-min(xs_train))/len(xs_train)*0.5
-        widths_test = (max(xs_test)-min(xs_test))/len(xs_test)*0.5
+        data = {}
+        data[ops+'_id'] = list(ys_train)
+        data[xlabel+'_id'] = list(xs_train)
+        data[ops+'_ud'] = list(ys_test)
+        data[xlabel+'_ud'] = list(xs_test)
 
-        fig, ax = pl.subplots(2)
+        if (sampling is not None) and (points is not None):
+            data['counts_ud'] = list(counts_test)
+            data['counts_id'] = list(counts_train)
 
-        ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='UD')
-        ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='IN')
-
-        ax[1].bar(
-                  xs_train,
-                  counts_train,
-                  widths_train,
-                  color='b',
-                  label='Train'
-                  )
-        ax[1].bar(xs_test, counts_test, widths_test, color='r', label='UD')
-
-        ax[0].set_ylabel(ylabel)
-
-        ax[1].set_xlabel(xlabel)
-        ax[1].set_ylabel('Counts')
-        ax[1].set_yscale('log')
-
-        ax[0].legend()
-        ax[1].legend()
-
-    else:
-        fig, ax = pl.subplots()
-        ax.scatter(xs_test, ys_test, marker='.', color='r', label='UD')
-        ax.scatter(xs_train, ys_train, marker='2', color='b', label='ID')
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel(xlabel)
-        ax.legend()
-
-    fig.tight_layout()
-    fig.savefig(name)
-
-    pl.close('all')
-
-    data = {}
-    data[ops+'_id'] = list(ys_train)
-    data[xlabel+'_id'] = list(xs_train)
-    data[ops+'_ud'] = list(ys_test)
-    data[xlabel+'_ud'] = list(xs_test)
-
-    if (sampling is not None) and (points is not None):
-        data['counts_ud'] = list(counts_test)
-        data['counts_id'] = list(counts_train)
-
-    jsonfile = name+'.json'
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        jsonfile = name+'.json'
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
 
 
 def graphics(save, points, sampling, ops):
 
     path = os.path.join(save, 'aggregate')
-    groups = ['scaler', 'model', 'splitter', 'domain']
+    groups = ['scaler', 'model', 'splitter']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(os.path.join(path, 'data.csv'))

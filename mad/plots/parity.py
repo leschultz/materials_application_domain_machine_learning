@@ -117,7 +117,7 @@ def graphic(save):
     df = os.path.join(path, 'data_stats.csv')
     mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'splitter', 'in_domain', 'domain']
+    groups = ['scaler', 'model', 'splitter', 'in_domain']
     drop_cols = groups+['pipe', 'index']
 
     df = pd.read_csv(df)
@@ -129,22 +129,47 @@ def graphic(save):
         name = '_'.join(name)
         new_path = os.path.join(path, name)
 
-        d = d[1]
-        m = m[1]
-        m.drop(groups, axis=1, inplace=True)
+        if d[0][-1] is True:
 
-        m = m.to_dict('records')[0]  # Should have only one entry
+            d = d[1]
+            m = m[1]
 
-        parity(
-               m,
-               d['y_mean'],
-               d['y_pred_mean'],
-               d['y_pred_sem'],
-               '',
-               '',
-               new_path
-               )
+            m.drop(groups, axis=1, inplace=True)
 
+            m = m.to_dict('records')[0]  # Should have only one entry
+
+            parity(
+                   m,
+                   d['y_mean'],
+                   d['y_pred_mean'],
+                   d['y_pred_sem'],
+                   '',
+                   '',
+                   new_path
+                   )
+
+        else:
+            for k, l in zip(d[1].groupby('domain'), m[1].groupby('domain')):
+
+                ud_path = os.path.join(new_path, k[0])
+
+
+                k = k[1]
+                l = l[1]
+
+                l.drop(groups+['domain'], axis=1, inplace=True)
+
+                l = l.to_dict('records')[0]  # Should have only one entry
+
+                parity(
+                       l,
+                       k['y_mean'],
+                       k['y_pred_mean'],
+                       k['y_pred_sem'],
+                       '',
+                       '',
+                       ud_path
+                       )
 
 def make_plots(save):
     graphic(save)
