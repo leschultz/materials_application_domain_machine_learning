@@ -8,7 +8,7 @@ import os
 from mad.functions import parallel
 
 
-def operation(y, y_pred, llh, std, std_cal, op):
+def operation(y, y_pred, op):
     '''
     Returns the desired y-axis.
     '''
@@ -23,12 +23,6 @@ def operation(y, y_pred, llh, std, std_cal, op):
             return np.nan
         else:
             return metrics.mean_squared_error(y, y_pred)**0.5
-    elif op == 'llh':
-        return -np.mean(llh)
-    elif op == 'std':
-        return np.mean(std)
-    elif op == 'std_cal':
-        return np.mean(std_cal)
 
 
 def find_bin(df, i, sampling, points):
@@ -58,16 +52,13 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
     os.makedirs(save, exist_ok=True)
 
     name = os.path.join(save, ops)
-    name += '_{}'.format(i)
+    name += '_{}_calibration'.format(i)
 
     df = data[[
                i,
                actual,
                pred,
                'set',
-               'loglikelihood',
-               'std',
-               'std_cal'
                ]].copy()
 
     train = df.loc[df['set'] == 'train'].copy()
@@ -103,21 +94,9 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             x_test = test[actual].values
             y_test = test[pred].values
 
-            llh_train = train['loglikelihood'].values
-            llh_test = test['loglikelihood'].values
-
-            std_train = train['std'].values
-            std_test = test['std'].values
-
-            std_cal_train = train['std_cal'].values
-            std_cal_test = test['std_cal'].values
-
             y_train = operation(
                                 x_train,
                                 y_train,
-                                llh_train,
-                                std_train,
-                                std_cal_train,
                                 ops
                                 )
             x_train = np.mean(train[i].values)
@@ -125,9 +104,6 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             y_test = operation(
                                x_test,
                                y_test,
-                               llh_test,
-                               std_test,
-                               std_cal_test,
                                ops
                                )
             x_test = np.mean(test[i].values)
@@ -155,16 +131,10 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         ys_train = zip(
                        train[actual],
                        train[pred],
-                       train['loglikelihood'],
-                       train['std'],
-                       train['std_cal']
                        )
         ys_test = zip(
                       test[actual],
                       test[pred],
-                      test['loglikelihood'],
-                      test['std'],
-                      test['std_cal']
                       )
 
         ys_train = [operation(*i, ops) for i in ys_train]
@@ -174,25 +144,10 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         xs_test = test[i].values
 
     xlabel = '{}'.format(i)
-    if ('logpdf' == i) or ('pdf' == i):
-        xlabel = 'Negative '+xlabel
+    xlabel = xlabel.capitalize()
+    xlabel = xlabel.replace('_', ' ')
 
-        xs_test = -1*xs_test
-        xs_train = -1*xs_train
-    else:
-        xlabel = xlabel.capitalize()
-        xlabel = xlabel.replace('_', ' ')
-
-    if ops == 'residual':
-        ylabel = r'$y-\hat{y}$'
-    elif ops == 'rmse':
-        ylabel = r'$RMSE(y, \hat{y})$'
-    elif ops == 'llh':
-        ylabel = '- Log Likelihood'
-    elif ops == 'std':
-        ylabel = r'$\sigma$'
-    elif ops == 'std_cal':
-        ylabel = r'$\sigma_{cal}$'
+    ylabel = r'$RMSE(y, \hat{y})$'
 
     if (sampling is not None) and (points is not None):
 
@@ -203,6 +158,13 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
         ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='Test')
         ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='Train')
+
+        x_ideal = [0, np.nanmax([np.nanmax(ys_test), np.nanmax(ys_train)])]
+        ax[0].plot(
+                   x_ideal,
+                   x_ideal,
+                   label='Ideal'
+                   )
 
         ax[1].bar(
                   xs_train,
@@ -226,6 +188,12 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         fig, ax = pl.subplots()
         ax.scatter(xs_test, ys_test, marker='.', color='r', label='Test')
         ax.scatter(xs_train, ys_train, marker='2', color='b', label='Train')
+        x_ideal = [0, np.nanmax([np.nanmax(ys_test), np.nanmax(ys_train)])]
+        ax.plot(
+                x_ideal,
+                x_ideal,
+                label='Ideal'
+                )
         ax.set_ylabel(ylabel)
         ax.set_xlabel(xlabel)
         ax.legend()
@@ -280,12 +248,11 @@ def graphics(save, points, sampling, ops):
               'loglikelihood'
               }
 
+    cols = ['std', 'std_cal']
     for group, values in df.groupby(groups):
 
         print('Plotting set {} for {}'.format(group, ops))
         values.drop(drop_cols, axis=1, inplace=True)
-        cols = set(values.columns.tolist())
-        cols = cols.difference(remove)
 
         group = list(map(str, group))
         parallel(
@@ -302,8 +269,4 @@ def graphics(save, points, sampling, ops):
 
 
 def make_plots(save, points=None, sampling=None):
-    graphics(save, points, sampling, ops='residual')
     graphics(save, points, sampling, ops='rmse')
-    graphics(save, points, sampling, ops='llh')
-    graphics(save, points, sampling, ops='std_cal')
-    graphics(save, points, sampling, ops='std')

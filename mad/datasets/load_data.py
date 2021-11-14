@@ -90,6 +90,22 @@ def diffusion():
     return load(df, target, drop_cols, class_name)
 
 
+def sigmoid(n):
+    '''
+    Load the sigmoid data set.
+        inputs:
+            n = The sigmoid number which has different class splits.
+    '''
+
+    # Dataset information
+    df = 'sigmoid{}.csv'.format(n)
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target, drop_cols, class_name)
+
+
 def perovskite_stability():
     '''
     Load the perovskite stability dataset.

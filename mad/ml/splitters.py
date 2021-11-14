@@ -1,5 +1,7 @@
+from sklearn.cluster import estimate_bandwidth
+from sklearn.neighbors import KernelDensity
 from sklearn.utils import resample
-import statsmodels.api as sm
+
 import pandas as pd
 import numpy as np
 import random
@@ -62,6 +64,61 @@ class BootstrappedLeaveOneGroupOut:
             random_state += 1
 
     
+
+
+class BootstrappedLeaveOneGroupOut:
+    '''
+    Custom splitting class which with every iteration of n_repeats it will
+    bootstrap the dataset with replacement and leave every group out once
+    with a given class column. (Special thanks to Angelo Cortez and Yiqi Wang
+    for development).
+    '''
+
+    def __init__(self, n_repeats, groups, *args, **kwargs):
+        '''
+        inputs:
+            n_repeats = The number of times to apply splitting.
+            groups =  np.array of group classes for the dataset.
+        '''
+
+        self.groups = groups
+        self.n_repeats = n_repeats
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        '''
+        A method to return the O(N) number of splits.
+        '''
+
+        self.groups = groups
+        self.n_splits = self.n_repeats*len(set(list(self.groups)))
+
+        return self.n_splits
+
+    def split(self, X=None, y=None, groups=None):
+        '''
+        For every iteration, bootstrap the original dataset, and leave
+        every group out as the testing set one time.
+        '''
+
+        grouping_df = pd.DataFrame(self.groups, columns=['group'])
+        unique_groups = list(set(self.groups))
+
+        # Resample self.n_repeats times
+        for rep in range(self.n_repeats):
+
+            sample = resample(grouping_df)  # Boostrap
+            for unique_group in unique_groups:
+
+                # Check first if the group is in the bootstrapped dataset
+                if len(sample[sample['group'] == unique_group]) > 0:
+
+                    test = sample[sample['group'] == unique_group]
+                    train = sample[sample['group'] != unique_group]
+
+                    test = test.index.tolist()
+                    train = train.index.tolist()
+
+                    yield train, test
 
 
 class RepeatedClusterSplit:
@@ -175,21 +232,15 @@ class RepeatedPDFSplit:
         for i in range(self.n_repeats):
 
             # Sample with replacement
-            X = resample(X)
+            bootstrapped_df = resample(X)
 
-            # Do group based on pdf
-            col_types = 'c'*X.shape[-1]  # Assume continuous features
-            model = sm.nonparametric.KDEMultivariate(
-                                                     X,
-                                                     var_type=col_types
-                                                     )
-            dist = model.pdf(X)
+            bw = estimate_bandwidth(X)
+            model = KernelDensity(kernel='gaussian', bandwidth=bw)
+            model.fit(X)
 
-            # Correct return of data
-            if isinstance(dist, np.float64):
-                dist = [dist]
+            dist = model.score_samples(X)  # Natural log distance
 
-            df = {'dist': dist, 'index': list(range(X.shape[0]))}
+            df = {'dist': dist, 'index': list(range(bootstrapped_df.shape[0]))}
             df = pd.DataFrame(df)
             df.sort_values(by='dist', inplace=True)
 
