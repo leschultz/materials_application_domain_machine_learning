@@ -27,17 +27,13 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
         if X_train.shape[1] < 2:
 
             vals = np.empty(X_test.shape[0])
-            dists[append_name+dist_type+'_mean'] = vals
-            dists[append_name+dist_type+'_max'] = vals
-            dists[append_name+dist_type+'_min'] = vals
+            dists[append_name+dist_type] = vals
 
         else:
             vi = np.linalg.inv(np.cov(X_train.T))
             dist = cdist(X_train, X_test, dist_type, VI=vi)
 
-            dists[append_name+dist_type+'_mean'] = np.mean(dist, axis=0)
-            dists[append_name+dist_type+'_max'] = np.max(dist, axis=0)
-            dists[append_name+dist_type+'_min'] = np.min(dist, axis=0)
+            dists[append_name+dist_type] = np.mean(dist, axis=0)
 
     elif dist_type == 'pdf':
 
@@ -69,10 +65,7 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
 
     else:
         dist = cdist(X_train, X_test, dist_type)
-
-        dists[append_name+dist_type+'_mean'] = np.mean(dist, axis=0)
-        dists[append_name+dist_type+'_max'] = np.max(dist, axis=0)
-        dists[append_name+dist_type+'_min'] = np.min(dist, axis=0)
+        dists[append_name+dist_type] = np.mean(dist, axis=0)
 
     return dists
 
@@ -109,7 +102,7 @@ def distance(X_train, X_test):
 
 
     # For development
-    distance_list = ['pdf', 'mahalanobis', 'euclidean']
+    distance_list = ['pdf', 'mahalanobis']
     matrix_decomp_methods = []
 
     dists = {}

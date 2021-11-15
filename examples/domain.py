@@ -26,6 +26,7 @@ def main():
 
     # Load data
     data = load_data.sigmoid(3)
+    data = load_data.diffusion()
     df = data['frame']
     X = data['data']
     y = data['target']

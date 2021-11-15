@@ -73,7 +73,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     for group, test in domains.groupby('domain'):
 
-        name = os.path.join(*[save, group, ops])
+        name = os.path.join(*[save, 'groups', group, ops])
         os.makedirs(name, exist_ok=True)
         name = os.path.join(name, i)
 
@@ -205,8 +205,20 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
             fig, ax = pl.subplots(2)
 
-            ax[0].scatter(xs_test, ys_test, marker='.', color='r', label='UD')
-            ax[0].scatter(xs_train, ys_train, marker='2', color='b', label='IN')
+            ax[0].scatter(
+                          xs_test,
+                          ys_test,
+                          marker='.',
+                          color='r',
+                          label='UD'
+                          )
+            ax[0].scatter(
+                          xs_train,
+                          ys_train,
+                          marker='2',
+                          color='b',
+                          label='IN'
+                          )
 
             ax[1].bar(
                       xs_train,

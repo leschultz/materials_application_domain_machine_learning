@@ -123,14 +123,49 @@ def graphic(save):
     df = pd.read_csv(df)
     mets = pd.read_csv(mets)
 
+    # For total parity plots
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = list(map(str, d[0]))
+        name = list(map(str, d[0][:-1]))
         name = '_'.join(name)
-        new_path = os.path.join(path, name)
+        new_path = os.path.join(*[path, name, 'total', 'parity'])
+        parity_path = os.path.join(new_path, 'in-domain_{}'.format(d[0][-1]))
+        d = d[1]
+        m = m[1]
 
-        if d[0][-1] is True:
+        m.drop(groups, axis=1, inplace=True)
 
+        m = m.to_dict('records')[0]  # Should have only one entry
+
+        parity(
+               m,
+               d['y_mean'],
+               d['y_pred_mean'],
+               d['y_pred_sem'],
+               '',
+               '',
+               parity_path
+               )
+
+    # For domain parity plots
+    groups.pop()
+    groups.append('domain')
+    for k, l in zip(df.groupby(groups), mets.groupby(groups)):
+
+        name = list(map(str, k[0][:-1]))
+        name = '_'.join(name)
+
+        parity_path = os.path.join(*[
+                                     path,
+                                     name,
+                                     'groups',
+                                     k[0][-1],
+                                     'parity'
+                                     ])
+
+        for d, m in zip(k[1].groupby('in_domain'), l[1].groupby('in_domain')):
+
+            new_path = os.path.join(parity_path, 'in-domain_{}'.format(d[0]))
             d = d[1]
             m = m[1]
 
@@ -148,28 +183,6 @@ def graphic(save):
                    new_path
                    )
 
-        else:
-            for k, l in zip(d[1].groupby('domain'), m[1].groupby('domain')):
-
-                ud_path = os.path.join(new_path, k[0])
-
-
-                k = k[1]
-                l = l[1]
-
-                l.drop(groups+['domain'], axis=1, inplace=True)
-
-                l = l.to_dict('records')[0]  # Should have only one entry
-
-                parity(
-                       l,
-                       k['y_mean'],
-                       k['y_pred_mean'],
-                       k['y_pred_sem'],
-                       '',
-                       '',
-                       ud_path
-                       )
 
 def make_plots(save):
     graphic(save)
