@@ -29,7 +29,6 @@ class NoSplit:
         yield indx, indx
 
 
-
 class BootstrappedLeaveOneGroupOut:
     '''
     Custom splitting class which with every iteration of n_repeats it will
