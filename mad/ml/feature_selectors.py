@@ -38,7 +38,8 @@ class vif_selection:
         '''
 
         feature_indices = list(range(X.shape[1]))
-
+        assert(self.n_features <= len(feature_indices)), "n_features ({}) needs to be less than or equal to the amount of features in the dataset ({})".format(
+            str(self.n_features), str(len(feature_indices)))
         vif = pd.DataFrame()
         vals = []
         for i in feature_indices:
@@ -66,7 +67,7 @@ class sequential_vif_selection:
         inputs:
             percent = gives the top percent of feature.
         '''
-
+        
         self.n_features = n_features
 
     def transform(self, X):
@@ -78,6 +79,8 @@ class sequential_vif_selection:
         
         vif_df = pd.DataFrame()
         feature_indices = list(range(X.shape[1]))
+        assert(self.n_features <= len(feature_indices)), "n_features ({}) needs to be less than or equal to the amount of features in the dataset ({})".format(
+            str(self.n_features), str(len(feature_indices)))
         vals = [variance_inflation_factor(X, i) for i in feature_indices]
         vif_df['VIF Factor'] = vals
         vif_df['features_index'] = feature_indices
