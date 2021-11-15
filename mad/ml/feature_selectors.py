@@ -47,7 +47,6 @@ class vif_selection:
 
         vif['features_index'] = feature_indices
         vif_sorted = vif.sort_values('VIF Factor')
-        print(vif_sorted)
         feature_selected = list(vif_sorted['features_index'])[:self.n_features]
 
         X = X[:, feature_selected]
