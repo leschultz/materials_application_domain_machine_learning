@@ -1,4 +1,3 @@
-from sklearn import feature_selection
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import pandas as pd
 
