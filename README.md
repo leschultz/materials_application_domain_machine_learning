@@ -31,6 +31,7 @@ pycodestyle <script>
 * **Lane Schultz** - *Code Development* - [leschultz](https://github.com/leschultz)
 * **Angelo Cortez** - *Code Development* - [angelotc](https://github.com/angelotc)
 * **Yiqi Wang** - *Code Development* - [berniewang8177](https://github.com/berniewang8177)
+* **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
 
 ## Acknowledgments
 
