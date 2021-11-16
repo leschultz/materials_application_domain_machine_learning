@@ -59,7 +59,7 @@ class vif_selection:
 
 class sequential_vif_selection:
     '''
-    A class for VIF score for feature selection.
+    A class for VIF score for feature selection. Works with all features, then removes them one by one.
     '''
 
     def __init__(self, n_features):
@@ -101,7 +101,6 @@ class sequential_vif_selection:
             vif_df['VIF Factor'] = vals
             vif_df['features_index'] = feature_indices
             vif_sorted = vif_df.sort_values('VIF Factor')
-        print("SENDING X WITH {} FEATURES".format(str(len([variance_inflation_factor(X, i) for i in feature_indices]))))
         return X
 
     def fit(self, X, y=None):
