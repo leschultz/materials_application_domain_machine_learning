@@ -1,11 +1,7 @@
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
-from sklearn import cluster
 
-from sklearn.feature_selection import RFE
 from sklearn.model_selection import GridSearchCV, KFold
-from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import aggregate, statistics
@@ -13,7 +9,7 @@ from mad.plots import versus
 from mad.plots import parity
 
 from mad.datasets import load_data
-from mad.ml import splitters, predict, feature_selectors
+from mad.ml import  predict, feature_selectors
 
 import numpy as np
 import warnings
