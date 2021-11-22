@@ -74,35 +74,8 @@ def distance(X_train, X_test):
     '''
     Determine the distance from set X_test to set X_train.
     '''
-
-    distance_list = [
-                     'pdf',
-                     'mahalanobis',
-                     'euclidean',
-                     'minkowski',
-                     'cityblock',
-                     'seuclidean',
-                     'sqeuclidean',
-                     'cosine',
-                     'correlation',
-                     'chebyshev',
-                     'canberra',
-                     'braycurtis',
-                     'sokalsneath',
-                     ]
-
-    matrix_decomp_methods = [
-                             PCA(),
-                             SparsePCA(),
-                             KernelPCA(n_components=X_train.shape[1]),
-                             SparsePCA(),
-                             IncrementalPCA(),
-                             MiniBatchSparsePCA(),
-                             ]
-
-
     # For development
-    distance_list = ['pdf', 'mahalanobis']
+    distance_list = ['pdf', 'mahalanobis', 'euclidean']
     matrix_decomp_methods = []
 
     dists = {}
@@ -110,17 +83,5 @@ def distance(X_train, X_test):
 
         # Compute regular distances
         dists.update(distance_link(X_train, X_test, distance))
-
-        # Compute transformed distances
-        for cur_method in matrix_decomp_methods:
-            cur_method.fit(X_train)  # Refit object
-            X_test_transformed = cur_method.transform(X_test)
-            name = cur_method.__class__.__name__+'_'
-            dists.update(distance_link(
-                                       X_train,
-                                       X_test_transformed,
-                                       distance,
-                                       name
-                                       ))
 
     return dists

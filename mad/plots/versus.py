@@ -73,7 +73,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
     for group, test in domains.groupby('domain'):
 
-        name = os.path.join(*[save, 'groups', group, ops])
+        name = os.path.join(*[save, 'groups', str(group), ops])
         os.makedirs(name, exist_ok=True)
         name = os.path.join(name, i)
 

@@ -1,3 +1,4 @@
+from sklearn.model_selection import GridSearchCV
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from sklearn.utils import resample
@@ -197,8 +198,24 @@ class RepeatedPDFSplit:
             # Sample with replacement
             bootstrapped_df = resample(X)
 
-            bw = estimate_bandwidth(X)
-            model = KernelDensity(kernel='gaussian', bandwidth=bw)
+            # Estimate bandwidth
+            grid = {
+                    'kernel': [
+                               'gaussian',
+                               'tophat',
+                               'epanechnikov',
+                               'exponential',
+                               'linear',
+                               'cosine'
+                               ],
+                    'bandwidth': [estimate_bandwidth(X_train)]
+                    }
+            model = GridSearchCV(
+                                 KernelDensity(),
+                                 grid,
+                                 cv=5,
+                                 )
+
             model.fit(X)
 
             dist = model.score_samples(X)  # Natural log distance

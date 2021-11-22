@@ -159,7 +159,7 @@ def graphic(save):
                                      path,
                                      name,
                                      'groups',
-                                     k[0][-1],
+                                     str(k[0][-1]),
                                      'parity'
                                      ])
 

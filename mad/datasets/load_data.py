@@ -203,15 +203,3 @@ def steel_yield_strength():
     target = 'yield strength'
 
     return load(df, target)
-
-
-def test():
-    '''
-    Load the test dataset.
-    '''
-
-    # Dataset information
-    df = 'test_data.csv'
-    target = 'y'
-
-    return load(df, target)

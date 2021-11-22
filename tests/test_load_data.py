@@ -9,7 +9,9 @@ class ml_test(unittest.TestCase):
         Test data import for all supported sets.
         '''
 
-        load_data.test()
+        load_data.sigmoid(1)
+        load_data.sigmoid(2)
+        load_data.sigmoid(3)
         load_data.friedman()
         load_data.diffusion()
         load_data.super_cond()
