@@ -105,6 +105,18 @@ def sigmoid(n):
 
     return load(df, target, drop_cols, class_name)
 
+def tanh(n):
+    '''
+    Load the tanh data set.
+    '''
+
+    # Dataset information
+    df = 'tanh{}.csv'.format(n)
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target, drop_cols, class_name)
 
 def perovskite_stability():
     '''
