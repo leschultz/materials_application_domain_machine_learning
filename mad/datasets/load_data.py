@@ -235,3 +235,11 @@ def one_over_x():
     drop_cols = ['class_name']
 
     return load(df, target,  drop_cols, class_name)
+
+def test_dataset1():
+    df = 'mydataset1.csv'
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target, drop_cols, class_name)
