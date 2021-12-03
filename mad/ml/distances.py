@@ -59,8 +59,9 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
         model.fit(X_train)
 
         log_dist = model.score_samples(X_test)
+        dist = np.exp(log_dist)
 
-        dists[append_name+dist_type] = np.exp(log_dist)
+        dists[append_name+dist_type] = dist
         dists[append_name+'log'+dist_type] = log_dist
 
     else:
@@ -75,8 +76,7 @@ def distance(X_train, X_test):
     Determine the distance from set X_test to set X_train.
     '''
     # For development
-    distance_list = ['pdf', 'mahalanobis', 'euclidean']
-    matrix_decomp_methods = []
+    distance_list = ['pdf', 'mahalanobis']
 
     dists = {}
     for distance in distance_list:

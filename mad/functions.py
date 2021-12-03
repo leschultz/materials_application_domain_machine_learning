@@ -31,7 +31,7 @@ def llh(std, res, x):
     '''
 
     total = np.log(2*np.pi)
-    total += 2*np.log(x[0]*std+x[1])
+    total += np.log((x[0]*std+x[1])**2)
     total += (res**2)/((x[0]*std+x[1])**2)
     total *= -0.5
 

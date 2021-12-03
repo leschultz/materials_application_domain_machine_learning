@@ -14,7 +14,7 @@ def operation(y, y_pred, llh, std, stdcal, op):
     '''
 
     if op == 'residual':
-        return np.mean(y-y_pred)
+        return np.nanmean(y-y_pred)
     elif op == 'rmse':
         if isinstance(y, float) and isinstance(y_pred, float):
             y = [y]
@@ -24,11 +24,11 @@ def operation(y, y_pred, llh, std, stdcal, op):
         else:
             return metrics.mean_squared_error(y, y_pred)**0.5
     elif op == 'llh':
-        return -np.mean(llh)
+        return -np.nanmean(llh)
     elif op == 'std':
-        return np.mean(std)
+        return np.nanmean(std)
     elif op == 'stdcal':
-        return np.mean(stdcal)
+        return np.nanmean(stdcal)
 
 
 def find_bin(df, i, sampling, points):
@@ -68,7 +68,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                'stdcal'
                ]].copy()
 
-    train = df.loc[df['in_domain'] == True].copy()
+    alltrain = df.loc[df['in_domain'] == True].copy()
     domains = df.loc[df['in_domain'] == False].copy()
 
     for group, test in domains.groupby('domain'):
@@ -81,7 +81,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         if (sampling is not None) and (points is not None):
 
             # Bin individually by set
-            train = find_bin(train, i, sampling, points)  # Bin the data
+            train = find_bin(alltrain, i, sampling, points)  # Bin the data
             test = find_bin(test, i, sampling, points)  # Bin the data
             df = pd.concat([test, train])
 
@@ -96,6 +96,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
 
                 # Compensate for empty bins
                 if values.empty:
+                    print(values)
                     continue
 
                 train = values.loc[values['in_domain'] == True]
@@ -124,7 +125,8 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                                     stdcal_train,
                                     ops
                                     )
-                x_train = np.mean(train[i].values)
+
+                x_train = np.nanmean(train[i].values)
 
                 y_test = operation(
                                    x_test,
@@ -134,7 +136,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                                    stdcal_test,
                                    ops
                                    )
-                x_test = np.mean(test[i].values)
+                x_test = np.nanmean(test[i].values)
 
                 count_train = train[i].values.shape[0]
                 count_test = test[i].values.shape[0]
@@ -157,11 +159,11 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
         else:
 
             ys_train = zip(
-                           train[actual],
-                           train[pred],
-                           train['llh'],
-                           train['std'],
-                           train['stdcal']
+                           alltrain[actual],
+                           alltrain[pred],
+                           alltrain['llh'],
+                           alltrain['std'],
+                           alltrain['stdcal']
                            )
             ys_test = zip(
                           test[actual],
@@ -174,7 +176,7 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
             ys_train = [operation(*i, ops) for i in ys_train]
             ys_test = [operation(*i, ops) for i in ys_test]
 
-            xs_train = train[i].values
+            xs_train = alltrain[i].values
             xs_test = test[i].values
 
         xlabel = '{}'.format(i)
@@ -225,9 +227,15 @@ def binner(i, data, actual, pred, save, points, sampling, ops):
                       counts_train,
                       widths_train,
                       color='b',
-                      label='Train'
+                      label='ID'
                       )
-            ax[1].bar(xs_test, counts_test, widths_test, color='r', label='UD')
+            ax[1].bar(
+                      xs_test,
+                      counts_test,
+                      widths_test,
+                      color='r',
+                      label='UD'
+                      )
 
             ax[0].set_ylabel(ylabel)
 
