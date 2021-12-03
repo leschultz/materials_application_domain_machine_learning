@@ -33,6 +33,7 @@ pycodestyle <script>
 * **Yiqi Wang** - *Code Development* - [berniewang8177](https://github.com/berniewang8177)
 * **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
 * **Kinjal Mehta** - *Code Development* - [kinjjalmehta](https://github.com/kinjjalmehta)
+* **James Sandine** - *Code Development* - [jamessandine](https://github.com/jamessandine)
 
 ## Acknowledgments
 
