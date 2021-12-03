@@ -227,3 +227,11 @@ def test():
     target = 'y'
 
     return load(df, target)
+
+def one_over_x():
+    df = 'one_over_x.csv'
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target,  drop_cols, class_name)
