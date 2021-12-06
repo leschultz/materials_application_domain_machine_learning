@@ -34,6 +34,9 @@ pycodestyle <script>
 * **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
 * **Kinjal Mehta** - *Code Development* - [kinjjalmehta](https://github.com/kinjjalmehta)
 * **James Sandine** - *Code Development* - [jamessandine](https://github.com/jamessandine)
+* **Vidit Agrawal** - *Code Development* - [viditagr](https://github.com/viditagr)
+* **Linxiu Zeng** - *Test* - [LinxiuZeng](https://github.com/LinxiuZeng)
+* **Hairong Yin** - *Test* - [EvelinYin](https://github.com/EvelinYin)
 
 ## Acknowledgments
 

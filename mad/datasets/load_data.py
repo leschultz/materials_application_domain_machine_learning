@@ -118,6 +118,20 @@ def tanh(n):
 
     return load(df, target, drop_cols, class_name)
 
+def exponential_function(n):
+    '''
+    Load the Graph points
+    n = The number having different splits
+    '''
+    
+    #Dataset information
+    df = 'Exponent{}.csv'.format(n)
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target, drop_cols, class_name)
+
 def perovskite_stability():
     '''
     Load the perovskite stability dataset.
@@ -227,3 +241,19 @@ def test():
     target = 'y'
 
     return load(df, target)
+
+def one_over_x():
+    df = 'one_over_x.csv'
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target,  drop_cols, class_name)
+
+def test_dataset1():
+    df = 'mydataset1.csv'
+    target = 'y'
+    class_name = 'class_name'
+    drop_cols = ['class_name']
+
+    return load(df, target, drop_cols, class_name)
