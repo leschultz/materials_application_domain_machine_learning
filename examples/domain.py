@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import versus, kde, parity
+from mad.plots import versus, kde, parity, calibration
 
 import numpy as np
 
@@ -26,16 +26,14 @@ def main():
 
     # Load data
     data = load_data.sigmoid(3)
-    data = load_data.diffusion()
     df = data['frame']
     X = data['data']
     y = data['target']
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(2, d)
-    top_split = LeaveOneGroupOut()
-    mid_split = RepeatedKFold(5, 2)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
+    mid_split = RepeatedKFold(5, 10)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
@@ -53,22 +51,9 @@ def main():
                            ])
     lasso = GridSearchCV(pipe, grid, cv=bot_split)
 
-    # Random forest regression
-    grid = {}
-    model = RandomForestRegressor()
-    grid['model__n_estimators'] = [100]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
-    pipe = Pipeline(steps=[
-                           ('scaler', scale),
-                           ('select', selector),
-                           ('model', model)
-                           ])
-    rf = GridSearchCV(pipe, grid, cv=bot_split)
-
     # Evaluate
     splits = domain.builder(
-                            rf,
+                            lasso,
                             X,
                             y,
                             d,
@@ -76,10 +61,13 @@ def main():
                             mid_split,
                             save
                             )
+
     splits.assess_domain()  # Do ML
     splits.aggregate()    
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
+    versus.make_plots(save, points, sampling)  # RMSE vs metrics
+    calibration.make_plots(save, 10)
 
 if __name__ == '__main__':
     main()
