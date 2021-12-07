@@ -2,6 +2,7 @@ from matplotlib import pyplot as pl
 import matplotlib.colors as colors
 import pandas as pd
 import numpy as np
+import matplotlib
 import os
 
 
@@ -10,7 +11,10 @@ def chunck(x, n):
     Devide x data into n sized bins.
     '''
     for i in range(0, len(x), n):
-        yield x[i:i+n]
+        x_new = x[i:i+n]
+
+        if len(x_new) == n:
+            yield x_new
 
 
 def make_plots(save, bin_size):
@@ -30,6 +34,10 @@ def make_plots(save, bin_size):
         minx = []
         miny = []
 
+        vmax = max(values['pdf'])
+        vmin = min(values['pdf'])
+        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
 
@@ -57,6 +65,7 @@ def make_plots(save, bin_size):
                               marker=marker,
                               label='In Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
+                              norm=normalize
                               )
 
             maxx.append(max(x))
@@ -78,8 +87,9 @@ def make_plots(save, bin_size):
         ax.set_xlabel(r'$\sigma_{c}$')
         ax.set_ylabel('RMS residuals')
 
+        cbar = fig.colorbar(dens)
+        cbar.set_label('Log Likelihood')
         fig.tight_layout()
-        fig.colorbar(dens)
 
         name = '_'.join(group[:3])
         name = [save, 'aggregate', name, 'total', 'calibration']
@@ -99,6 +109,10 @@ def make_plots(save, bin_size):
         minx = []
         miny = []
 
+        vmax = max(values['pdf'])
+        vmin = min(values['pdf'])
+        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
 
@@ -112,7 +126,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.prod(i) for i in c]
+            c = [np.ma.mean(i) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -147,7 +161,8 @@ def make_plots(save, bin_size):
         ax.set_xlabel(r'$\sigma_{c}$')
         ax.set_ylabel('RMS residuals')
 
-        fig.colorbar(dens)
+        cbar = fig.colorbar(dens)
+        cbar.set_label('Log Likelihood')
         fig.tight_layout()
 
         name = '_'.join(group[:3])

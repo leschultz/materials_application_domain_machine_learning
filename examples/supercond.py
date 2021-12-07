@@ -19,12 +19,12 @@ def main():
     '''
 
     seed = 14987
-    save = 'run'
+    save = 'run_supercond'
     points = None
     sampling = None
 
     # Load data
-    data = load_data.sigmoid(3)
+    data = load_data.super_cond()
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -67,7 +67,7 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 10)
+    calibration.make_plots(save, 10000)
 
 
 if __name__ == '__main__':

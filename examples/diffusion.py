@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import versus, kde, parity, calibration
+from mad.plots import parity, calibration
 
 import numpy as np
 
@@ -20,7 +20,7 @@ def main():
     '''
 
     seed = 14987
-    save = 'run'
+    save = 'run_diffusion'
     points = None
     sampling = None
 
@@ -32,8 +32,8 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(100, d)
-    mid_split = RepeatedKFold(5, 1)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(20, d)
+    mid_split = RepeatedKFold(5, 2)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
@@ -66,7 +66,7 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 100)
+    calibration.make_plots(save, 1000)
 
 
 if __name__ == '__main__':

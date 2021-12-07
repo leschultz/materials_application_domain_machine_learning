@@ -63,11 +63,16 @@ class BootstrappedLeaveOneGroupOut:
         every group out as the testing set one time.
         '''
 
+        indx = np.arange(X.shape[0])
         spltr = LeaveOneGroupOut()
         for rep in range(self.n_repeats):
-            X_sample, y_sample, g_sample = resample(X, y, groups)
+
+            indx_sample = resample(indx)
+            X_sample = X[indx_sample, :]
+            y_sample = y[indx_sample]
+            g_sample = groups[indx_sample]
             for train, test in spltr.split(X_sample, y_sample, g_sample):
-                yield train, test
+                yield indx_sample[train], indx_sample[test]
 
 
 class RepeatedClusterSplit:
