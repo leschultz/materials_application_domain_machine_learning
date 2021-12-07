@@ -1,6 +1,4 @@
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import BaggingRegressor
-from sklearn.linear_model import Lasso
 from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
@@ -41,20 +39,22 @@ def main():
     scale = StandardScaler()
     selector = feature_selectors.no_selection()
 
-    # Do LASSO
-    model = BaggingRegressor(base_estimator=Lasso())
+    # Random forest regression
     grid = {}
-    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
+    model = RandomForestRegressor()
+    grid['model__n_estimators'] = [100]
+    grid['model__max_features'] = [None]
+    grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
                            ('model', model)
                            ])
-    lasso = GridSearchCV(pipe, grid, cv=bot_split)
+    rf = GridSearchCV(pipe, grid, cv=bot_split)
 
     # Evaluate
     splits = domain.builder(
-                            lasso,
+                            rf,
                             X,
                             y,
                             d,

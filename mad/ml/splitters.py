@@ -1,4 +1,4 @@
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from sklearn.utils import resample
@@ -34,8 +34,7 @@ class BootstrappedLeaveOneGroupOut:
     '''
     Custom splitting class which with every iteration of n_repeats it will
     bootstrap the dataset with replacement and leave every group out once
-    with a given class column. (Special thanks to Angelo Cortez and Yiqi Wang
-    for development).
+    with a given class column.
     '''
 
     def __init__(self, n_repeats, groups, *args, **kwargs):
@@ -64,25 +63,11 @@ class BootstrappedLeaveOneGroupOut:
         every group out as the testing set one time.
         '''
 
-        grouping_df = pd.DataFrame(self.groups, columns=['group'])
-        unique_groups = list(set(self.groups))
-
-        # Resample self.n_repeats times
+        spltr = LeaveOneGroupOut()
         for rep in range(self.n_repeats):
-
-            sample = resample(grouping_df)  # Boostrap
-            for unique_group in unique_groups:
-
-                # Check first if the group is in the bootstrapped dataset
-                if len(sample[sample['group'] == unique_group]) > 0:
-
-                    test = sample[sample['group'] == unique_group]
-                    train = sample[sample['group'] != unique_group]
-
-                    test = test.index.tolist()
-                    train = train.index.tolist()
-
-                    yield train, test
+            X_sample, y_sample, g_sample = resample(X, y, groups)
+            for train, test in spltr.split(X_sample, y_sample, g_sample):
+                yield train, test
 
 
 class RepeatedClusterSplit:
