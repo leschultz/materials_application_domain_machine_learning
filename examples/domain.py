@@ -31,8 +31,8 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(2, d)
-    mid_split = RepeatedKFold(5, 2)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(5, d)
+    mid_split = RepeatedKFold(5, 5)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup

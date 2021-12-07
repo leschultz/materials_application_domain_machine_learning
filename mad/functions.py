@@ -50,7 +50,6 @@ def set_llh(std, y, y_pred, x):
                    lambda x: -sum(llh(std, res, x))/len(res),
                    x,
                    method='nelder-mead',
-                   bounds=((0, None), (0, None)),  # Positive std
                    )
 
     a, b = opt.x

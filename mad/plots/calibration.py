@@ -22,10 +22,13 @@ def make_plots(save, bin_size):
 
     df = df.sort_values(by=xaxis)
 
-    for group, values in df.groupby(['scaler', 'model', 'splitter', 'domain']):
+    for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
         # For the ideal calibration line
-        perfect = []
+        maxx = []
+        maxy = []
+        minx = []
+        miny = []
 
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
@@ -40,7 +43,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.mean(i) for i in c]
+            c = [np.ma.prod(i) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -56,11 +59,21 @@ def make_plots(save, bin_size):
                               cmap=pl.get_cmap('viridis'),
                               )
 
-            perfect.append(max([max(x), max(y)]))
+            maxx.append(max(x))
+            maxy.append(max(y))
+            minx.append(min(x))
+            miny.append(min(y))
 
-        perfect = [0, max(perfect)]
+        maxx = max(maxx)
+        maxy = max(maxy)
+        minx = min(minx)
+        miny = min(miny)
+        perfect = [0, max([maxx, maxy])]
 
         ax.plot(perfect, perfect, linestyle=':', label='Ideal', color='k')
+
+        ax.set_xlim([minx, maxx])
+        ax.set_ylim([miny, maxy])
 
         ax.legend()
         ax.set_xlabel(r'$\sigma_{c}$')
@@ -69,7 +82,76 @@ def make_plots(save, bin_size):
         fig.colorbar(dens)
 
         name = '_'.join(group[:3])
-        name = [save, 'aggregate', name, 'groups', group[-1]]
+        name = [save, 'aggregate', name, 'total', 'calibration']
+        name = map(str, name)
+        name = os.path.join(*name)
+        os.makedirs(name, exist_ok=True)
+        name = os.path.join(name, 'calibration.png')
+        fig.savefig(name)
+
+        pl.close('all')
+
+    for group, values in df.groupby(['scaler', 'model', 'splitter', 'domain']):
+
+        # For the ideal calibration line
+        maxx = []
+        maxy = []
+        minx = []
+        miny = []
+
+        fig, ax = pl.subplots()
+        for subgroup, subvalues in values.groupby('in_domain'):
+
+            x = subvalues[xaxis].values
+            y = subvalues['y'].values-subvalues['y_pred'].values
+            c = subvalues['pdf'].values
+
+            x = chunck(x, bin_size)
+            y = chunck(y, bin_size)
+            c = chunck(c, bin_size)
+
+            x = [np.ma.mean(i) for i in x]
+            y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
+            c = [np.ma.prod(i) for i in c]
+
+            if subgroup is True:
+                marker = '1'
+            else:
+                marker = '.'
+
+            dens = ax.scatter(
+                              x,
+                              y,
+                              c=c,
+                              marker=marker,
+                              label='In Domain: {}'.format(subgroup),
+                              cmap=pl.get_cmap('viridis'),
+                              )
+
+            maxx.append(max(x))
+            maxy.append(max(y))
+            minx.append(min(x))
+            miny.append(min(y))
+
+        maxx = max(maxx)
+        maxy = max(maxy)
+        minx = min(minx)
+        miny = min(miny)
+        perfect = [0, max([maxx, maxy])]
+
+        ax.plot(perfect, perfect, linestyle=':', label='Ideal', color='k')
+
+        ax.set_xlim([minx, maxx])
+        ax.set_ylim([miny, maxy])
+
+        ax.legend()
+        ax.set_xlabel(r'$\sigma_{c}$')
+        ax.set_ylabel('RMS residuals')
+
+        fig.colorbar(dens)
+
+        name = '_'.join(group[:3])
+        name = [save, 'aggregate', name, 'groups', group[-1], 'calibration']
         name = map(str, name)
         name = os.path.join(*name)
         os.makedirs(name, exist_ok=True)

@@ -53,7 +53,7 @@ class BootstrappedLeaveOneGroupOut:
         '''
 
         self.groups = groups
-        self.n_splits = self.n_repeats*len(set(list(self.groups)))
+        self.n_splits = self.n_repeats*len(set(groups))
 
         return self.n_splits
 
@@ -181,7 +181,7 @@ class RepeatedPDFSplit:
         for i in range(self.n_repeats):
 
             # Sample with replacement
-            bootstrapped_df = resample(X)
+            X_sample = resample(X)
 
             # Estimate bandwidth
             grid = {
@@ -193,7 +193,7 @@ class RepeatedPDFSplit:
                                'linear',
                                'cosine'
                                ],
-                    'bandwidth': [estimate_bandwidth(X_train)]
+                    'bandwidth': [estimate_bandwidth(X_sample)]
                     }
             model = GridSearchCV(
                                  KernelDensity(),
@@ -201,11 +201,11 @@ class RepeatedPDFSplit:
                                  cv=5,
                                  )
 
-            model.fit(X)
+            model.fit(X_sample)
 
-            dist = model.score_samples(X)  # Natural log distance
+            dist = model.score_samples(X_sample)  # Natural log distance
 
-            df = {'dist': dist, 'index': list(range(bootstrapped_df.shape[0]))}
+            df = {'dist': dist, 'index': list(range(X_sample.shape[0]))}
             df = pd.DataFrame(df)
             df.sort_values(by='dist', inplace=True)
 
