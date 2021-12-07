@@ -28,9 +28,15 @@ pycodestyle <script>
 
 ## Authors
 
-* **Lane Schultz** - *Code Development* - [leschultz](https://github.com/leschultz)
+* **Lane Schultz** - *Main Contributer* - [leschultz](https://github.com/leschultz)
 * **Angelo Cortez** - *Code Development* - [angelotc](https://github.com/angelotc)
 * **Yiqi Wang** - *Code Development* - [berniewang8177](https://github.com/berniewang8177)
+* **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
+* **Kinjal Mehta** - *Code Development* - [kinjjalmehta](https://github.com/kinjjalmehta)
+* **James Sandine** - *Code Development* - [jamessandine](https://github.com/jamessandine)
+* **Vidit Agrawal** - *Code Development* - [viditagr](https://github.com/viditagr)
+* **Linxiu Zeng** - *Testing* - [LinxiuZeng](https://github.com/LinxiuZeng)
+* **Hairong Yin** - *Testing* - [EvelinYin](https://github.com/EvelinYin)
 
 ## Acknowledgments
 

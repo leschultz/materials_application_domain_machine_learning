@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import parity, versus
+from mad.plots import parity, versus, calibration
 from mad.ml import splitters, domain, feature_selectors
 
 import numpy as np
@@ -69,6 +69,7 @@ class ml_test(unittest.TestCase):
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save)  # Make parity plots
         versus.make_plots(save, points, sampling)  # RMSE vs metrics
+        calibration.make_plots(save, 10)
 
         # Clean directory
         shutil.rmtree(save)

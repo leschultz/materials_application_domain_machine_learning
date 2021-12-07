@@ -3,7 +3,8 @@ from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
 from sklearn import cluster
 
-from sklearn.model_selection import GridSearchCV, RepeatedKFold, LeaveOneGroupOut
+from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
@@ -32,8 +33,8 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
-    mid_split = RepeatedKFold(5, 10)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(2, d)
+    mid_split = RepeatedKFold(5, 2)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
@@ -63,11 +64,12 @@ def main():
                             )
 
     splits.assess_domain()  # Do ML
-    splits.aggregate()    
+    splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
     versus.make_plots(save, points, sampling)  # RMSE vs metrics
     calibration.make_plots(save, 10)
+
 
 if __name__ == '__main__':
     main()

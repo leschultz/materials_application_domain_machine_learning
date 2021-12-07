@@ -24,6 +24,9 @@ def make_plots(save, bin_size):
 
     for group, values in df.groupby(['scaler', 'model', 'splitter', 'domain']):
 
+        # For the ideal calibration line
+        perfect = []
+
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
 
@@ -52,6 +55,12 @@ def make_plots(save, bin_size):
                               label='In Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
                               )
+
+            perfect.append(max([max(x), max(y)]))
+
+        perfect = [0, max(perfect)]
+
+        ax.plot(perfect, perfect, linestyle=':', label='Ideal', color='k')
 
         ax.legend()
         ax.set_xlabel(r'$\sigma_{c}$')
