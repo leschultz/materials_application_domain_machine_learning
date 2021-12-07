@@ -198,9 +198,14 @@ class builder:
             std_ud_test = np.std(std_ud_test, axis=0)
 
             # Calibration.
-            a, b = set_llh(std_id_train, y_id_train, y_id_train_pred, [0, 1])
-            stdcal_id_test = a*std_id_test+b
-            stdcal_ud_test = a*std_ud_test+b
+            a, b = set_llh(
+                           std_id_train,
+                           y_id_train,
+                           y_id_train_pred,
+                           [1.0, 0.0]
+                           )
+            stdcal_id_test = abs(a*std_id_test+b)
+            stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
@@ -239,10 +244,10 @@ class builder:
                            std_id_train,
                            y_id_train,
                            y_id_train_pred,
-                           [0.0, 0.0]
+                           [1.0, 0.0]
                            )
-            stdcal_id_test = a*std_id_test+b
-            stdcal_ud_test = a*std_ud_test+b
+            stdcal_id_test = abs(a*std_id_test+b)
+            stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])

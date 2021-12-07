@@ -32,7 +32,7 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(5, d)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(100, d)
     mid_split = RepeatedKFold(5, 1)
     bot_split = RepeatedKFold(5, 1)
 
