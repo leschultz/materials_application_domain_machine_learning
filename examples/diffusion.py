@@ -1,4 +1,5 @@
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import BaggingRegressor
+from sklearn.linear_model import Lasso
 from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
@@ -24,7 +25,7 @@ def main():
     sampling = None
 
     # Load data
-    data = load_data.sigmoid(3)
+    data = load_data.diffusion()
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -32,29 +33,27 @@ def main():
 
     # Splitters
     top_split = splitters.BootstrappedLeaveOneGroupOut(5, d)
-    mid_split = RepeatedKFold(5, 5)
+    mid_split = RepeatedKFold(5, 1)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
     scale = StandardScaler()
     selector = feature_selectors.no_selection()
 
-    # Random forest regression
+    # Do LASSO
+    model = BaggingRegressor(base_estimator=Lasso())
     grid = {}
-    model = RandomForestRegressor()
-    grid['model__n_estimators'] = [100]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
+    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
                            ('model', model)
                            ])
-    rf = GridSearchCV(pipe, grid, cv=bot_split)
+    lasso = GridSearchCV(pipe, grid, cv=bot_split)
 
     # Evaluate
     splits = domain.builder(
-                            rf,
+                            lasso,
                             X,
                             y,
                             d,
@@ -67,7 +66,6 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    versus.make_plots(save, points, sampling)  # RMSE vs metrics
     calibration.make_plots(save, 100)
 
 

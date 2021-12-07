@@ -235,7 +235,12 @@ class builder:
                                                              )
 
             # Calibration.
-            a, b = set_llh(std_id_train, y_id_train, y_id_train_pred, [0, 1])
+            a, b = set_llh(
+                           std_id_train,
+                           y_id_train,
+                           y_id_train_pred,
+                           [0.0, 0.0]
+                           )
             stdcal_id_test = a*std_id_test+b
             stdcal_ud_test = a*std_ud_test+b
 

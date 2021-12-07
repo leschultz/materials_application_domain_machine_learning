@@ -68,9 +68,8 @@ def make_plots(save, bin_size):
         maxy = max(maxy)
         minx = min(minx)
         miny = min(miny)
-        perfect = [0, max([maxx, maxy])]
 
-        ax.plot(perfect, perfect, linestyle=':', label='Ideal', color='k')
+        ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
         ax.set_xlim([minx, maxx])
         ax.set_ylim([miny, maxy])
@@ -79,6 +78,7 @@ def make_plots(save, bin_size):
         ax.set_xlabel(r'$\sigma_{c}$')
         ax.set_ylabel('RMS residuals')
 
+        fig.tight_layout()
         fig.colorbar(dens)
 
         name = '_'.join(group[:3])
@@ -137,9 +137,8 @@ def make_plots(save, bin_size):
         maxy = max(maxy)
         minx = min(minx)
         miny = min(miny)
-        perfect = [0, max([maxx, maxy])]
 
-        ax.plot(perfect, perfect, linestyle=':', label='Ideal', color='k')
+        ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
         ax.set_xlim([minx, maxx])
         ax.set_ylim([miny, maxy])
@@ -149,6 +148,7 @@ def make_plots(save, bin_size):
         ax.set_ylabel('RMS residuals')
 
         fig.colorbar(dens)
+        fig.tight_layout()
 
         name = '_'.join(group[:3])
         name = [save, 'aggregate', name, 'groups', group[-1], 'calibration']
