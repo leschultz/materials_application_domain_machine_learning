@@ -33,10 +33,8 @@ def make_plots(save, bin_size):
         maxy = []
         minx = []
         miny = []
-
-        vmax = max(values['pdf'])
-        vmin = min(values['pdf'])
-        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+        vmin = []
+        vmax = []
 
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
@@ -51,7 +49,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.prod(i) for i in c]
+            c = [np.ma.sum(np.log(i)) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -65,18 +63,24 @@ def make_plots(save, bin_size):
                               marker=marker,
                               label='In Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
-                              norm=normalize
                               )
 
             maxx.append(max(x))
             maxy.append(max(y))
             minx.append(min(x))
             miny.append(min(y))
+            vmin.append(min(c))
+            vmax.append(max(c))
 
+        vmin = min(vmin)
+        vmax = max(vmax)
         maxx = max(maxx)
         maxy = max(maxy)
         minx = min(minx)
         miny = min(miny)
+
+        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+        dens.norm = normalize
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -108,10 +112,8 @@ def make_plots(save, bin_size):
         maxy = []
         minx = []
         miny = []
-
-        vmax = max(values['pdf'])
-        vmin = min(values['pdf'])
-        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+        vmin = []
+        vmax = []
 
         fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
@@ -126,7 +128,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.mean(i) for i in c]
+            c = [np.ma.sum(np.log(i)) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -146,11 +148,18 @@ def make_plots(save, bin_size):
             maxy.append(max(y))
             minx.append(min(x))
             miny.append(min(y))
+            vmin.append(min(c))
+            vmax.append(max(c))
 
+        vmin = min(vmin)
+        vmax = max(vmax)
         maxx = max(maxx)
         maxy = max(maxy)
         minx = min(minx)
         miny = min(miny)
+
+        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+        dens.norm = normalize
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
