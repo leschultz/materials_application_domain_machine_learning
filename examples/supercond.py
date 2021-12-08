@@ -42,7 +42,7 @@ def main():
     # Random forest regression
     grid = {}
     model = RandomForestRegressor()
-    grid['model__n_estimators'] = [100]
+    grid['model__n_estimators'] = [100, 200, 500, 1000]
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[
@@ -67,7 +67,7 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 10000)
+    calibration.make_plots(save, 1000)
 
 
 if __name__ == '__main__':

@@ -49,7 +49,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.sum(np.log(i)) for i in c]
+            c = [np.ma.mean(np.ma.log(i)) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -69,11 +69,11 @@ def make_plots(save, bin_size):
             maxy.append(max(y))
             minx.append(min(x))
             miny.append(min(y))
-            vmin.append(min(c))
-            vmax.append(max(c))
+            vmin.append(np.nanmin(c))
+            vmax.append(np.nanmax(c))
 
-        vmin = min(vmin)
-        vmax = max(vmax)
+        vmin = np.nanmin(vmin)
+        vmax = np.nanmax(vmax)
         maxx = max(maxx)
         maxy = max(maxy)
         minx = min(minx)
@@ -128,7 +128,7 @@ def make_plots(save, bin_size):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.sum(np.log(i)) for i in c]
+            c = [np.ma.mean(np.ma.log(i)) for i in c]
 
             if subgroup is True:
                 marker = '1'
@@ -148,11 +148,11 @@ def make_plots(save, bin_size):
             maxy.append(max(y))
             minx.append(min(x))
             miny.append(min(y))
-            vmin.append(min(c))
-            vmax.append(max(c))
+            vmin.append(np.nanmin(c))
+            vmax.append(np.nanmax(c))
 
-        vmin = min(vmin)
-        vmax = max(vmax)
+        vmin = np.nanmin(vmin)
+        vmax = np.nanmax(vmax)
         maxx = max(maxx)
         maxy = max(maxy)
         minx = min(minx)

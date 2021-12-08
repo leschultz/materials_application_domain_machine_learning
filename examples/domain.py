@@ -31,8 +31,8 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(5, d)
-    mid_split = RepeatedKFold(5, 5)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
+    mid_split = RepeatedKFold(5, 10)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
@@ -67,7 +67,7 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 10)
+    calibration.make_plots(save, 100)
 
 
 if __name__ == '__main__':
