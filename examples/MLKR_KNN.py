@@ -1,16 +1,12 @@
 
 import numpy as np
 
-from metric_learn import MLKR
 from mad.datasets import aggregate, load_data, statistics
 from mad.ml import feature_selectors, predict, splitters, MLKRKNN
 from mad.plots import parity, versus
 from sklearn import cluster
 from sklearn.ensemble import BaggingRegressor
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import Lasso
 from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
