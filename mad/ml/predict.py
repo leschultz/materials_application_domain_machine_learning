@@ -146,16 +146,17 @@ def inner(indx, X, y, pipes, save, groups=None):
             pipe.fit(X_train, y_train, g_train)
 
         pipe_best = pipe.best_estimator_
-        pipe_best_scaler = pipe_best.named_steps['scaler']
+        if 'scaler' in pipe_best.named_steps: # we dont always have a scaler
+            pipe_best_scaler = pipe_best.named_steps['scaler']
+            scaler_type = pipe_best_scaler.__class__.__name__    
+            X_test_trans = pipe_best_scaler.transform(X_test)
+            X_train_trans = pipe_best_scaler.transform(X_train)
         pipe_best_select = pipe_best.named_steps['select']
         pipe_best_model = pipe_best.named_steps['model']
 
         model_type = pipe_best_model.__class__.__name__
-        scaler_type = pipe_best_scaler.__class__.__name__
         split_type = pipe.cv.__class__.__name__
 
-        X_test_trans = pipe_best_scaler.transform(X_test)
-        X_train_trans = pipe_best_scaler.transform(X_train)
         X_train_select = pipe_best_select.transform(X_train_trans)
         X_test_select = pipe_best_select.transform(X_test_trans)
 
