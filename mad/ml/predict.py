@@ -107,6 +107,9 @@ def distance(X_train, X_test):
             cur_method.fit(X_train)  # Refit object
             X_test_transformed = cur_method.transform(X_test)
             name = cur_method.__class__.__name__+'_'
+            
+            if name == 'BaggingRegressor_' and cur_method.base_estimator: # add the base estimator to the name if name is BaggingRegressor_
+                name += cur_method.base_estimator.__class__.__name__
             dists.update(distance_link(
                                        X_train,
                                        X_test_transformed,
@@ -146,17 +149,16 @@ def inner(indx, X, y, pipes, save, groups=None):
             pipe.fit(X_train, y_train, g_train)
 
         pipe_best = pipe.best_estimator_
-        if 'scaler' in pipe_best.named_steps: # we dont always have a scaler
-            pipe_best_scaler = pipe_best.named_steps['scaler']
-            scaler_type = pipe_best_scaler.__class__.__name__    
-            X_test_trans = pipe_best_scaler.transform(X_test)
-            X_train_trans = pipe_best_scaler.transform(X_train)
+        pipe_best_scaler = pipe_best.named_steps['scaler']
         pipe_best_select = pipe_best.named_steps['select']
         pipe_best_model = pipe_best.named_steps['model']
 
         model_type = pipe_best_model.__class__.__name__
+        scaler_type = pipe_best_scaler.__class__.__name__
         split_type = pipe.cv.__class__.__name__
 
+        X_test_trans = pipe_best_scaler.transform(X_test)
+        X_train_trans = pipe_best_scaler.transform(X_train)
         X_train_select = pipe_best_select.transform(X_train_trans)
         X_test_select = pipe_best_select.transform(X_test_trans)
 
