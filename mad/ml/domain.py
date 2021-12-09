@@ -147,6 +147,7 @@ class builder:
         d_id_train, d_id_test, d_ud_test = d[trid], d[teid], d[teod]
 
         # Calculate distances.
+        df_td = distances.distance(X_id_train, X_id_train)
         df_id = distances.distance(X_id_train, X_id_test)
         df_od = distances.distance(X_id_train, X_ud_test)
 
@@ -204,22 +205,27 @@ class builder:
                            y_id_train_pred,
                            [1.0, 0.0]
                            )
+            stdcal_id_train = abs(a*std_id_train+b)
             stdcal_id_test = abs(a*std_id_test+b)
             stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
+            llh_id_train = llh(std_id_train, y_id_train-y_id_train_pred, [a, b])
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
             llh_ud_test = llh(std_ud_test, y_ud_test-y_ud_test_pred, [a, b])
 
             # Grab standard deviations.
+            df_td['std'] = std_id_train
             df_id['std'] = std_id_test
             df_od['std'] = std_ud_test
 
             # Grab calibrated standard deviations.
+            df_td['stdcal'] = stdcal_id_train
             df_id['stdcal'] = stdcal_id_test
             df_od['stdcal'] = stdcal_ud_test
 
             # Grab the log likelihood values.
+            df_td['llh'] = llh_id_train
             df_id['llh'] = llh_id_test
             df_od['llh'] = llh_ud_test
 
@@ -246,22 +252,27 @@ class builder:
                            y_id_train_pred,
                            [1.0, 0.0]
                            )
+            stdcal_id_train = abs(a*std_id_train+b)
             stdcal_id_test = abs(a*std_id_test+b)
             stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
+            llh_id_train = llh(std_id_train, y_id_train-y_id_train_pred, [a, b])
             llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
             llh_ud_test = llh(std_ud_test, y_ud_test-y_ud_test_pred, [a, b])
 
             # Grab standard deviations.
+            df_td['std'] = std_id_train
             df_id['std'] = std_id_test
             df_od['std'] = std_ud_test
 
             # Grab calibrated standard deviations.
+            df_td['stdcal'] = stdcal_id_train
             df_id['stdcal'] = stdcal_id_test
             df_od['stdcal'] = stdcal_ud_test
 
             # Grab the log likelihood values.
+            df_td['llh'] = llh_id_train
             df_id['llh'] = llh_id_test
             df_od['llh'] = llh_ud_test
 
@@ -271,29 +282,35 @@ class builder:
             y_ud_test_pred = pipe_best.predict(X_ud_test)
 
         # Assign boolean for in domain.
-        df_id['in_domain'] = [True]*X_id_test.shape[0]
-        df_od['in_domain'] = [False]*X_ud_test.shape[0]
+        df_td['in_domain'] = ['td']*X_id_train.shape[0]
+        df_id['in_domain'] = ['id']*X_id_test.shape[0]
+        df_od['in_domain'] = ['ud']*X_ud_test.shape[0]
 
         # Grab indexes of tests.
+        df_td['index'] = trid
         df_id['index'] = teid
         df_od['index'] = teod
 
         # Grab the domain of tests.
+        df_td['domain'] = d_id_train
         df_id['domain'] = d_id_test
         df_od['domain'] = d_ud_test
 
         # Grab the true target variables of test.
+        df_td['y'] = y_id_train
         df_id['y'] = y_id_test
         df_od['y'] = y_ud_test
 
         # Grab the predictions of tests.
+        df_td['y_pred'] = y_id_train_pred
         df_id['y_pred'] = y_id_test_pred
         df_od['y_pred'] = y_ud_test_pred
 
+        df_td = pd.DataFrame(df_td)
         df_id = pd.DataFrame(df_id)
         df_od = pd.DataFrame(df_od)
 
-        df = pd.concat([df_id, df_od])
+        df = pd.concat([df_td, df_id, df_od])
 
         # Assign values that should be the same
         df['pipe'] = pipe

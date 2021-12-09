@@ -56,17 +56,19 @@ def make_plots(save, bin_size):
             x = x/std
             y = y/std
 
-            if subgroup is True:
+            if subgroup == 'id':
                 marker = '1'
-            else:
+            elif subgroup == 'ud':
                 marker = '.'
+            else:
+                marker = '+'
 
             dens = ax.scatter(
                               x,
                               y,
                               c=c,
                               marker=marker,
-                              label='In Domain: {}'.format(subgroup),
+                              label='Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
                               )
 
@@ -140,17 +142,19 @@ def make_plots(save, bin_size):
             x = x/std
             y = y/std
 
-            if subgroup is True:
+            if subgroup == 'id':
                 marker = '1'
-            else:
+            elif subgroup == 'ud':
                 marker = '.'
+            else:
+                marker = '+'
 
             dens = ax.scatter(
                               x,
                               y,
                               c=c,
                               marker=marker,
-                              label='In Domain: {}'.format(subgroup),
+                              label='Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
                               )
 
