@@ -40,16 +40,21 @@ def make_plots(save, bin_size):
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
-            y = subvalues['y'].values-subvalues['y_pred'].values
+            y = abs(subvalues['y'].values-subvalues['y_pred'].values)
             c = subvalues['pdf'].values
 
-            x = chunck(x, bin_size)
-            y = chunck(y, bin_size)
-            c = chunck(c, bin_size)
+            x = list(chunck(x, bin_size))
+            y = list(chunck(y, bin_size))
+            c = list(chunck(c, bin_size))
 
-            x = [np.ma.mean(i) for i in x]
-            y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
+            std = np.ma.std(subvalues['y'].values)
+            x = np.array([np.ma.mean(i) for i in x])
+            y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
             c = [np.ma.mean(np.ma.log(i)) for i in c]
+
+            # Normalization
+            x = x/std
+            y = y/std
 
             if subgroup is True:
                 marker = '1'
@@ -88,8 +93,8 @@ def make_plots(save, bin_size):
         ax.set_ylim([miny, maxy])
 
         ax.legend()
-        ax.set_xlabel(r'$\sigma_{c}$')
-        ax.set_ylabel('RMS residuals')
+        ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
+        ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
         cbar = fig.colorbar(dens)
         cbar.set_label('Log Likelihood')
@@ -119,16 +124,21 @@ def make_plots(save, bin_size):
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
-            y = subvalues['y'].values-subvalues['y_pred'].values
+            y = abs(subvalues['y'].values-subvalues['y_pred'].values)
             c = subvalues['pdf'].values
 
-            x = chunck(x, bin_size)
-            y = chunck(y, bin_size)
-            c = chunck(c, bin_size)
+            x = list(chunck(x, bin_size))
+            y = list(chunck(y, bin_size))
+            c = list(chunck(c, bin_size))
 
+            std = np.ma.std(subvalues['y'].values)
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
             c = [np.ma.mean(np.ma.log(i)) for i in c]
+
+            # Normalization
+            x = x/std
+            y = y/std
 
             if subgroup is True:
                 marker = '1'
@@ -167,8 +177,8 @@ def make_plots(save, bin_size):
         ax.set_ylim([miny, maxy])
 
         ax.legend()
-        ax.set_xlabel(r'$\sigma_{c}$')
-        ax.set_ylabel('RMS residuals')
+        ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
+        ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
         cbar = fig.colorbar(dens)
         cbar.set_label('Log Likelihood')
