@@ -72,19 +72,19 @@ def make_plots(save, bin_size):
                               cmap=pl.get_cmap('viridis'),
                               )
 
-            maxx.append(max(x))
-            maxy.append(max(y))
-            minx.append(min(x))
-            miny.append(min(y))
-            vmin.append(np.nanmin(c))
-            vmax.append(np.nanmax(c))
+            maxx.append(np.ma.max(x))
+            maxy.append(np.ma.max(y))
+            minx.append(np.ma.min(x))
+            miny.append(np.ma.min(y))
+            vmin.append(np.ma.min(c))
+            vmax.append(np.ma.max(c))
 
-        vmin = np.nanmin(vmin)
-        vmax = np.nanmax(vmax)
-        maxx = max(maxx)
-        maxy = max(maxy)
-        minx = min(minx)
-        miny = min(miny)
+        vmin = np.ma.min(vmin)
+        vmax = np.ma.max(vmax)
+        maxx = np.ma.max(maxx)
+        maxy = np.ma.max(maxy)
+        minx = np.ma.min(minx)
+        miny = np.ma.min(miny)
 
         normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         dens.norm = normalize
@@ -158,19 +158,19 @@ def make_plots(save, bin_size):
                               cmap=pl.get_cmap('viridis'),
                               )
 
-            maxx.append(max(x))
-            maxy.append(max(y))
-            minx.append(min(x))
-            miny.append(min(y))
-            vmin.append(np.nanmin(c))
-            vmax.append(np.nanmax(c))
+            maxx.append(np.ma.max(x))
+            maxy.append(np.ma.max(y))
+            minx.append(np.ma.min(x))
+            miny.append(np.ma.min(y))
+            vmin.append(np.ma.min(c))
+            vmax.append(np.ma.max(c))
 
-        vmin = np.nanmin(vmin)
-        vmax = np.nanmax(vmax)
-        maxx = max(maxx)
-        maxy = max(maxy)
-        minx = min(minx)
-        miny = min(miny)
+        vmin = np.ma.min(vmin)
+        vmax = np.ma.max(vmax)
+        maxx = np.ma.max(maxx)
+        maxy = np.ma.max(maxy)
+        minx = np.ma.min(minx)
+        miny = np.ma.min(miny)
 
         normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         dens.norm = normalize

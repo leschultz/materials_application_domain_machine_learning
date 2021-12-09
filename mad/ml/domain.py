@@ -146,11 +146,6 @@ class builder:
         y_id_train, y_id_test, y_ud_test = y[trid], y[teid], y[teod]
         d_id_train, d_id_test, d_ud_test = d[trid], d[teid], d[teod]
 
-        # Calculate distances.
-        df_td = distances.distance(X_id_train, X_id_train)
-        df_id = distances.distance(X_id_train, X_id_test)
-        df_od = distances.distance(X_id_train, X_ud_test)
-
         # Fit the model on training data in domain.
         self.pipe.fit(X_id_train, y_id_train)
 
@@ -174,6 +169,11 @@ class builder:
         X_id_train_select = pipe_best_select.transform(X_id_train_trans)
         X_id_test_select = pipe_best_select.transform(X_id_test_trans)
         X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
+
+        # Calculate distances after feature transformations from ML workflow.
+        df_td = distances.distance(X_id_train, X_id_train)
+        df_id = distances.distance(X_id_train, X_id_test)
+        df_od = distances.distance(X_id_train, X_ud_test)
 
         n_features = X_id_test_select.shape[-1]
 
@@ -210,9 +210,21 @@ class builder:
             stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
-            llh_id_train = llh(std_id_train, y_id_train-y_id_train_pred, [a, b])
-            llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
-            llh_ud_test = llh(std_ud_test, y_ud_test-y_ud_test_pred, [a, b])
+            llh_id_train = llh(
+                               std_id_train,
+                               y_id_train-y_id_train_pred,
+                               [a, b]
+                               )
+            llh_id_test = llh(
+                              std_id_test,
+                              y_id_test-y_id_test_pred,
+                              [a, b]
+                              )
+            llh_ud_test = llh(
+                              std_ud_test,
+                              y_ud_test-y_ud_test_pred,
+                              [a, b]
+                              )
 
             # Grab standard deviations.
             df_td['std'] = std_id_train
@@ -257,9 +269,21 @@ class builder:
             stdcal_ud_test = abs(a*std_ud_test+b)
 
             # Log likelihoods.
-            llh_id_train = llh(std_id_train, y_id_train-y_id_train_pred, [a, b])
-            llh_id_test = llh(std_id_test, y_id_test-y_id_test_pred, [a, b])
-            llh_ud_test = llh(std_ud_test, y_ud_test-y_ud_test_pred, [a, b])
+            llh_id_train = llh(
+                               std_id_train,
+                               y_id_train-y_id_train_pred,
+                               [a, b]
+                               )
+            llh_id_test = llh(
+                              std_id_test,
+                              y_id_test-y_id_test_pred,
+                              [a, b]
+                              )
+            llh_ud_test = llh(
+                              std_ud_test,
+                              y_ud_test-y_ud_test_pred,
+                              [a, b]
+                              )
 
             # Grab standard deviations.
             df_td['std'] = std_id_train

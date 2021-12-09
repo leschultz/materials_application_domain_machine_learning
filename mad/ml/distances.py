@@ -55,7 +55,6 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
                              cv=5,
                              )
 
-        bw = estimate_bandwidth(X_train)
         model.fit(X_train)
 
         log_dist = model.score_samples(X_test)
