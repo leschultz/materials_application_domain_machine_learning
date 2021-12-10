@@ -22,13 +22,13 @@ def make_plots(save, bin_size):
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
 
+    dist = 'pdf'
     xaxis = 'stdcal'
 
     df = df.sort_values(by=xaxis)
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
-        # For the ideal calibration line
         maxx = []
         maxy = []
         minx = []
@@ -44,7 +44,7 @@ def make_plots(save, bin_size):
 
             x = subvalues[xaxis].values
             y = abs(subvalues['y'].values-subvalues['y_pred'].values)
-            c = subvalues['pdf'].values
+            c = subvalues[dist].values
 
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
@@ -123,7 +123,6 @@ def make_plots(save, bin_size):
 
     for group, values in df.groupby(['scaler', 'model', 'splitter', 'domain']):
 
-        # For the ideal calibration line
         maxx = []
         maxy = []
         minx = []
@@ -139,7 +138,7 @@ def make_plots(save, bin_size):
 
             x = subvalues[xaxis].values
             y = abs(subvalues['y'].values-subvalues['y_pred'].values)
-            c = subvalues['pdf'].values
+            c = subvalues[dist].values
 
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
