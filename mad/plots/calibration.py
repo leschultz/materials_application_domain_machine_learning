@@ -91,8 +91,8 @@ def make_plots(save, bin_size):
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
-        ax.set_xlim([minx, maxx])
-        ax.set_ylim([miny, maxy])
+        ax.set_xlim([minx-0.1*abs(minx), maxx+0.1*abs(maxx)])
+        ax.set_ylim([miny-0.1*abs(minx), maxy+0.1*abs(maxx)])
 
         ax.legend()
         ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
@@ -177,8 +177,8 @@ def make_plots(save, bin_size):
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
-        ax.set_xlim([minx, maxx])
-        ax.set_ylim([miny, maxy])
+        ax.set_xlim([minx-0.1*abs(minx), maxx+0.1*abs(maxx)])
+        ax.set_ylim([miny-0.1*abs(minx), maxy+0.1*abs(maxx)])
 
         ax.legend()
         ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')

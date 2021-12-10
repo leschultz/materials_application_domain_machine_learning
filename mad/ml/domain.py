@@ -171,9 +171,9 @@ class builder:
         X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
 
         # Calculate distances after feature transformations from ML workflow.
-        df_td = distances.distance(X_id_train, X_id_train)
-        df_id = distances.distance(X_id_train, X_id_test)
-        df_od = distances.distance(X_id_train, X_ud_test)
+        df_td = distances.distance(X_id_train_select, X_id_train_select)
+        df_id = distances.distance(X_id_train_select, X_id_test_select)
+        df_od = distances.distance(X_id_train_select, X_ud_test_select)
 
         n_features = X_id_test_select.shape[-1]
 

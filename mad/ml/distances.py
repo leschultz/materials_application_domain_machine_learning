@@ -37,7 +37,7 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
 
     elif dist_type == 'pdf':
 
-        # Estimate bandwidth
+        # Estimate bandwidth and kernel
         grid = {
                 'kernel': [
                            'gaussian',
@@ -58,7 +58,7 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
         model.fit(X_train)
 
         log_dist = model.score_samples(X_test)
-        dist = np.exp(log_dist)
+        dist = np.ma.exp(log_dist)
 
         dists[append_name+dist_type] = dist
         dists[append_name+'log'+dist_type] = log_dist
