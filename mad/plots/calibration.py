@@ -35,8 +35,11 @@ def make_plots(save, bin_size):
         miny = []
         vmin = []
         vmax = []
+        xs = []
+        ys = []
+        cs = []
+        ds = []
 
-        fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
@@ -56,6 +59,27 @@ def make_plots(save, bin_size):
             x = x/std
             y = y/std
 
+            maxx.append(np.ma.max(x))
+            maxy.append(np.ma.max(y))
+            minx.append(np.ma.min(x))
+            miny.append(np.ma.min(y))
+            vmin.append(np.ma.min(c))
+            vmax.append(np.ma.max(c))
+            xs.append(x)
+            ys.append(y)
+            cs.append(c)
+            ds.append(subgroup)
+
+        vmin = np.ma.min(vmin)
+        vmax = np.ma.max(vmax)
+        maxx = np.ma.max(maxx)
+        maxy = np.ma.max(maxy)
+        minx = np.ma.min(minx)
+        miny = np.ma.min(miny)
+
+        fig, ax = pl.subplots()
+        for x, y, c, subgroup in zip(xs, ys, cs, ds):
+
             if subgroup == 'id':
                 marker = '1'
             elif subgroup == 'ud':
@@ -70,24 +94,9 @@ def make_plots(save, bin_size):
                               marker=marker,
                               label='Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
+                              vmin=vmin,
+                              vmax=vmax,
                               )
-
-            maxx.append(np.ma.max(x))
-            maxy.append(np.ma.max(y))
-            minx.append(np.ma.min(x))
-            miny.append(np.ma.min(y))
-            vmin.append(np.ma.min(c))
-            vmax.append(np.ma.max(c))
-
-        vmin = np.ma.min(vmin)
-        vmax = np.ma.max(vmax)
-        maxx = np.ma.max(maxx)
-        maxy = np.ma.max(maxy)
-        minx = np.ma.min(minx)
-        miny = np.ma.min(miny)
-
-        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
-        dens.norm = normalize
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -121,8 +130,11 @@ def make_plots(save, bin_size):
         miny = []
         vmin = []
         vmax = []
+        xs = []
+        ys = []
+        cs = []
+        ds = []
 
-        fig, ax = pl.subplots()
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
@@ -142,6 +154,27 @@ def make_plots(save, bin_size):
             x = x/std
             y = y/std
 
+            maxx.append(np.ma.max(x))
+            maxy.append(np.ma.max(y))
+            minx.append(np.ma.min(x))
+            miny.append(np.ma.min(y))
+            vmin.append(np.ma.min(c))
+            vmax.append(np.ma.max(c))
+            xs.append(x)
+            ys.append(y)
+            cs.append(c)
+            ds.append(subgroup)
+
+        vmin = np.ma.min(vmin)
+        vmax = np.ma.max(vmax)
+        maxx = np.ma.max(maxx)
+        maxy = np.ma.max(maxy)
+        minx = np.ma.min(minx)
+        miny = np.ma.min(miny)
+
+        fig, ax = pl.subplots()
+        for x, y, c, subgroup in zip(xs, ys, cs, ds):
+
             if subgroup == 'id':
                 marker = '1'
             elif subgroup == 'ud':
@@ -156,24 +189,9 @@ def make_plots(save, bin_size):
                               marker=marker,
                               label='Domain: {}'.format(subgroup),
                               cmap=pl.get_cmap('viridis'),
+                              vmin=vmin,
+                              vmax=vmax,
                               )
-
-            maxx.append(np.ma.max(x))
-            maxy.append(np.ma.max(y))
-            minx.append(np.ma.min(x))
-            miny.append(np.ma.min(y))
-            vmin.append(np.ma.min(c))
-            vmax.append(np.ma.max(c))
-
-        vmin = np.ma.min(vmin)
-        vmax = np.ma.max(vmax)
-        maxx = np.ma.max(maxx)
-        maxy = np.ma.max(maxy)
-        minx = np.ma.min(minx)
-        miny = np.ma.min(miny)
-
-        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
-        dens.norm = normalize
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -184,7 +202,8 @@ def make_plots(save, bin_size):
         ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
         ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
-        cbar = fig.colorbar(dens)
+        normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+        cbar = fig.colorbar(dens, norm=normalize)
         cbar.set_label('Log Likelihood')
         fig.tight_layout()
 
