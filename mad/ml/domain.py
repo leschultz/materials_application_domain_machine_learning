@@ -302,6 +302,7 @@ class builder:
 
         # If model does not support standard deviation
         else:
+            y_id_train_pred = pipe_best.predict(X_id_train)
             y_id_test_pred = pipe_best.predict(X_id_test)
             y_ud_test_pred = pipe_best.predict(X_ud_test)
 
