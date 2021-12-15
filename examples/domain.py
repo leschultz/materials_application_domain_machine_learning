@@ -32,7 +32,7 @@ def main():
 
     # Splitters
     top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
-    mid_split = RepeatedKFold(5, 10)
+    mid_split = RepeatedKFold(5, 1)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup

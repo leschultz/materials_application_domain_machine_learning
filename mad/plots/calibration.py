@@ -26,6 +26,7 @@ def make_plots(save, bin_size):
     xaxis = 'stdcal'
 
     df = df.sort_values(by=xaxis)
+    std = np.ma.std(df['y'].values)
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
@@ -50,7 +51,6 @@ def make_plots(save, bin_size):
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
 
-            std = np.ma.std(subvalues['y'].values)
             x = np.array([np.ma.mean(i) for i in x])
             y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
             c = [np.ma.mean(np.ma.log(i)) for i in c]
@@ -144,7 +144,6 @@ def make_plots(save, bin_size):
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
 
-            std = np.ma.std(subvalues['y'].values)
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
             c = [np.ma.mean(np.ma.log(i)) for i in c]
