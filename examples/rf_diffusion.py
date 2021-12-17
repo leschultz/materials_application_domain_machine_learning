@@ -1,5 +1,4 @@
 from sklearn.ensemble import RandomForestRegressor
-from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV

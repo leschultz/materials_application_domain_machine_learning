@@ -1,6 +1,5 @@
 from sklearn.ensemble import BaggingRegressor
 from sklearn.linear_model import Lasso
-from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
 from sklearn.model_selection import GridSearchCV

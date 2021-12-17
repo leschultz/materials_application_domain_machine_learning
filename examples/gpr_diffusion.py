@@ -1,6 +1,5 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
-from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
 from sklearn.model_selection import GridSearchCV
