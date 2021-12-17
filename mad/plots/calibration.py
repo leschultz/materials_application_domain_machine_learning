@@ -101,7 +101,7 @@ def make_plots(save, bin_size, xaxis, dist):
         ax.set_ylim([miny-0.1*abs(minx), maxy+0.1*abs(maxx)])
 
         ax.legend()
-        ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
+        ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
         ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
         cbar = fig.colorbar(dens)
@@ -201,7 +201,7 @@ def make_plots(save, bin_size, xaxis, dist):
         ax.set_ylim([miny-0.1*abs(minx), maxy+0.1*abs(maxx)])
 
         ax.legend()
-        ax.set_xlabel(r'$\sigma_{c}/\sigma_{y}$')
+        ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
         ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
         normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)

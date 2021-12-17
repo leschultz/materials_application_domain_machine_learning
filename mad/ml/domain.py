@@ -230,7 +230,7 @@ class builder:
                                                             return_std=True
                                                             )
 
-            y_ud_test_pred, std_ud_train = pipe_best.predict(
+            y_ud_test_pred, std_ud_test = pipe_best.predict(
                                                              X_ud_test,
                                                              return_std=True
                                                              )
