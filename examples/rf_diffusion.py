@@ -19,12 +19,12 @@ def main():
     '''
 
     seed = 14987
-    save = 'run'
+    save = 'run_rf_diffusion'
     points = None
     sampling = None
 
     # Load data
-    data = load_data.sigmoid(3)
+    data = load_data.diffusion()
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -32,7 +32,7 @@ def main():
 
     # Splitters
     top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
-    mid_split = RepeatedKFold(5, 1)
+    mid_split = RepeatedKFold(5, 5)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
@@ -67,7 +67,8 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 100, 'stdcal')
+    calibration.make_plots(save, 1000, 'std')
+    calibration.make_plots(save, 1000, 'stdcal')
 
 
 if __name__ == '__main__':

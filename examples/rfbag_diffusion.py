@@ -1,5 +1,5 @@
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import BaggingRegressor
-from sklearn.linear_model import Lasso
 from sklearn import cluster
 
 from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
@@ -20,7 +20,7 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_diffusion'
+    save = 'run_rfbag_diffusion'
     points = None
     sampling = None
 
@@ -32,7 +32,7 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(20, d)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
     mid_split = RepeatedKFold(5, 2)
     bot_split = RepeatedKFold(5, 1)
 
@@ -41,19 +41,21 @@ def main():
     selector = feature_selectors.no_selection()
 
     # Do LASSO
-    model = BaggingRegressor(base_estimator=Lasso())
+    model = BaggingRegressor(base_estimator=RandomForestRegressor())
     grid = {}
-    grid['model__base_estimator__alpha'] = np.logspace(-5, 5, 11)
+    grid['model__base_estimator__n_estimators'] = [100]
+    grid['model__base_estimator__max_features'] = [None]
+    grid['model__base_estimator__max_depth'] = [None]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
                            ('model', model)
                            ])
-    lasso = GridSearchCV(pipe, grid, cv=bot_split)
+    bagrf = GridSearchCV(pipe, grid, cv=bot_split)
 
     # Evaluate
     splits = domain.builder(
-                            lasso,
+                            bagrf,
                             X,
                             y,
                             d,
@@ -66,7 +68,8 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 1000)
+    calibration.make_plots(save, 1000, 'std')
+    calibration.make_plots(save, 1000, 'stdcal')
 
 
 if __name__ == '__main__':
