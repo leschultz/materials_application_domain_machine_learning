@@ -6,7 +6,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.ml import splitters, feature_selectors, domain
+from mad.ml import splitters, feature_selectors, domain, set_class
 from mad.datasets import load_data, statistics
 from mad.plots import parity, calibration
 
@@ -20,15 +20,14 @@ def main():
 
     seed = 14987
     save = 'run'
-    points = None
-    sampling = None
+    points = 100
 
     # Load data
     data = load_data.sigmoid(3)
     df = data['frame']
     X = data['data']
     y = data['target']
-    d = data['class_name']
+    d = set_class.cluster(X, cluster.KMeans(3))
 
     # Splitters
     top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
@@ -67,7 +66,7 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 100, 'stdcal')
+    calibration.make_plots(save, points, 'stdcal', 'pdf')
 
 
 if __name__ == '__main__':
