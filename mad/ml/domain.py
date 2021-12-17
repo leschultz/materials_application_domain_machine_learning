@@ -209,23 +209,6 @@ class builder:
             stdcal_id_test = abs(a*std_id_test+b)
             stdcal_ud_test = abs(a*std_ud_test+b)
 
-            # Log likelihoods.
-            llh_id_train = llh(
-                               std_id_train,
-                               y_id_train-y_id_train_pred,
-                               [a, b]
-                               )
-            llh_id_test = llh(
-                              std_id_test,
-                              y_id_test-y_id_test_pred,
-                              [a, b]
-                              )
-            llh_ud_test = llh(
-                              std_ud_test,
-                              y_ud_test-y_ud_test_pred,
-                              [a, b]
-                              )
-
             # Grab standard deviations.
             df_td['std'] = std_id_train
             df_id['std'] = std_id_test
@@ -235,11 +218,6 @@ class builder:
             df_td['stdcal'] = stdcal_id_train
             df_id['stdcal'] = stdcal_id_test
             df_od['stdcal'] = stdcal_ud_test
-
-            # Grab the log likelihood values.
-            df_td['llh'] = llh_id_train
-            df_id['llh'] = llh_id_test
-            df_od['llh'] = llh_ud_test
 
         # If model is gaussian process regressor
         elif model_type == 'GaussianProcessRegressor':
@@ -268,23 +246,6 @@ class builder:
             stdcal_id_test = abs(a*std_id_test+b)
             stdcal_ud_test = abs(a*std_ud_test+b)
 
-            # Log likelihoods.
-            llh_id_train = llh(
-                               std_id_train,
-                               y_id_train-y_id_train_pred,
-                               [a, b]
-                               )
-            llh_id_test = llh(
-                              std_id_test,
-                              y_id_test-y_id_test_pred,
-                              [a, b]
-                              )
-            llh_ud_test = llh(
-                              std_ud_test,
-                              y_ud_test-y_ud_test_pred,
-                              [a, b]
-                              )
-
             # Grab standard deviations.
             df_td['std'] = std_id_train
             df_id['std'] = std_id_test
@@ -294,11 +255,6 @@ class builder:
             df_td['stdcal'] = stdcal_id_train
             df_id['stdcal'] = stdcal_id_test
             df_od['stdcal'] = stdcal_ud_test
-
-            # Grab the log likelihood values.
-            df_td['llh'] = llh_id_train
-            df_id['llh'] = llh_id_test
-            df_od['llh'] = llh_ud_test
 
         # If model does not support standard deviation
         else:

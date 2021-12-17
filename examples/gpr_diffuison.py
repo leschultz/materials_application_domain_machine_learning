@@ -1,7 +1,8 @@
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
 from sklearn import cluster
 
-from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import RepeatedKFold, LeaveOneGroupOut
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -19,7 +20,7 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_rf_diffusion'
+    save = 'run_gpr_diffusion'
     points = 100
 
     # Load data
@@ -31,29 +32,29 @@ def main():
 
     # Splitters
     top_split = splitters.BootstrappedLeaveOneGroupOut(2, d)
-    mid_split = RepeatedKFold(5, 5)
+    mid_split = RepeatedKFold(5, 2)
     bot_split = RepeatedKFold(5, 1)
 
     # ML setup
     scale = StandardScaler()
     selector = feature_selectors.no_selection()
 
-    # Random forest regression
+    # Do LASSO
+    kernel = RBF()
+    model = GaussianProcessRegressor()
     grid = {}
-    model = RandomForestRegressor()
-    grid['model__n_estimators'] = [100]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
+    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    grid['model__kernel'] = [RBF()]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
                            ('model', model)
                            ])
-    rf = GridSearchCV(pipe, grid, cv=bot_split)
+    gpr = GridSearchCV(pipe, grid, cv=bot_split)
 
     # Evaluate
     splits = domain.builder(
-                            rf,
+                            gpr,
                             X,
                             y,
                             d,

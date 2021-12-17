@@ -21,8 +21,7 @@ def main():
 
     seed = 14987
     save = 'run_lasso_diffusion'
-    points = None
-    sampling = None
+    points = 100
 
     # Load data
     data = load_data.diffusion()
@@ -32,7 +31,7 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(10, d)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(2, d)
     mid_split = RepeatedKFold(5, 2)
     bot_split = RepeatedKFold(5, 1)
 
@@ -66,8 +65,10 @@ def main():
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
     parity.make_plots(save)  # Make parity plots
-    calibration.make_plots(save, 1000, 'std')
-    calibration.make_plots(save, 1000, 'stdcal')
+    calibration.make_plots(save, points, 'std', 'pdf')
+    calibration.make_plots(save, points, 'stdcal', 'pdf')
+    calibration.make_plots(save, points, 'std', 'pdf')
+    calibration.make_plots(save, points, 'stdcal', 'pdf')
 
 
 if __name__ == '__main__':

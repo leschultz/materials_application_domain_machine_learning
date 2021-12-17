@@ -17,12 +17,10 @@ def chunck(x, n):
             yield x_new
 
 
-def make_plots(save, bin_size, xaxis):
+def make_plots(save, bin_size, xaxis, dist):
 
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
-
-    dist = 'pdf'
 
     df = df.sort_values(by=xaxis)
     std = np.ma.std(df['y'].values)
@@ -111,7 +109,14 @@ def make_plots(save, bin_size, xaxis):
         fig.tight_layout()
 
         name = '_'.join(group[:3])
-        name = [save, 'aggregate', name, 'total', 'calibration', xaxis]
+        name = [
+                save,
+                'aggregate',
+                name,
+                'total',
+                'calibration',
+                xaxis+'_vs_'+dist
+                ]
         name = map(str, name)
         name = os.path.join(*name)
         os.makedirs(name, exist_ok=True)
@@ -212,7 +217,7 @@ def make_plots(save, bin_size, xaxis):
                 'groups',
                 group[-1],
                 'calibration',
-                xaxis
+                xaxis+'_vs_'+dist
                 ]
         name = map(str, name)
         name = os.path.join(*name)
