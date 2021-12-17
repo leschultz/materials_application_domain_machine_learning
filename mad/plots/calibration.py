@@ -22,8 +22,9 @@ def make_plots(save, bin_size, xaxis, dist):
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
 
-    df = df.sort_values(by=xaxis)
     std = np.ma.std(df['y'].values)
+    df['ares'] = abs(df['y'].values-df['y_pred'].values)
+    df = df.sort_values(by=[xaxis, 'ares'])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
@@ -41,7 +42,7 @@ def make_plots(save, bin_size, xaxis, dist):
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
-            y = abs(subvalues['y'].values-subvalues['y_pred'].values)
+            y = subvalues['ares'].values
             c = subvalues[dist].values
 
             x = list(chunck(x, bin_size))
@@ -50,7 +51,13 @@ def make_plots(save, bin_size, xaxis, dist):
 
             x = np.array([np.ma.mean(i) for i in x])
             y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
-            c = [np.ma.mean(np.ma.log(i)) for i in c]
+
+            if dist == 'pdf':
+                c = [np.ma.mean(np.ma.log(i)) for i in c]
+                dist_label = 'Log Likelihood'
+            else:
+                c = [np.ma.mean(i) for i in c]
+                dist_label = dist
 
             # Normalization
             x = x/std
@@ -105,7 +112,7 @@ def make_plots(save, bin_size, xaxis, dist):
         ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
         cbar = fig.colorbar(dens)
-        cbar.set_label('Log Likelihood')
+        cbar.set_label(dist_label)
         fig.tight_layout()
 
         name = '_'.join(group[:3])
@@ -141,7 +148,7 @@ def make_plots(save, bin_size, xaxis, dist):
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
-            y = abs(subvalues['y'].values-subvalues['y_pred'].values)
+            y = subvalues['ares'].values
             c = subvalues[dist].values
 
             x = list(chunck(x, bin_size))
@@ -150,7 +157,13 @@ def make_plots(save, bin_size, xaxis, dist):
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
-            c = [np.ma.mean(np.ma.log(i)) for i in c]
+
+            if dist == 'pdf':
+                c = [np.ma.mean(np.ma.log(i)) for i in c]
+                dist_label = 'Log Likelihood'
+            else:
+                c = [np.ma.mean(i) for i in c]
+                dist_label = dist
 
             # Normalization
             x = x/std
@@ -206,7 +219,7 @@ def make_plots(save, bin_size, xaxis, dist):
 
         normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         cbar = fig.colorbar(dens, norm=normalize)
-        cbar.set_label('Log Likelihood')
+        cbar.set_label(dist_label)
         fig.tight_layout()
 
         name = '_'.join(group[:3])

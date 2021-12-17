@@ -69,8 +69,6 @@ def main():
     parity.make_plots(save)  # Make parity plots
     calibration.make_plots(save, points, 'std', 'pdf')
     calibration.make_plots(save, points, 'stdcal', 'pdf')
-    calibration.make_plots(save, points, 'std', 'pdf')
-    calibration.make_plots(save, points, 'stdcal', 'pdf')
 
 
 if __name__ == '__main__':
