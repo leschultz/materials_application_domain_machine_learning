@@ -30,9 +30,16 @@ def llh(std, res, x):
     Compute the log likelihood.
     '''
 
+    # Polynomial given coefficients
+    def poly(c, std):
+        total = 0.0
+        for i in range(len(c)):
+            total += c[i]*std**i
+        return total
+
     total = np.log(2*np.pi)
-    total += np.log(abs(x[0]*std+x[1])**2)
-    total += (res**2)/(abs(x[0]*std+x[1])**2)
+    total += np.log(abs(poly(x, std))**2)
+    total += (res**2)/(abs(poly(x, std))**2)
     total *= -0.5
 
     return total
@@ -52,6 +59,6 @@ def set_llh(std, y, y_pred, x):
                    method='nelder-mead',
                    )
 
-    a, b = opt.x
+    params = opt.x
 
-    return a, b
+    return params

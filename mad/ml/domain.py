@@ -11,6 +11,14 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def poly(params, std):
+    total = 0.0
+    for i, j in zip(params, range(len(params))):
+        total += i*std**j
+
+    return total
+
+
 class builder:
     '''
     Class to use the ingredients of splits to build a model and assessment.
@@ -25,7 +33,8 @@ class builder:
                  top_splitter,
                  mid_splitter,
                  save,
-                 seed=1
+                 seed=1,
+                 uq_coeffs_Start=[0.0, 1.0]
                  ):
         '''
         inputs:
@@ -51,6 +60,7 @@ class builder:
         self.d = d
         self.top_splitter = top_splitter
         self.mid_splitter = mid_splitter
+        self.uq_coeffs_Start = uq_coeffs_Start
 
         # Output directory creation
         self.save = save
@@ -65,6 +75,7 @@ class builder:
         top = self.top_splitter
         mid = self.mid_splitter
         pipe = self.pipe
+        uq_coeffs_Start = self.uq_coeffs_Start
 
         o = np.array(range(X.shape[0]))  # Tracking cases.
 
@@ -113,6 +124,7 @@ class builder:
                  d=d,
                  pipe=pipe,
                  save=save,
+                 uq_coeffs_Start=uq_coeffs_Start
                  )
 
     def nestedcv(
@@ -123,6 +135,7 @@ class builder:
                  d,
                  pipe,
                  save,
+                 uq_coeffs_Start,
                  ):
         '''
         A class for nesetd cross validation.
@@ -134,6 +147,7 @@ class builder:
             d = The class.
             pipe = The machine learning pipe.
             save = The saving directory.
+            uq_coeffs_start = The starting coefficients for UQ polynomial.
 
         outputs:
             df = The dataframe for all evaluation.
@@ -199,15 +213,16 @@ class builder:
             std_ud_test = np.std(std_ud_test, axis=0)
 
             # Calibration.
-            a, b = set_llh(
-                           std_id_train,
-                           y_id_train,
-                           y_id_train_pred,
-                           [1.0, 0.0]
-                           )
-            stdcal_id_train = abs(a*std_id_train+b)
-            stdcal_id_test = abs(a*std_id_test+b)
-            stdcal_ud_test = abs(a*std_ud_test+b)
+            params = set_llh(
+                             std_id_train,
+                             y_id_train,
+                             y_id_train_pred,
+                             uq_coeffs_Start
+                             )
+
+            stdcal_id_train = abs(poly(params, std_id_train))
+            stdcal_id_test = abs(poly(params, std_id_test))
+            stdcal_ud_test = abs(poly(params, std_ud_test))
 
             # Grab standard deviations.
             df_td['std'] = std_id_train
@@ -236,15 +251,15 @@ class builder:
                                                              )
 
             # Calibration.
-            a, b = set_llh(
-                           std_id_train,
-                           y_id_train,
-                           y_id_train_pred,
-                           [1.0, 0.0]
-                           )
-            stdcal_id_train = abs(a*std_id_train+b)
-            stdcal_id_test = abs(a*std_id_test+b)
-            stdcal_ud_test = abs(a*std_ud_test+b)
+            params = set_llh(
+                             std_id_train,
+                             y_id_train,
+                             y_id_train_pred,
+                             uq_coeffs_Start
+                             )
+            stdcal_id_train = abs(poly(params, std_id_train))
+            stdcal_id_test = abs(poly(params, std_id_test))
+            stdcal_ud_test = abs(poly(params, std_ud_test))
 
             # Grab standard deviations.
             df_td['std'] = std_id_train

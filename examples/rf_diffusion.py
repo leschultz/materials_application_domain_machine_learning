@@ -20,6 +20,7 @@ def main():
     seed = 14987
     save = 'run_rf_diffusion'
     points = 100
+    uq_coeffs_Start = [0.0, 1.1, 0.0]
 
     # Load data
     data = load_data.diffusion()
@@ -58,7 +59,9 @@ def main():
                             d,
                             top_split,
                             mid_split,
-                            save
+                            save,
+                            seed=seed,
+                            uq_coeffs_Start=uq_coeffs_Start
                             )
 
     splits.assess_domain()  # Do ML
