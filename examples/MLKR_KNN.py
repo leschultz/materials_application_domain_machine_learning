@@ -2,7 +2,7 @@
 import numpy as np
 
 from mad.datasets import aggregate, load_data, statistics
-from mad.ml import feature_selectors, predict, splitters, MLKRKNN
+from mad.ml import MLKR_KNN, feature_selectors, predict, splitters
 from mad.plots import parity, versus
 from sklearn import cluster
 from sklearn.ensemble import BaggingRegressor
@@ -34,7 +34,7 @@ def main():
     selector = feature_selectors.no_selection()
 
     # Do KNN
-    model = BaggingRegressor( MLKRKNN.MLKRKNN())
+    model = BaggingRegressor( MLKR_KNN.MLKRKNN())
     grid = {}
     pipe = Pipeline(steps=[
                            ('scaler', scale),
