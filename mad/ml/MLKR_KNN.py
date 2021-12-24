@@ -4,7 +4,7 @@ import numpy as np
 import inspect
 from collections import defaultdict
 
-class MLKRKNN():
+class MLKR_KNN():
     def __init__(self, n_neighbors=5, n_components=None, max_iter=400, weights='uniform',
                  algorithm='auto', leaf_size=30,
                  p=2, metric='minkowski', metric_params=None, n_jobs=None,

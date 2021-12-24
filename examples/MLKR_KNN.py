@@ -34,7 +34,7 @@ def main():
     selector = feature_selectors.no_selection()
 
     # Do KNN
-    model = BaggingRegressor( MLKR_KNN.MLKRKNN())
+    model = BaggingRegressor( MLKR_KNN.MLKR_KNN())
     grid = {}
     pipe = Pipeline(steps=[
                            ('scaler', scale),
