@@ -21,7 +21,7 @@ def main():
     seed = 14987
     save = 'run'
     points = 100
-    uq_coeffs_Start = [0.0, 1.1, 0.0]
+    uq_coeffs_start = [0.0, 1.1, 0.0]
 
     # Load data
     data = load_data.sigmoid(3)
@@ -62,7 +62,7 @@ def main():
                             mid_split,
                             save,
                             seed=seed,
-                            uq_coeffs_Start=uq_coeffs_Start
+                            uq_coeffs_start=uq_coeffs_start
                             )
 
     splits.assess_domain()  # Do ML

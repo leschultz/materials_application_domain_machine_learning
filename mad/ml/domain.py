@@ -34,7 +34,7 @@ class builder:
                  mid_splitter,
                  save,
                  seed=1,
-                 uq_coeffs_Start=[0.0, 1.0]
+                 uq_coeffs_start=[0.0, 1.0]
                  ):
         '''
         inputs:
@@ -60,7 +60,7 @@ class builder:
         self.d = d
         self.top_splitter = top_splitter
         self.mid_splitter = mid_splitter
-        self.uq_coeffs_Start = uq_coeffs_Start
+        self.uq_coeffs_start = uq_coeffs_start
 
         # Output directory creation
         self.save = save
@@ -75,7 +75,7 @@ class builder:
         top = self.top_splitter
         mid = self.mid_splitter
         pipe = self.pipe
-        uq_coeffs_Start = self.uq_coeffs_Start
+        uq_coeffs_start = self.uq_coeffs_start
 
         o = np.array(range(X.shape[0]))  # Tracking cases.
 
@@ -124,7 +124,7 @@ class builder:
                  d=d,
                  pipe=pipe,
                  save=save,
-                 uq_coeffs_Start=uq_coeffs_Start
+                 uq_coeffs_start=uq_coeffs_start
                  )
 
     def nestedcv(
@@ -135,7 +135,7 @@ class builder:
                  d,
                  pipe,
                  save,
-                 uq_coeffs_Start,
+                 uq_coeffs_start,
                  ):
         '''
         A class for nesetd cross validation.
@@ -217,7 +217,7 @@ class builder:
                              std_id_train,
                              y_id_train,
                              y_id_train_pred,
-                             uq_coeffs_Start
+                             uq_coeffs_start
                              )
 
             stdcal_id_train = abs(poly(params, std_id_train))
@@ -255,7 +255,7 @@ class builder:
                              std_id_train,
                              y_id_train,
                              y_id_train_pred,
-                             uq_coeffs_Start
+                             uq_coeffs_start
                              )
             stdcal_id_train = abs(poly(params, std_id_train))
             stdcal_id_test = abs(poly(params, std_id_test))
