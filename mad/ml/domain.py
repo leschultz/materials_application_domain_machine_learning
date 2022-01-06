@@ -1,6 +1,8 @@
 from mad.functions import parallel, llh, set_llh
 from mad.ml import distances
 
+from sklearn.base import clone
+
 import pandas as pd
 import numpy as np
 import random
@@ -225,7 +227,46 @@ class builder:
         # If model is ensemble regressor
         ensemble_methods = ['RandomForestRegressor', 'BaggingRegressor']
         if model_type in ensemble_methods:
-            y_id_train_pred = pipe_best.predict(X_id_train)
+
+            # Train and test on inner CV
+            std_id_cv = []
+            d_id_cv = []
+            y_id_cv = []
+            y_id_cv_pred = []
+            y_id_cv_indx = []
+            for train_index, test_index in pipe.cv.split(trid):
+                model = clone(pipe_best_model)
+
+                X_train = X_id_train_select[train_inde]
+                X_test = X_id_train_select[test_index]
+
+                y_train = y_id_train[train_index]
+                y_test = y_id_train[test_index]
+
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+
+                std = []
+                for i in model.estimators_:
+                    std.append(i.predict(X_test))
+
+                std = np.std(std, axis=0)
+
+                std_id_cv = np.append(std_id_cv, std)
+                d_id_cv = np.append(d_id_cv, d[trid][test_index])
+                y_id_cv = np.append(y_id_cv, y_test)
+                y_id_cv_pred = np.append(y_id_cv_pred, y_pred)
+                y_id_cv_indx = np.append(y_id_cv_indx, trid[test_index])
+
+            # Calibration.
+            params = set_llh(
+                             std_id_cv,
+                             y_id_cv,
+                             y_id_cv_pred,
+                             uq_coeffs_start
+                             )
+
+            # Nested in domain prediction for left out data
             y_id_test_pred = pipe_best.predict(X_id_test)
 
             if teod is not None:
@@ -233,45 +274,34 @@ class builder:
 
             # Ensemble predictions with correct feature set
             pipe_estimators = pipe_best_model.estimators_
-            std_id_train = []
             std_id_test = []
             std_ud_test = []
             for i in pipe_estimators:
-                std_id_train.append(i.predict(X_id_train_select))
                 std_id_test.append(i.predict(X_id_test_select))
 
                 if teod is not None:
                     std_ud_test.append(i.predict(X_ud_test_select))
 
-            std_id_train = np.std(std_id_train, axis=0)
             std_id_test = np.std(std_id_test, axis=0)
 
             if teod is not None:
                 std_ud_test = np.std(std_ud_test, axis=0)
 
-            # Calibration.
-            params = set_llh(
-                             std_id_train,
-                             y_id_train,
-                             y_id_train_pred,
-                             uq_coeffs_start
-                             )
-
-            stdcal_id_train = abs(poly(params, std_id_train))
+            stdcal_id_cv = abs(poly(params, std_id_cv))
             stdcal_id_test = abs(poly(params, std_id_test))
 
             if teod is not None:
                 stdcal_ud_test = abs(poly(params, std_ud_test))
 
             # Grab standard deviations.
-            df_td['std'] = std_id_train
+            df_td['std'] = std_id_cv
             df_id['std'] = std_id_test
 
             if teod is not None:
                 df_od['std'] = std_ud_test
 
             # Grab calibrated standard deviations.
-            df_td['stdcal'] = stdcal_id_train
+            df_td['stdcal'] = stdcal_id_cv
             df_id['stdcal'] = stdcal_id_test
 
             if teod is not None:
@@ -329,36 +359,36 @@ class builder:
             if teod is not None:
                 y_ud_test_pred = pipe_best.predict(X_ud_test)
 
-        # Assign boolean for in domain.
-        df_td['in_domain'] = ['td']*X_id_train.shape[0]
+        # Assign domain.
+        df_td['in_domain'] = ['td']*std_id_cv.shape[0]
         df_id['in_domain'] = ['id']*X_id_test.shape[0]
 
         if teod is not None:
             df_od['in_domain'] = ['ud']*X_ud_test.shape[0]
 
         # Grab indexes of tests.
-        df_td['index'] = trid
+        df_td['index'] = y_id_cv_indx
         df_id['index'] = teid
 
         if teod is not None:
             df_od['index'] = teod
 
         # Grab the domain of tests.
-        df_td['domain'] = d_id_train
+        df_td['domain'] = d_id_cv
         df_id['domain'] = d_id_test
 
         if teod is not None:
             df_od['domain'] = d_ud_test
 
         # Grab the true target variables of test.
-        df_td['y'] = y_id_train
+        df_td['y'] = y_id_cv
         df_id['y'] = y_id_test
 
         if teod is not None:
             df_od['y'] = y_ud_test
 
         # Grab the predictions of tests.
-        df_td['y_pred'] = y_id_train_pred
+        df_td['y_pred'] = y_id_cv_pred
         df_id['y_pred'] = y_id_test_pred
 
         if teod is not None:
