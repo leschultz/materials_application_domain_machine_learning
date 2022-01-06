@@ -46,7 +46,7 @@ def group_metrics(df, cols):
     Get the metrics statistics.
     '''
 
-    groups = df.groupby(cols)
+    groups = df.groupby(cols, dropna=False)
     mets = parallel(eval_reg_metrics, groups)
     mets = pd.DataFrame(mets)
 
@@ -104,6 +104,7 @@ def folds_opperation(save, file_name):
                               'domain',
                               ])
 
+    print(mets)
     metsstats = mets.drop(['id_count', 'ud_count'], axis=1)
     metsstats = stats(metsstats, [
                                   'model',
