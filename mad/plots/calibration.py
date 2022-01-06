@@ -74,6 +74,9 @@ def make_plots(save, bin_size, xaxis, dist):
             cs.append(c)
             ds.append(subgroup)
 
+        minx = np.append(minx, 0.0)
+        miny = np.append(miny, 0.0)
+
         vmin = np.ma.min(vmin)
         vmax = np.ma.max(vmax)
         maxx = np.ma.max(maxx)
@@ -179,6 +182,9 @@ def make_plots(save, bin_size, xaxis, dist):
             ys.append(y)
             cs.append(c)
             ds.append(subgroup)
+
+        minx = np.append(minx, 0.0)
+        miny = np.append(miny, 0.0)
 
         vmin = np.ma.min(vmin)
         vmax = np.ma.max(vmax)
