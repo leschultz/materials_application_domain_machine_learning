@@ -19,7 +19,7 @@ def main():
 
     seed = 14987
     save = 'run_rf_diffusion'
-    points = 100
+    points = 1000
     uq_coeffs_start = [0.0, 1.1, 0.0]
 
     # Load data
