@@ -307,51 +307,7 @@ class builder:
             if teod is not None:
                 df_od['stdcal'] = stdcal_ud_test
 
-        # If model is gaussian process regressor
-        elif model_type == 'GaussianProcessRegressor':
-            y_id_train_pred, std_id_train = pipe_best.predict(
-                                                              X_id_train,
-                                                              return_std=True
-                                                              )
-            y_id_test_pred, std_id_test = pipe_best.predict(
-                                                            X_id_test,
-                                                            return_std=True
-                                                            )
-
-            if teod is not None:
-                y_ud_test_pred, std_ud_test = pipe_best.predict(
-                                                                X_ud_test,
-                                                                return_std=True
-                                                                )
-
-            # Calibration.
-            params = set_llh(
-                             std_id_train,
-                             y_id_train,
-                             y_id_train_pred,
-                             uq_coeffs_start
-                             )
-            stdcal_id_train = abs(poly(params, std_id_train))
-            stdcal_id_test = abs(poly(params, std_id_test))
-
-            if teod is not None:
-                stdcal_ud_test = abs(poly(params, std_ud_test))
-
-            # Grab standard deviations.
-            df_td['std'] = std_id_train
-            df_id['std'] = std_id_test
-
-            if teod is not None:
-                df_od['std'] = std_ud_test
-
-            # Grab calibrated standard deviations.
-            df_td['stdcal'] = stdcal_id_train
-            df_id['stdcal'] = stdcal_id_test
-
-            if teod is not None:
-                df_od['stdcal'] = stdcal_ud_test
-
-        # If model does not support standard deviation
+        # If model not enesemble type
         else:
             y_id_train_pred = pipe_best.predict(X_id_train)
             y_id_test_pred = pipe_best.predict(X_id_test)
