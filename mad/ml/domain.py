@@ -237,7 +237,7 @@ class builder:
             for train_index, test_index in pipe.cv.split(trid):
                 model = clone(pipe_best_model)
 
-                X_train = X_id_train_select[train_inde]
+                X_train = X_id_train_select[train_index]
                 X_test = X_id_train_select[test_index]
 
                 y_train = y_id_train[train_index]
