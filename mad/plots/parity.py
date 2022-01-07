@@ -1,13 +1,14 @@
 from matplotlib import pyplot as pl
 
 import pandas as pd
+import numpy as np
 import json
 import os
 
 from mad.functions import parallel
 
 
-def parity(mets, y, y_pred, y_pred_sem, name, units, save):
+def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
     '''
     Make a paroody plot.
 
@@ -16,6 +17,9 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         y = The true target value.
         y_pred = The predicted target value.
         y_pred_sem = The standard error of the mean in predicted values.
+        dist = The data dissimilarity from training.
+        dmin = The minimum dissimilarity.
+        dmax = The maximum dissimilarity.
         name = The name of the target value.
         units = The units of the target value.
         save = The directory to save plot.
@@ -54,8 +58,20 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
                 yerr=y_pred_sem,
                 linestyle='none',
                 marker='.',
+                markerfacecolor='None',
                 zorder=0,
                 label='Data'
+                )
+
+    # For heat map
+    ax.scatter(
+                y,
+                y_pred,
+                c=dist,
+                marker='.',
+                zorder=1,
+                vmin=dmin,
+                vmax=dmax,
                 )
 
     ax.text(
@@ -107,7 +123,7 @@ def parity(mets, y, y_pred, y_pred_sem, name, units, save):
         json.dump(data, handle)
 
 
-def graphic(save):
+def graphic(save, dist):
     '''
     Define the machine learning workflow with nested cross validation
     for gaussian process regression and random forest.
@@ -122,6 +138,9 @@ def graphic(save):
 
     df = pd.read_csv(df)
     mets = pd.read_csv(mets)
+
+    dmin = np.ma.min(df[dist+'_mean'])
+    dmax = np.ma.max(df[dist+'_mean'])
 
     # For total parity plots
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
@@ -142,6 +161,9 @@ def graphic(save):
                d['y_mean'],
                d['y_pred_mean'],
                d['y_pred_sem'],
+               d[dist+'_mean'],
+               dmin,
+               dmax,
                '',
                '',
                parity_path
@@ -178,11 +200,14 @@ def graphic(save):
                    d['y_mean'],
                    d['y_pred_mean'],
                    d['y_pred_sem'],
+                   d[dist+'_mean'],
+                   dmin,
+                   dmax,
                    '',
                    '',
                    new_path
                    )
 
 
-def make_plots(save):
-    graphic(save)
+def make_plots(save, dist):
+    graphic(save, dist)

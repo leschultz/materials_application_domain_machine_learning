@@ -67,7 +67,7 @@ def main():
     splits.assess_domain()  # Do ML
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
-    parity.make_plots(save)  # Make parity plots
+    parity.make_plots(save, 'std')  # Make parity plots
     calibration.make_plots(save, points, 'std', 'pdf')
     calibration.make_plots(save, points, 'stdcal', 'pdf')
 

@@ -67,7 +67,7 @@ class ml_test(unittest.TestCase):
         splits.assess_domain()  # Do ML
         splits.aggregate()
         statistics.folds(save)  # Gather statistics from data
-        parity.make_plots(save)  # Make parity plots
+        parity.make_plots(save, 'pdf')  # Make parity plots
         calibration.make_plots(save, 10, 'stdcal', 'pdf')
 
         # Clean directory
