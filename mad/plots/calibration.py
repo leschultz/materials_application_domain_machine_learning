@@ -53,10 +53,10 @@ def make_plots(save, bin_size, xaxis, dist):
             y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
 
             if dist == 'pdf':
-                c = [np.ma.mean(np.ma.log(i)) for i in c]
+                c = [np.ma.mean(np.ma.log(i)) for i in np.ma.masked_invalid(c)]
                 dist_label = 'Log Likelihood'
             else:
-                c = [np.ma.mean(i) for i in c]
+                c = [np.ma.mean(i) for i in np.ma.masked_invalid(c)]
                 dist_label = dist
 
             # Normalization
@@ -162,10 +162,10 @@ def make_plots(save, bin_size, xaxis, dist):
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]
 
             if dist == 'pdf':
-                c = [np.ma.mean(np.ma.log(i)) for i in c]
+                c = [np.ma.mean(np.ma.log(i)) for i in np.ma.masked_invalid(c)]
                 dist_label = 'Log Likelihood'
             else:
-                c = [np.ma.mean(i) for i in c]
+                c = [np.ma.mean(i) for i in np.ma.masked_invalid(c)]
                 dist_label = dist
 
             # Normalization
