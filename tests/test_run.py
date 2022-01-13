@@ -34,8 +34,8 @@ class ml_test(unittest.TestCase):
 
         # Splitters
         top_split = splitters.BootstrappedLeaveOneGroupOut(1, d)
-        mid_split = RepeatedKFold(5, 1)
-        bot_split = RepeatedKFold(5, 1)
+        mid_split = RepeatedKFold(n_splits=5, n_repeats=1)
+        bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
 
         # ML setup
         scale = StandardScaler()
