@@ -32,7 +32,7 @@ pycodestyle <script>
 ### Graduate Students
 * **Lane Schultz** - *Main Contributer* - [leschultz](https://github.com/leschultz)
 
-### Skunkworks
+### [Skunkworks](https://skunkworks.engr.wisc.edu/)
 * **Angelo Cortez** - *Code Development* - [angelotc](https://github.com/angelotc)
 * **Yiqi Wang** - *Code Development* - [berniewang8177](https://github.com/berniewang8177)
 * **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
@@ -44,5 +44,5 @@ pycodestyle <script>
 
 ## Acknowledgments
 
-* The Computational Materials Group (CMG) at the University of Wisconsin - Madison
+* The [Computational Materials Group (CMG)](https://matmodel.engr.wisc.edu/) at the University of Wisconsin - Madison
 * Professor Dane Morgan [ddmorgan](https://github.com/ddmorgan) and Dr. Ryan Jacobs [rjacobs914](https://github.com/rjacobs914) for computational material science guidence

@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import parity, calibration
+from mad.plots import parity, calibration, err_in_err
 from mad.ml import splitters, domain, feature_selectors
 
 import numpy as np
@@ -22,8 +22,6 @@ class ml_test(unittest.TestCase):
 
         seed = 14987
         save = 'run'
-        points = None
-        sampling = None
 
         # Load data
         data = load_data.sigmoid(3)
@@ -69,6 +67,7 @@ class ml_test(unittest.TestCase):
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save, 'pdf')  # Make parity plots
         calibration.make_plots(save, 10, 'stdcal', 'pdf')
+        err_in_err.make_plots(save, 10, 'mahalanobis')
 
         # Clean directory
         shutil.rmtree(save)
