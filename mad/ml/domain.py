@@ -216,7 +216,6 @@ class builder:
             X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
 
         # Calculate distances after feature transformations from ML workflow.
-        df_td = distances.distance(X_id_train_select, X_id_train_select)
         df_id = distances.distance(X_id_train_select, X_id_test_select)
 
         if teod is not None:
@@ -234,7 +233,13 @@ class builder:
             y_id_cv = []
             y_id_cv_pred = []
             y_id_cv_indx = []
-            for train_index, test_index in pipe.cv.split(trid):
+            df_td = []
+            for train_index, test_index in pipe.cv.split(
+                                                         X_id_train_select,
+                                                         y_id_train,
+                                                         d_id_train
+                                                         ):
+
                 model = clone(pipe_best_model)
 
                 X_train = X_id_train_select[train_index]
@@ -253,10 +258,16 @@ class builder:
                 std = np.std(std, axis=0)
 
                 std_id_cv = np.append(std_id_cv, std)
-                d_id_cv = np.append(d_id_cv, d[trid][test_index])
+                d_id_cv = np.append(d_id_cv, d_id_train[test_index])
                 y_id_cv = np.append(y_id_cv, y_test)
                 y_id_cv_pred = np.append(y_id_cv_pred, y_pred)
                 y_id_cv_indx = np.append(y_id_cv_indx, trid[test_index])
+                df_td.append(pd.DataFrame(distances.distance(
+                                                             X_id_train_select,
+                                                             X_test
+                                                             )))
+
+            df_td = pd.concat(df_td)
 
             # Calibration.
             params = set_llh(
@@ -307,13 +318,8 @@ class builder:
             if teod is not None:
                 df_od['stdcal'] = stdcal_ud_test
 
-        # If model not enesemble type
         else:
-            y_id_train_pred = pipe_best.predict(X_id_train)
-            y_id_test_pred = pipe_best.predict(X_id_test)
-
-            if teod is not None:
-                y_ud_test_pred = pipe_best.predict(X_ud_test)
+            raise Exception('Only ensemble models supported.')
 
         # Assign domain.
         df_td['in_domain'] = ['td']*std_id_cv.shape[0]

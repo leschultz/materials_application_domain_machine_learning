@@ -23,7 +23,10 @@ def make_plots(save, bin_size, xaxis):
     df = pd.read_csv(df)
 
     std = np.ma.std(df['y'].values)
-    df['err_in_err'] = abs(df['y']-df['y_pred'])/df['stdcal']
+    errs = abs(df['y']-df['y_pred'])  # Absolute residuals
+    errs = abs(errs-df['std'])  # Calibration error
+    errs = errs/std  # Normalization
+    df['err_in_err'] = errs
     df = df.sort_values(by=[xaxis, 'err_in_err'])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
@@ -67,7 +70,7 @@ def make_plots(save, bin_size, xaxis):
 
         ax.legend()
         ax.set_xlabel(xaxis)
-        ax.set_ylabel(r'RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$')
+        ax.set_ylabel(r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|')
 
         fig.tight_layout()
 
@@ -128,7 +131,7 @@ def make_plots(save, bin_size, xaxis):
 
         ax.legend()
         ax.set_xlabel(xaxis)
-        ax.set_ylabel(r'RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$')
+        ax.set_ylabel(r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|')
 
         fig.tight_layout()
 
