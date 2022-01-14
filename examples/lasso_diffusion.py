@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, err_in_err
+from mad.plots import parity, calibration, err_in_err, nllh
 
 import numpy as np
 
@@ -71,6 +71,7 @@ def main():
     calibration.make_plots(save, points, 'stdcal', 'pdf')
     err_in_err.make_plots(save, points, 'mahalanobis')
     err_in_err.make_plots(save, points, 'pdf')
+    nllh.make_plots(save)
 
 
 if __name__ == '__main__':
