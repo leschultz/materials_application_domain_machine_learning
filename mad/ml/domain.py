@@ -356,6 +356,13 @@ class builder:
         if teod is not None:
             df_od['y_pred'] = y_ud_test_pred
 
+        # Calculate the negative log likelihoods
+        df_td['nllh'] = -llh(std_id_cv, y_id_cv-y_id_cv_pred, params)
+        df_id['nllh'] = -llh(std_id_test, y_id_test-y_id_test_pred, params)
+
+        if teod is not None:
+            df_od['nllh'] = -llh(std_ud_test, y_ud_test-y_ud_test_pred, params)
+
         df_td = pd.DataFrame(df_td)
         df_id = pd.DataFrame(df_id)
 
