@@ -1,20 +1,11 @@
 from matplotlib import pyplot as pl
+from mad.functions import chunck
+
 import matplotlib.colors as colors
 import pandas as pd
 import numpy as np
 import matplotlib
 import os
-
-
-def chunck(x, n):
-    '''
-    Devide x data into n sized bins.
-    '''
-    for i in range(0, len(x), n):
-        x_new = x[i:i+n]
-
-        if len(x_new) == n:
-            yield x_new
 
 
 def make_plots(save, bin_size, xaxis, dist):
@@ -48,6 +39,11 @@ def make_plots(save, bin_size, xaxis, dist):
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
+
+            # Mask values
+            x = np.ma.array(x, mask=np.isnan(x))
+            y = np.ma.array(y, mask=np.isnan(y))
+            c = np.ma.array(c, mask=np.isnan(c))
 
             x = np.array([np.ma.mean(i) for i in x])
             y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
@@ -157,6 +153,11 @@ def make_plots(save, bin_size, xaxis, dist):
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
+
+            # Mask values
+            x = np.ma.array(x, mask=np.isnan(x))
+            y = np.ma.array(y, mask=np.isnan(y))
+            c = np.ma.array(c, mask=np.isnan(c))
 
             x = [np.ma.mean(i) for i in x]
             y = [(np.ma.sum(i**2)/len(i))**0.5 for i in y]

@@ -62,3 +62,14 @@ def set_llh(std, y, y_pred, x):
     params = opt.x
 
     return params
+
+
+def chunck(x, n):
+    '''
+    Devide x data into n sized bins.
+    '''
+    for i in range(0, len(x), n):
+        x_new = x[i:i+n]
+
+        if len(x_new) == n:
+            yield x_new

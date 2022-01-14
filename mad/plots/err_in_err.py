@@ -1,20 +1,11 @@
 from matplotlib import pyplot as pl
+from mad.functions import chunck
+
 import matplotlib.colors as colors
 import pandas as pd
 import numpy as np
 import matplotlib
 import os
-
-
-def chunck(x, n):
-    '''
-    Devide x data into n sized bins.
-    '''
-    for i in range(0, len(x), n):
-        x_new = x[i:i+n]
-
-        if len(x_new) == n:
-            yield x_new
 
 
 def make_plots(save, bin_size, xaxis):
@@ -23,11 +14,13 @@ def make_plots(save, bin_size, xaxis):
     df = pd.read_csv(df)
 
     std = np.ma.std(df['y'].values)
-    errs = abs(df['y']-df['y_pred'])  # Absolute residuals
-    errs = abs(errs-df['std'])  # Calibration error
+    ares = abs(df['y']-df['y_pred'])  # Absolute residuals
+    errs = abs(ares-df['std'])  # Calibration error
     errs = errs/std  # Normalization
+
+    df['ares'] = ares
     df['err_in_err'] = errs
-    df = df.sort_values(by=[xaxis, 'err_in_err'])
+    df = df.sort_values(by=['stdcal', 'ares'])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
@@ -44,8 +37,12 @@ def make_plots(save, bin_size, xaxis):
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
 
-            x = np.array([np.ma.mean(i) for i in x])
-            y = [np.ma.mean(i) for i in y]
+            # Mask values
+            x = np.ma.array(x, mask=np.isnan(x))
+            y = np.ma.array(y, mask=np.isnan(y))
+
+            x = np.ma.mean(x, axis=1)
+            y = np.ma.mean(y, axis=1)
 
             xs.append(x)
             ys.append(y)
@@ -105,8 +102,12 @@ def make_plots(save, bin_size, xaxis):
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
 
-            x = [np.ma.mean(i) for i in x]
-            y = [np.ma.mean(i) for i in y]
+            # Mask values
+            x = np.ma.array(x, mask=np.isnan(x))
+            y = np.ma.array(y, mask=np.isnan(y))
+
+            x = np.ma.mean(x, axis=1)
+            y = np.ma.mean(y, axis=1)
 
             xs.append(x)
             ys.append(y)
