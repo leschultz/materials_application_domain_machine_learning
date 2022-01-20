@@ -40,6 +40,9 @@ def make_plots(save, bin_size, xaxis, dist):
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
 
+            if (not x) or (not y) or (not c):
+                continue
+
             # Mask values
             x = np.ma.array(x, mask=np.isnan(x))
             y = np.ma.array(y, mask=np.isnan(y))
@@ -153,6 +156,9 @@ def make_plots(save, bin_size, xaxis, dist):
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
+
+            if (not x) or (not y) or (not c):
+                continue
 
             # Mask values
             x = np.ma.array(x, mask=np.isnan(x))
