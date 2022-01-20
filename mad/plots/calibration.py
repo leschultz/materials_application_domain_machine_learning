@@ -89,9 +89,11 @@ def make_plots(save, bin_size, xaxis, dist):
             if subgroup == 'id':
                 marker = '1'
             elif subgroup == 'ud':
+                marker = 'x'
+            elif subgroup == 'td':
                 marker = '.'
             else:
-                marker = '+'
+                marker = '*'
 
             dens = ax.scatter(
                               x,
@@ -206,9 +208,11 @@ def make_plots(save, bin_size, xaxis, dist):
             if subgroup == 'id':
                 marker = '1'
             elif subgroup == 'ud':
+                marker = 'x'
+            elif subgroup == 'td':
                 marker = '.'
             else:
-                marker = '+'
+                marker = '*'
 
             dens = ax.scatter(
                               x,
