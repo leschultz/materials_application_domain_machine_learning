@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, aggregate, statistics
-from mad.plots import parity, calibration, err_in_err, nllh
+from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
 from mad.ml import splitters, domain, feature_selectors
 
 import numpy as np
@@ -68,6 +68,7 @@ class ml_test(unittest.TestCase):
         parity.make_plots(save, 'pdf')  # Make parity plots
         calibration.make_plots(save, 10, 'stdcal', 'pdf')
         err_in_err.make_plots(save, 10, 'mahalanobis')
+        nllh_versus.make_plots(save, 10, 'mahalanobis')
         nllh.make_plots(save)
 
         # Clean directory

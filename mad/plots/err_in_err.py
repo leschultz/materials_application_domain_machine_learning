@@ -20,7 +20,7 @@ def make_plots(save, bin_size, xaxis):
 
     df['ares'] = ares
     df['err_in_err'] = errs
-    df = df.sort_values(by=['stdcal', 'ares'])
+    df = df.sort_values(by=['stdcal', 'ares', xaxis])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 

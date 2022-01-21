@@ -8,7 +8,19 @@ import os
 from mad.functions import parallel
 
 
-def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
+def parity(
+           mets,
+           y,
+           y_pred,
+           y_pred_sem,
+           dist,
+           dmin,
+           dmax,
+           dist_name,
+           name,
+           units,
+           save
+           ):
     '''
     Make a paroody plot.
 
@@ -20,6 +32,7 @@ def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
         dist = The data dissimilarity from training.
         dmin = The minimum dissimilarity.
         dmax = The maximum dissimilarity.
+        dist_name = The label for the heatmap by dissimilarity.
         name = The name of the target value.
         units = The units of the target value.
         save = The directory to save plot.
@@ -51,6 +64,11 @@ def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
     label += r'$R^{2}=$'
     label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
 
+    if dist_name == 'pdf':
+        dist_label = 'Log Likelihood'
+    else:
+        dist_label = dist_name
+
     fig, ax = pl.subplots()
     ax.errorbar(
                 y,
@@ -64,15 +82,15 @@ def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
                 )
 
     # For heat map
-    ax.scatter(
-                y,
-                y_pred,
-                c=dist,
-                marker='.',
-                zorder=1,
-                vmin=dmin,
-                vmax=dmax,
-                )
+    dens = ax.scatter(
+                      y,
+                      y_pred,
+                      c=dist,
+                      marker='.',
+                      zorder=1,
+                      vmin=dmin,
+                      vmax=dmax,
+                      )
 
     ax.text(
             0.55,
@@ -106,6 +124,9 @@ def parity(mets, y, y_pred, y_pred_sem, dist, dmin, dmax, name, units, save):
 
     ax.set_ylabel('Predicted {} {}'.format(name, units))
     ax.set_xlabel('Actual {} {}'.format(name, units))
+
+    cbar = fig.colorbar(dens)
+    cbar.set_label(dist_label)
 
     fig.tight_layout()
     fig.savefig(os.path.join(save, 'parity.png'.format(name)))
@@ -164,6 +185,7 @@ def graphic(save, dist):
                d[dist+'_mean'],
                dmin,
                dmax,
+               dist,
                '',
                '',
                parity_path
@@ -203,6 +225,7 @@ def graphic(save, dist):
                    d[dist+'_mean'],
                    dmin,
                    dmax,
+                   dist,
                    '',
                    '',
                    new_path

@@ -15,7 +15,7 @@ def make_plots(save, bin_size, xaxis, dist):
 
     std = np.ma.std(df['y'].values)
     df['ares'] = abs(df['y'].values-df['y_pred'].values)
-    df = df.sort_values(by=[xaxis, 'ares'])
+    df = df.sort_values(by=[xaxis, 'ares', dist])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
