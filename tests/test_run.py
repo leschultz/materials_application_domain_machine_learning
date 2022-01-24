@@ -7,6 +7,7 @@ from sklearn.pipeline import Pipeline
 from mad.datasets import load_data, aggregate, statistics
 from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
 from mad.ml import splitters, domain, feature_selectors
+from mad.functions import poly
 
 import numpy as np
 import unittest
@@ -22,6 +23,8 @@ class ml_test(unittest.TestCase):
 
         seed = 14987
         save = 'run'
+        uq_func = poly
+        uq_coeffs_start = [0.0, 1.1, 0.0]
 
         # Load data
         data = load_data.sigmoid(3)
@@ -60,7 +63,10 @@ class ml_test(unittest.TestCase):
                                 d,
                                 top_split,
                                 mid_split,
-                                save
+                                save,
+                                seed=seed,
+                                uq_func=poly,
+                                uq_coeffs_start=uq_coeffs_start
                                 )
         splits.assess_domain()  # Do ML
         splits.aggregate()

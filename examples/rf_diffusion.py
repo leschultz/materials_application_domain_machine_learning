@@ -8,6 +8,7 @@ from sklearn.pipeline import Pipeline
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
 from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
+from mad.functions import poly
 
 import numpy as np
 
@@ -20,6 +21,7 @@ def main():
     seed = 14987
     save = 'run_rf_diffusion'
     points = 100
+    uq_func = poly
     uq_coeffs_start = [0.0, 1.1, 0.0]
 
     # Load data
@@ -61,6 +63,7 @@ def main():
                             mid_split,
                             save,
                             seed=seed,
+                            uq_func=uq_func,
                             uq_coeffs_start=uq_coeffs_start
                             )
 

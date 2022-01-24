@@ -25,21 +25,14 @@ def parallel(func, x, *args, **kwargs):
     return data
 
 
-def llh(std, res, x):
+def llh(std, res, x, func):
     '''
     Compute the log likelihood.
     '''
 
-    # Polynomial given coefficients
-    def poly(c, std):
-        total = 0.0
-        for i in range(len(c)):
-            total += c[i]*std**i
-        return total
-
     total = np.log(2*np.pi)
-    total += np.log(abs(poly(x, std))**2)
-    total += (res**2)/(abs(poly(x, std))**2)
+    total += np.log(poly(x, std)**2)
+    total += (res**2)/(poly(x, std)**2)
     total *= -0.5
 
     return total
@@ -54,7 +47,7 @@ def set_llh(std, y, y_pred, x):
 
     # Get negative to use minimization instead of maximization of llh
     opt = minimize(
-                   lambda x: -sum(llh(std, res, x))/len(res),
+                   lambda x: -sum(llh(std, res, x, poly))/len(res),
                    x,
                    method='nelder-mead',
                    )
@@ -73,3 +66,11 @@ def chunck(x, n):
 
         if len(x_new) == n:
             yield x_new
+
+
+# Polynomial given coefficients
+def poly(c, std):
+    total = 0.0
+    for i in range(len(c)):
+        total += c[i]*std**i
+    return abs(total)

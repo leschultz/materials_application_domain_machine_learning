@@ -1,4 +1,4 @@
-from mad.functions import parallel, llh, set_llh
+from mad.functions import parallel, llh, set_llh, poly
 from mad.ml import distances
 
 from sklearn.base import clone
@@ -11,14 +11,6 @@ import os
 
 import warnings
 warnings.filterwarnings('ignore')
-
-
-def poly(params, std):
-    total = 0.0
-    for i, j in zip(params, range(len(params))):
-        total += i*std**j
-
-    return total
 
 
 class builder:
@@ -36,6 +28,7 @@ class builder:
                  mid_splitter,
                  save,
                  seed=1,
+                 uq_func=poly,
                  uq_coeffs_start=[0.0, 1.0]
                  ):
         '''
@@ -62,6 +55,7 @@ class builder:
         self.d = d
         self.top_splitter = top_splitter
         self.mid_splitter = mid_splitter
+        self.uq_func = uq_func
         self.uq_coeffs_start = uq_coeffs_start
 
         # Output directory creation
@@ -77,6 +71,7 @@ class builder:
         top = self.top_splitter
         mid = self.mid_splitter
         pipe = self.pipe
+        uq_func = self.uq_func
         uq_coeffs_start = self.uq_coeffs_start
 
         o = np.array(range(X.shape[0]))  # Tracking cases.
@@ -146,6 +141,7 @@ class builder:
                  d=d,
                  pipe=pipe,
                  save=save,
+                 uq_func=uq_func,
                  uq_coeffs_start=uq_coeffs_start
                  )
 
@@ -157,6 +153,7 @@ class builder:
                  d,
                  pipe,
                  save,
+                 uq_func,
                  uq_coeffs_start,
                  ):
         '''
@@ -298,11 +295,11 @@ class builder:
             if teod is not None:
                 std_ud_test = np.std(std_ud_test, axis=0)
 
-            stdcal_id_cv = abs(poly(params, std_id_cv))
-            stdcal_id_test = abs(poly(params, std_id_test))
+            stdcal_id_cv = uq_func(params, std_id_cv)
+            stdcal_id_test = uq_func(params, std_id_test)
 
             if teod is not None:
-                stdcal_ud_test = abs(poly(params, std_ud_test))
+                stdcal_ud_test = uq_func(params, std_ud_test)
 
             # Grab standard deviations.
             df_td['std'] = std_id_cv
@@ -357,11 +354,26 @@ class builder:
             df_od['y_pred'] = y_ud_test_pred
 
         # Calculate the negative log likelihoods
-        df_td['nllh'] = -llh(std_id_cv, y_id_cv-y_id_cv_pred, params)
-        df_id['nllh'] = -llh(std_id_test, y_id_test-y_id_test_pred, params)
+        df_td['nllh'] = -llh(
+                             std_id_cv,
+                             y_id_cv-y_id_cv_pred,
+                             params,
+                             uq_func
+                             )
+        df_id['nllh'] = -llh(
+                             std_id_test,
+                             y_id_test-y_id_test_pred,
+                             params,
+                             uq_func
+                             )
 
         if teod is not None:
-            df_od['nllh'] = -llh(std_ud_test, y_ud_test-y_ud_test_pred, params)
+            df_od['nllh'] = -llh(
+                                 std_ud_test,
+                                 y_ud_test-y_ud_test_pred,
+                                 params,
+                                 uq_func
+                                 )
 
         df_td = pd.DataFrame(df_td)
         df_id = pd.DataFrame(df_id)
