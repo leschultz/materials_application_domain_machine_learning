@@ -15,7 +15,7 @@ def make_plots(save, bin_size, xaxis, dist):
 
     std = np.ma.std(df['y'].values)
     df['ares'] = abs(df['y'].values-df['y_pred'].values)
-    df = df.sort_values(by=[xaxis, 'ares', dist])
+    df = df.sort_values(by=[xaxis, 'ares', xaxis])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
@@ -83,17 +83,23 @@ def make_plots(save, bin_size, xaxis, dist):
         minx = np.ma.min(minx)
         miny = np.ma.min(miny)
 
-        fig, ax = pl.subplots()
+        fig = pl.figure()
         for x, y, c, subgroup in zip(xs, ys, cs, ds):
+
+            ax = fig.add_subplot()
 
             if subgroup == 'id':
                 marker = '1'
+                zorder = 3
             elif subgroup == 'ud':
                 marker = 'x'
+                zorder = 2
             elif subgroup == 'td':
                 marker = '.'
+                zorder = 1
             else:
                 marker = '*'
+                zorder = 0
 
             dens = ax.scatter(
                               x,
@@ -104,6 +110,7 @@ def make_plots(save, bin_size, xaxis, dist):
                               cmap=pl.get_cmap('viridis'),
                               vmin=vmin,
                               vmax=vmax,
+                              zorder=zorder
                               )
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
@@ -202,17 +209,23 @@ def make_plots(save, bin_size, xaxis, dist):
         minx = np.ma.min(minx)
         miny = np.ma.min(miny)
 
-        fig, ax = pl.subplots()
+        fig = pl.figure()
         for x, y, c, subgroup in zip(xs, ys, cs, ds):
+
+            ax = fig.add_subplot()
 
             if subgroup == 'id':
                 marker = '1'
+                zorder = 3
             elif subgroup == 'ud':
                 marker = 'x'
+                zorder = 2
             elif subgroup == 'td':
                 marker = '.'
+                zorder = 1
             else:
                 marker = '*'
+                zorder = 0
 
             dens = ax.scatter(
                               x,
@@ -223,6 +236,7 @@ def make_plots(save, bin_size, xaxis, dist):
                               cmap=pl.get_cmap('viridis'),
                               vmin=vmin,
                               vmax=vmax,
+                              zorder=zorder
                               )
 
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')

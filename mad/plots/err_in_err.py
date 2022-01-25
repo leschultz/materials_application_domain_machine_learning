@@ -15,7 +15,7 @@ def make_plots(save, bin_size, xaxis):
 
     std = np.ma.std(df['y'].values)
     ares = abs(df['y']-df['y_pred'])  # Absolute residuals
-    errs = abs(ares-df['std'])  # Calibration error
+    errs = abs(ares-df['stdcal'])  # Calibration error
     errs = errs/std  # Normalization
 
     df['ares'] = ares
@@ -51,23 +51,30 @@ def make_plots(save, bin_size, xaxis):
             ys.append(y)
             ds.append(subgroup)
 
-        fig, ax = pl.subplots()
+        fig = pl.figure()
         for x, y, subgroup in zip(xs, ys, ds):
+
+            ax = fig.add_subplot()
 
             if subgroup == 'id':
                 marker = '1'
+                zorder = 3
             elif subgroup == 'ud':
                 marker = 'x'
+                zorder = 2
             elif subgroup == 'td':
                 marker = '.'
+                zorder = 1
             else:
                 marker = '*'
+                zorder = 0
 
             dens = ax.scatter(
                               x,
                               y,
                               marker=marker,
                               label='Domain: {}'.format(subgroup.upper()),
+                              zorder=zorder
                               )
 
         ax.legend()
@@ -121,23 +128,30 @@ def make_plots(save, bin_size, xaxis):
             ys.append(y)
             ds.append(subgroup)
 
-        fig, ax = pl.subplots()
+        fig = pl.figure()
         for x, y, subgroup in zip(xs, ys, ds):
+
+            ax = fig.add_subplot()
 
             if subgroup == 'id':
                 marker = '1'
+                zorder = 3
             elif subgroup == 'ud':
                 marker = 'x'
+                zorder = 2
             elif subgroup == 'td':
                 marker = '.'
+                zorder = 1
             else:
                 marker = '*'
+                zorder = 0
 
             dens = ax.scatter(
                               x,
                               y,
                               marker=marker,
                               label='Domain: {}'.format(subgroup.upper()),
+                              zorder=zorder
                               )
 
         ax.legend()
