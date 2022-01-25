@@ -13,11 +13,7 @@ def make_plots(save, bin_size, xaxis):
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
 
-    std = np.ma.std(df['y'].values)
-    ares = abs(df['y']-df['y_pred'])  # Absolute residuals
-
-    df['ares'] = ares
-    df = df.sort_values(by=['stdcal', 'ares', xaxis])
+    df = df.sort_values(by=[xaxis, 'nllh'])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 

@@ -18,9 +18,8 @@ def make_plots(save, bin_size, xaxis):
     errs = abs(ares-df['stdcal'])  # Calibration error
     errs = errs/std  # Normalization
 
-    df['ares'] = ares
     df['err_in_err'] = errs
-    df = df.sort_values(by=['stdcal', 'ares', xaxis])
+    df = df.sort_values(by=[xaxis, 'err_in_err'])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
