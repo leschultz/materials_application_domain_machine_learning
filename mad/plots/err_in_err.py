@@ -19,7 +19,8 @@ def make_plots(save, bin_size, xaxis):
     errs = errs/std  # Normalization
 
     df['err_in_err'] = errs
-    df = df.sort_values(by=[xaxis, 'err_in_err'])
+    df['ares'] = ares
+    df = df.sort_values(by=['stdcal', 'ares', xaxis])
 
     for group, values in df.groupby(['scaler', 'model', 'splitter']):
 
