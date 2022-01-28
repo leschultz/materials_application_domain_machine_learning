@@ -1,5 +1,6 @@
 from matplotlib import pyplot as pl
 from mad.functions import chunck
+from sklearn import metrics
 
 import matplotlib.colors as colors
 import pandas as pd
@@ -30,6 +31,7 @@ def make_plots(save, bin_size, xaxis, dist):
         cs = []
         ds = []
 
+        rows = []
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
@@ -61,6 +63,19 @@ def make_plots(save, bin_size, xaxis, dist):
             # Normalization
             x = x/std
             y = y/std
+
+            # Table data
+            mae = metrics.mean_absolute_error(y, x)
+            rmse = metrics.mean_squared_error(y, x)**0.5
+            r2 = metrics.r2_score(y, x)
+
+            domain_name = subgroup.upper()
+            domain_name = '{}'.format(domain_name)
+            rmse = '{:.2f}'.format(rmse)
+            mae = '{:.2f}'.format(mae)
+            r2 = '{:.2f}'.format(r2)
+
+            rows.append([domain_name, rmse, mae, r2])
 
             maxx.append(np.ma.max(x))
             maxy.append(np.ma.max(y))
@@ -124,6 +139,19 @@ def make_plots(save, bin_size, xaxis, dist):
 
         cbar = fig.colorbar(dens)
         cbar.set_label(dist_label)
+
+        # Make a table
+        table = ax.table(
+                         cellText=rows,
+                         colLabels=[r'Domain', r'RMSE', r'MAE', r'$R^2$'],
+                         colWidths=[0.1]*4,
+                         loc='lower right',
+                         )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.25, 1.25)
+
         fig.tight_layout()
 
         name = '_'.join(group[:3])
@@ -156,6 +184,7 @@ def make_plots(save, bin_size, xaxis, dist):
         cs = []
         ds = []
 
+        rows = []
         for subgroup, subvalues in values.groupby('in_domain'):
 
             x = subvalues[xaxis].values
@@ -187,6 +216,19 @@ def make_plots(save, bin_size, xaxis, dist):
             # Normalization
             x = x/std
             y = y/std
+
+            # Table data
+            mae = metrics.mean_absolute_error(y, x)
+            rmse = metrics.mean_squared_error(y, x)**0.5
+            r2 = metrics.r2_score(y, x)
+
+            domain_name = subgroup.upper()
+            domain_name = '{}'.format(domain_name)
+            rmse = '{:.2f}'.format(rmse)
+            mae = '{:.2f}'.format(mae)
+            r2 = '{:.2f}'.format(r2)
+
+            rows.append([domain_name, rmse, mae, r2])
 
             maxx.append(np.ma.max(x))
             maxy.append(np.ma.max(y))
@@ -251,6 +293,19 @@ def make_plots(save, bin_size, xaxis, dist):
         normalize = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         cbar = fig.colorbar(dens, norm=normalize)
         cbar.set_label(dist_label)
+
+        # Make a table
+        table = ax.table(
+                         cellText=rows,
+                         colLabels=[r'Domain', r'RMSE', r'MAE', r'$R^2$'],
+                         colWidths=[0.1]*4,
+                         loc='lower right',
+                         )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.25, 1.25)
+
         fig.tight_layout()
 
         name = '_'.join(group[:3])
