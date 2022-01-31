@@ -71,8 +71,8 @@ def make_plots(save, bin_size, xaxis, dist):
 
             domain_name = subgroup.upper()
             domain_name = '{}'.format(domain_name)
-            rmse = '{:.2f}'.format(rmse)
-            mae = '{:.2f}'.format(mae)
+            rmse = '{:.2E}'.format(rmse)
+            mae = '{:.2E}'.format(mae)
             r2 = '{:.2f}'.format(r2)
 
             rows.append([domain_name, rmse, mae, r2])
@@ -144,7 +144,7 @@ def make_plots(save, bin_size, xaxis, dist):
         table = ax.table(
                          cellText=rows,
                          colLabels=[r'Domain', r'RMSE', r'MAE', r'$R^2$'],
-                         colWidths=[0.1]*4,
+                         colWidths=[0.15]*3+[0.1],
                          loc='lower right',
                          )
 
@@ -224,8 +224,8 @@ def make_plots(save, bin_size, xaxis, dist):
 
             domain_name = subgroup.upper()
             domain_name = '{}'.format(domain_name)
-            rmse = '{:.2f}'.format(rmse)
-            mae = '{:.2f}'.format(mae)
+            rmse = '{:.2E}'.format(rmse)
+            mae = '{:.2E}'.format(mae)
             r2 = '{:.2f}'.format(r2)
 
             rows.append([domain_name, rmse, mae, r2])
@@ -298,7 +298,7 @@ def make_plots(save, bin_size, xaxis, dist):
         table = ax.table(
                          cellText=rows,
                          colLabels=[r'Domain', r'RMSE', r'MAE', r'$R^2$'],
-                         colWidths=[0.1]*4,
+                         colWidths=[0.15]*3+[0.1],
                          loc='lower right',
                          )
 
