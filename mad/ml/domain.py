@@ -2,16 +2,37 @@ from mad.functions import parallel, llh, set_llh, poly
 from mad.ml import distances
 
 from sklearn.base import clone
-from joblib import dump, load
 
 import pandas as pd
 import numpy as np
 import random
+import dill
 import glob
 import os
 
 import warnings
 warnings.filterwarnings('ignore')
+
+
+class uq_func_model:
+    def __init__(self, params, uq_func):
+        self.params = params
+        self.uq_func = uq_func
+
+    def train(self, std, y, y_pred):
+
+        params = set_llh(
+                         std,
+                         y,
+                         y_pred,
+                         self.params,
+                         self.uq_func
+                         )
+
+        self.params = params
+
+    def predict(self, std):
+        return self.uq_func(self.params, std)
 
 
 class builder:
@@ -268,12 +289,8 @@ class builder:
             df_td = pd.concat(df_td)
 
             # Calibration.
-            params = set_llh(
-                             std_id_cv,
-                             y_id_cv,
-                             y_id_cv_pred,
-                             uq_coeffs_start
-                             )
+            uq_func = uq_func_model(uq_coeffs_start, uq_func)
+            uq_func.train(std_id_cv, y_id_cv, y_id_cv_pred)
 
             # Nested in domain prediction for left out data
             y_id_test_pred = pipe_best.predict(X_id_test)
@@ -296,11 +313,11 @@ class builder:
             if teod is not None:
                 std_ud_test = np.std(std_ud_test, axis=0)
 
-            stdcal_id_cv = uq_func(params, std_id_cv)
-            stdcal_id_test = uq_func(params, std_id_test)
+            stdcal_id_cv = uq_func.predict(std_id_cv)
+            stdcal_id_test = uq_func.predict(std_id_test)
 
             if teod is not None:
-                stdcal_ud_test = uq_func(params, std_ud_test)
+                stdcal_ud_test = uq_func.predict(std_ud_test)
 
             # Grab standard deviations.
             df_td['std'] = std_id_cv
@@ -358,22 +375,22 @@ class builder:
         df_td['nllh'] = -llh(
                              std_id_cv,
                              y_id_cv-y_id_cv_pred,
-                             params,
-                             uq_func
+                             uq_func.params,
+                             uq_func.uq_func
                              )
         df_id['nllh'] = -llh(
                              std_id_test,
                              y_id_test-y_id_test_pred,
-                             params,
-                             uq_func
+                             uq_func.params,
+                             uq_func.uq_func
                              )
 
         if teod is not None:
             df_od['nllh'] = -llh(
                                  std_ud_test,
                                  y_ud_test-y_ud_test_pred,
-                                 params,
-                                 uq_func
+                                 uq_func.params,
+                                 uq_func.uq_func
                                  )
 
         df_td = pd.DataFrame(df_td)
@@ -385,7 +402,6 @@ class builder:
             df = pd.concat([df, df_od])
 
         # Assign values that should be the same
-        df['pipe'] = pipe
         df['model'] = model_type
         df['scaler'] = scaler_type
         df['features'] = n_features
@@ -399,12 +415,15 @@ class builder:
 
         dfname = 'split_id_{}_ud_{}.csv'.format(id_count, ud_count)
         modelname = 'model_id_{}_ud_{}.joblib'.format(id_count, ud_count)
+        uqname = 'uqfunc_id_{}_ud_{}.joblib'.format(id_count, ud_count)
 
         dfname = os.path.join(save, dfname)
         modelname = os.path.join(save, modelname)
+        uqname = os.path.join(save, uqname)
 
         df.to_csv(dfname, index=False)
-        dump(pipe, modelname)
+        dill.dump(pipe, open(modelname, 'wb'))
+        dill.dump(uq_func, open(uqname, 'wb'))
 
     def aggregate(self):
         '''

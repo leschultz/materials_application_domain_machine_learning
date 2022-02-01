@@ -31,14 +31,14 @@ def llh(std, res, x, func):
     '''
 
     total = np.log(2*np.pi)
-    total += np.log(poly(x, std)**2)
-    total += (res**2)/(poly(x, std)**2)
+    total += np.log(func(x, std)**2)
+    total += (res**2)/(func(x, std)**2)
     total *= -0.5
 
     return total
 
 
-def set_llh(std, y, y_pred, x):
+def set_llh(std, y, y_pred, x, func):
     '''
     Compute the log likelihood for a dataset.
     '''
@@ -47,7 +47,7 @@ def set_llh(std, y, y_pred, x):
 
     # Get negative to use minimization instead of maximization of llh
     opt = minimize(
-                   lambda x: -sum(llh(std, res, x, poly))/len(res),
+                   lambda x: -sum(llh(std, res, x, func))/len(res),
                    x,
                    method='nelder-mead',
                    )
