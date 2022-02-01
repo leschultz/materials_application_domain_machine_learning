@@ -2,6 +2,7 @@ from mad.functions import parallel, llh, set_llh, poly
 from mad.ml import distances
 
 from sklearn.base import clone
+from joblib import dump, load
 
 import pandas as pd
 import numpy as np
@@ -396,20 +397,21 @@ class builder:
         else:
             df['ud_count'] = None
 
-        name = 'split_id_{}_ud_{}.csv'.format(id_count, ud_count)
-        name = os.path.join(
-                            save,
-                            name
-                            )
+        dfname = 'split_id_{}_ud_{}.csv'.format(id_count, ud_count)
+        modelname = 'model_id_{}_ud_{}.joblib'.format(id_count, ud_count)
 
-        df.to_csv(name, index=False)
+        dfname = os.path.join(save, dfname)
+        modelname = os.path.join(save, modelname)
+
+        df.to_csv(dfname, index=False)
+        dump(pipe, modelname)
 
     def aggregate(self):
         '''
         Gather all data from domain analysis.
         '''
 
-        files = glob.glob(self.save+'/splits/*')
+        files = glob.glob(self.save+'/splits/split_*')
 
         df = parallel(pd.read_csv, files)
         df = pd.concat(df)
