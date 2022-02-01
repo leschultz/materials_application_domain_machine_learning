@@ -15,6 +15,7 @@ warnings.filterwarnings('ignore')
 
 
 class uq_func_model:
+
     def __init__(self, params, uq_func):
         self.params = params
         self.uq_func = uq_func
@@ -33,6 +34,18 @@ class uq_func_model:
 
     def predict(self, std):
         return self.uq_func(self.params, std)
+
+
+class dist_func_model:
+
+    def __init__(self, X):
+        self.X = X
+
+    def train(self, X):
+        self.dist_func = lambda x: distances.distance(self.X, x)
+
+    def predict(self, X):
+        return self.dist_func(X)
 
 
 class builder:
@@ -234,11 +247,15 @@ class builder:
         if teod is not None:
             X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
 
+        # Setup distance model
+        dists = dist_func_model(X_id_train_select)
+        dists.train(X_id_train_select)
+
         # Calculate distances after feature transformations from ML workflow.
-        df_id = distances.distance(X_id_train_select, X_id_test_select)
+        df_id = dists.predict(X_id_test_select)
 
         if teod is not None:
-            df_od = distances.distance(X_id_train_select, X_ud_test_select)
+            df_od = dists.predict(X_ud_test_select)
 
         n_features = X_id_test_select.shape[-1]
 
@@ -281,10 +298,7 @@ class builder:
                 y_id_cv = np.append(y_id_cv, y_test)
                 y_id_cv_pred = np.append(y_id_cv_pred, y_pred)
                 y_id_cv_indx = np.append(y_id_cv_indx, trid[test_index])
-                df_td.append(pd.DataFrame(distances.distance(
-                                                             X_id_train_select,
-                                                             X_test
-                                                             )))
+                df_td.append(pd.DataFrame(dists.predict(X_test)))
 
             df_td = pd.concat(df_td)
 
@@ -416,14 +430,17 @@ class builder:
         dfname = 'split_id_{}_ud_{}.csv'.format(id_count, ud_count)
         modelname = 'model_id_{}_ud_{}.joblib'.format(id_count, ud_count)
         uqname = 'uqfunc_id_{}_ud_{}.joblib'.format(id_count, ud_count)
+        distname = 'distfunc_id_{}_ud_{}.joblib'.format(id_count, ud_count)
 
         dfname = os.path.join(save, dfname)
         modelname = os.path.join(save, modelname)
         uqname = os.path.join(save, uqname)
+        distname = os.path.join(save, distname)
 
         df.to_csv(dfname, index=False)
         dill.dump(pipe, open(modelname, 'wb'))
         dill.dump(uq_func, open(uqname, 'wb'))
+        dill.dump(dists, open(distname, 'wb'))
 
     def aggregate(self):
         '''

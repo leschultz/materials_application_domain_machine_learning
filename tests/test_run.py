@@ -4,7 +4,7 @@ from sklearn.model_selection import GridSearchCV, RepeatedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.datasets import load_data, aggregate, statistics
+from mad.datasets import load_data, statistics
 from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
 from mad.ml import splitters, domain, feature_selectors
 from mad.functions import poly
