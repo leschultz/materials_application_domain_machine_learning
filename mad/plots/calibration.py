@@ -38,11 +38,6 @@ def make_plots(save, bin_size, xaxis, dist):
             y = subvalues['ares'].values
             c = subvalues[dist].values
 
-            # Table data
-            mae = metrics.mean_absolute_error(y, x)
-            rmse = metrics.mean_squared_error(y, x)**0.5
-            r2 = metrics.r2_score(y, x)
-
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
@@ -68,6 +63,11 @@ def make_plots(save, bin_size, xaxis, dist):
             # Normalization
             x = x/std
             y = y/std
+
+            # Table data
+            mae = metrics.mean_absolute_error(y, x)
+            rmse = metrics.mean_squared_error(y, x)**0.5
+            r2 = metrics.r2_score(y, x)
 
             domain_name = subgroup.upper()
             domain_name = '{}'.format(domain_name)
@@ -189,11 +189,6 @@ def make_plots(save, bin_size, xaxis, dist):
             y = subvalues['ares'].values
             c = subvalues[dist].values
 
-            # Table data
-            mae = metrics.mean_absolute_error(y, x)
-            rmse = metrics.mean_squared_error(y, x)**0.5
-            r2 = metrics.r2_score(y, x)
-
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
             c = list(chunck(c, bin_size))
@@ -219,6 +214,11 @@ def make_plots(save, bin_size, xaxis, dist):
             # Normalization
             x = x/std
             y = y/std
+
+            # Table data
+            mae = metrics.mean_absolute_error(y, x)
+            rmse = metrics.mean_squared_error(y, x)**0.5
+            r2 = metrics.r2_score(y, x)
 
             domain_name = subgroup.upper()
             domain_name = '{}'.format(domain_name)
