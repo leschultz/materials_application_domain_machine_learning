@@ -41,9 +41,9 @@ def make_plots(save, bin_size, xaxis, dist):
         rows = []
         for subgroup, subvalues in values.groupby('in_domain'):
 
-            x = subvalues[xaxis].values*sign
+            x = subvalues[xaxis].values
             y = subvalues['ares'].values
-            c = subvalues[dist].values
+            c = subvalues[dist].values*sign
 
             x = list(chunck(x, bin_size))
             y = list(chunck(y, bin_size))
