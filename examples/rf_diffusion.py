@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
+from mad.plots import parity, calibration, err_in_err, nllh_versus
 from mad.functions import poly
 
 import numpy as np
@@ -76,7 +76,6 @@ def main():
     err_in_err.make_plots(save, points, 'mahalanobis')
     err_in_err.make_plots(save, points, 'pdf')
     nllh_versus.make_plots(save, points, 'mahalanobis')
-    nllh.make_plots(save)
 
 
 if __name__ == '__main__':

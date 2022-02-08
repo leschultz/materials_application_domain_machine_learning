@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, err_in_err, nllh, nllh_versus
+from mad.plots import parity, calibration, err_in_err, nllh_versus
 from mad.ml import splitters, domain, feature_selectors
 from mad.functions import poly
 
@@ -75,7 +75,6 @@ class ml_test(unittest.TestCase):
         calibration.make_plots(save, 10, 'stdcal', 'pdf')
         err_in_err.make_plots(save, 10, 'mahalanobis')
         nllh_versus.make_plots(save, 10, 'mahalanobis')
-        nllh.make_plots(save)
 
         # Clean directory
         shutil.rmtree(save)
