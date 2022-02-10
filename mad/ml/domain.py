@@ -260,7 +260,12 @@ class builder:
         n_features = X_id_test_select.shape[-1]
 
         # If model is ensemble regressor
-        ensemble_methods = ['RandomForestRegressor', 'BaggingRegressor']
+        ensemble_methods = [
+                            'RandomForestRegressor',
+                            'BaggingRegressor',
+                            'GradientBoostingRegressor'
+                            ]
+
         if model_type in ensemble_methods:
 
             # Train and test on inner CV
@@ -289,6 +294,8 @@ class builder:
 
                 std = []
                 for i in model.estimators_:
+                    if model_type == 'GradientBoostingRegressor':
+                        i = i[0]
                     std.append(i.predict(X_test))
 
                 std = np.std(std, axis=0)
@@ -317,6 +324,10 @@ class builder:
             std_id_test = []
             std_ud_test = []
             for i in pipe_estimators:
+
+                if model_type == 'GradientBoostingRegressor':
+                    i = i[0]
+
                 std_id_test.append(i.predict(X_id_test_select))
 
                 if teod is not None:
