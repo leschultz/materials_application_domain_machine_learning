@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, err_in_err, nllh_versus
+from mad.plots import parity, calibration
 from mad.functions import poly
 
 import numpy as np
@@ -21,7 +21,7 @@ def main():
 
     seed = 14987
     save = 'run_lasso_diffusion'
-    points = 100
+    points = 15
     uq_func = poly
     uq_coeffs_start = [0.0, 1.1, 0.0]
 
@@ -72,9 +72,6 @@ def main():
     parity.make_plots(save, 'pdf')  # Make parity plots
     calibration.make_plots(save, points, 'std', 'pdf')
     calibration.make_plots(save, points, 'stdcal', 'pdf')
-    err_in_err.make_plots(save, points, 'mahalanobis')
-    err_in_err.make_plots(save, points, 'pdf')
-    nllh_versus.make_plots(save, points, 'mahalanobis')
 
 
 if __name__ == '__main__':

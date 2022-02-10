@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, err_in_err, nllh_versus
+from mad.plots import parity, calibration
 from mad.functions import poly
 
 import numpy as np
@@ -20,7 +20,7 @@ def main():
 
     seed = 14987
     save = 'run_rf_diffusion'
-    points = 100
+    points = 15
     uq_func = poly
     uq_coeffs_start = [0.0, 1.1, 0.0]
 
@@ -70,12 +70,9 @@ def main():
     splits.assess_domain()  # Do ML
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
-    parity.make_plots(save, 'std')  # Make parity plots
-    calibration.make_plots(save, points, 'std', 'pdf')
-    calibration.make_plots(save, points, 'stdcal', 'pdf')
-    err_in_err.make_plots(save, points, 'mahalanobis')
-    err_in_err.make_plots(save, points, 'pdf')
-    nllh_versus.make_plots(save, points, 'mahalanobis')
+    parity.make_plots(save, 'mahalanobis')  # Make parity plots
+    calibration.make_plots(save, points, 'std', 'mahalanobis')
+    calibration.make_plots(save, points, 'stdcal', 'mahalanobis')
 
 
 if __name__ == '__main__':

@@ -37,6 +37,7 @@ def make_plots(save, bin_size, xaxis, dist):
         ys = []
         cs = []
         ds = []
+        zs = []
 
         rows = []
         for subgroup, subvalues in values.groupby('in_domain'):
@@ -66,6 +67,8 @@ def make_plots(save, bin_size, xaxis, dist):
             x = x/std
             y = y/std
 
+            z = abs(y-x)
+
             # Table data
             mae = metrics.mean_absolute_error(y, x)
             rmse = metrics.mean_squared_error(y, x)**0.5
@@ -88,6 +91,7 @@ def make_plots(save, bin_size, xaxis, dist):
             xs.append(x)
             ys.append(y)
             cs.append(c)
+            zs.append(z)
             ds.append(subgroup)
 
         minx = np.append(minx, 0.0)
@@ -101,7 +105,8 @@ def make_plots(save, bin_size, xaxis, dist):
         miny = np.ma.min(miny)
 
         fig, ax = pl.subplots()
-        for x, y, c, subgroup in zip(xs, ys, cs, ds):
+        fig_err, ax_err = pl.subplots()
+        for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
             if subgroup == 'id':
                 marker = '1'
@@ -128,6 +133,14 @@ def make_plots(save, bin_size, xaxis, dist):
                               zorder=zorder
                               )
 
+            ax_err.scatter(
+                           c,
+                           z,
+                           marker=marker,
+                           label='Domain: {}'.format(subgroup.upper()),
+                           zorder=zorder
+                           )
+
         ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
         ax.set_xlim([minx-0.1*abs(minx), maxx+0.1*abs(maxx)])
@@ -136,6 +149,10 @@ def make_plots(save, bin_size, xaxis, dist):
         ax.legend()
         ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
         ax.set_ylabel(r'RMSE/$\sigma_{y}$')
+
+        ax_err.legend()
+        ax_err.set_xlabel(dist_label)
+        ax_err.set_ylabel(r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|')
 
         cbar = fig.colorbar(dens)
         cbar.set_label(dist_label)
@@ -153,6 +170,7 @@ def make_plots(save, bin_size, xaxis, dist):
         table.scale(1.25, 1.25)
 
         fig.tight_layout()
+        fig_err.tight_layout()
 
         name = '_'.join(group[:3])
         name = [
@@ -168,5 +186,20 @@ def make_plots(save, bin_size, xaxis, dist):
         os.makedirs(name, exist_ok=True)
         name = os.path.join(name, 'calibration.png')
         fig.savefig(name)
+
+        name = '_'.join(group[:3])
+        name = [
+                save,
+                'aggregate',
+                name,
+                'total',
+                'err_in_err',
+                xaxis+'_vs_'+dist
+                ]
+        name = map(str, name)
+        name = os.path.join(*name)
+        os.makedirs(name, exist_ok=True)
+        name = os.path.join(name, 'err_in_err.png')
+        fig_err.savefig(name)
 
         pl.close('all')
