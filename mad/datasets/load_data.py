@@ -71,6 +71,42 @@ def super_cond():
     return load(df, target, drop_cols, class_name)
 
 
+def super_cond_train():
+    '''
+    Load the super conductor data set.
+    '''
+
+    # Dataset information
+    df = 'Supercon_data_features_selected_train_subset.csv'
+    target = 'ln(Tc)'
+    class_name = 'group'
+    drop_cols = [
+                 'name',
+                 'group',
+                 'Tc',
+                 ]
+
+    return load(df, target, drop_cols, class_name)
+
+
+def super_cond_test():
+    '''
+    Load the super conductor data set.
+    '''
+
+    # Dataset information
+    df = 'Supercon_data_features_selected_test_subset.csv'
+    target = 'ln(Tc)'
+    class_name = 'group'
+    drop_cols = [
+                 'name',
+                 'group',
+                 'Tc',
+                 ]
+
+    return load(df, target, drop_cols, class_name)
+
+
 def diffusion():
     '''
     Load the diffusion data set.

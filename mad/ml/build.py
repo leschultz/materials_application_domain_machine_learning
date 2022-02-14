@@ -61,14 +61,19 @@ class model:
         dists = dist_pred[0].columns
 
         # Combine predictions
-        y_pred = np.mean(y_pred, axis=0)
-        std_pred = np.mean(std_pred, axis=0)
-        dist_pred = np.mean(dist_pred, axis=0)
+        df = []
+        for i, j, k in zip(y_pred, std_pred, dist_pred):
 
-        df = {'y_pred': y_pred, 'std_pred': std_pred}
-        df = pd.DataFrame(df)
-        dist_pred = pd.DataFrame(dist_pred, columns=dists)
+            data = {}
+            data['y_pred'] = i
+            data['std_pred'] = j
+            dist_pred = pd.DataFrame(k, columns=dists)
 
-        df = pd.concat([df, dist_pred], axis=1)
+            data = pd.DataFrame(data)
+            data = pd.concat([data, dist_pred], axis=1)
+            data['index'] = data.index
+            df.append(data)
+
+        df = pd.concat(df)
 
         return df
