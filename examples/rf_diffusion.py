@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration
+from mad.plots import parity, calibration, pr
 from mad.functions import poly
 
 import numpy as np
@@ -67,12 +67,13 @@ def main():
                             uq_coeffs_start=uq_coeffs_start
                             )
 
-    splits.assess_domain()  # Do ML
-    splits.aggregate()  # combine all of the ml data
-    statistics.folds(save)  # Gather statistics from data
-    parity.make_plots(save, 'mahalanobis')  # Make parity plots
-    calibration.make_plots(save, points, 'std', 'mahalanobis')
-    calibration.make_plots(save, points, 'stdcal', 'mahalanobis')
+    #splits.assess_domain()  # Do ML
+    #splits.aggregate()  # combine all of the ml data
+    #statistics.folds(save)  # Gather statistics from data
+    #parity.make_plots(save, 'mahalanobis')  # Make parity plots
+    #calibration.make_plots(save, points, 'std', 'mahalanobis')
+    #calibration.make_plots(save, points, 'stdcal', 'mahalanobis')
+    pr.make_plot(save, 'mahalanobis')
 
 
 if __name__ == '__main__':
