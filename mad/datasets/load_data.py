@@ -126,6 +126,44 @@ def diffusion():
     return load(df, target, drop_cols, class_name)
 
 
+def diffusion_train():
+    '''
+    Load the diffusion data set.
+    '''
+
+    # Dataset information
+    df = 'Diffusion_Data_train_subset.csv'
+    target = 'E_regression'
+    class_name = 'group'
+    drop_cols = [
+                 'Material compositions 1',
+                 'Material compositions 2',
+                 'E_regression_shift',
+                 'group'
+                 ]
+
+    return load(df, target, drop_cols, class_name)
+
+
+def diffusion_test():
+    '''
+    Load the diffusion data set.
+    '''
+
+    # Dataset information
+    df = 'Diffusion_Data_test_subset.csv'
+    target = 'E_regression'
+    class_name = 'group'
+    drop_cols = [
+                 'Material compositions 1',
+                 'Material compositions 2',
+                 'E_regression_shift',
+                 'group'
+                 ]
+
+    return load(df, target, drop_cols, class_name)
+
+
 def sigmoid(n):
     '''
     Load the sigmoid data set.

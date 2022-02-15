@@ -21,7 +21,7 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_rf_supercond'
+    save = 'run_rf_supercond_model'
     points = 15
     uq_func = poly
     uq_coeffs_start = [0.0, 1.1, 0.0]
