@@ -154,8 +154,8 @@ def graphic(save, dist):
     df = os.path.join(path, 'data_stats.csv')
     mets = os.path.join(path, 'metrics_stats.csv')
 
-    groups = ['scaler', 'model', 'splitter', 'in_domain']
-    drop_cols = groups+['pipe', 'index']
+    groups = ['in_domain']
+    drop_cols = groups+['index']
 
     df = pd.read_csv(df)
     mets = pd.read_csv(mets)
@@ -166,10 +166,9 @@ def graphic(save, dist):
     # For total parity plots
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = list(map(str, d[0][:-1]))
-        name = '_'.join(name)
-        new_path = os.path.join(*[path, name, 'total', 'parity'])
-        parity_path = os.path.join(new_path, 'in-domain_{}'.format(d[0][-1]))
+        name = d[0]
+        new_path = os.path.join(*[path, 'plots', 'total', 'parity'])
+        parity_path = os.path.join(new_path, 'in-domain_{}'.format(name))
         d = d[1]
         m = m[1]
 
@@ -196,14 +195,12 @@ def graphic(save, dist):
     groups.append('domain')
     for k, l in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = list(map(str, k[0][:-1]))
-        name = '_'.join(name)
-
+        name = k[0]
         parity_path = os.path.join(*[
                                      path,
-                                     name,
+                                     'plots',
                                      'groups',
-                                     str(k[0][-1]),
+                                     name,
                                      'parity'
                                      ])
 

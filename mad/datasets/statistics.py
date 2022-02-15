@@ -23,12 +23,9 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    model, scaler, splitter, in_domain, id_count, ud_count, domain = group
+    in_domain, id_count, ud_count, domain = group
 
     results = {}
-    results['model'] = model
-    results['scaler'] = scaler
-    results['splitter'] = splitter
     results['in_domain'] = in_domain
     results['domain'] = domain
     results['id_count'] = id_count
@@ -86,18 +83,12 @@ def folds_opperation(save, file_name):
     # Get statistics
     dfstats = stats(df, [
                          'index',
-                         'model',
-                         'scaler',
-                         'splitter',
                          'in_domain',
                          'domain'
                          ])
 
     # Get metrics
     mets = group_metrics(df, [
-                              'model',
-                              'scaler',
-                              'splitter',
                               'in_domain',
                               'id_count',
                               'ud_count',
@@ -106,9 +97,6 @@ def folds_opperation(save, file_name):
 
     metsstats = mets.drop(['id_count', 'ud_count'], axis=1)
     metsstats = stats(metsstats, [
-                                  'model',
-                                  'scaler',
-                                  'splitter',
                                   'in_domain',
                                   'domain',
                                   ])

@@ -427,10 +427,6 @@ class builder:
             df = pd.concat([df, df_od])
 
         # Assign values that should be the same
-        df['model'] = model_type
-        df['scaler'] = scaler_type
-        df['features'] = n_features
-        df['splitter'] = split_type
         df['id_count'] = id_count
 
         if teod is not None:
