@@ -195,7 +195,7 @@ def graphic(save, dist):
     groups.append('domain')
     for k, l in zip(df.groupby(groups), mets.groupby(groups)):
 
-        name = k[0]
+        name = str(k[0])
         parity_path = os.path.join(*[
                                      path,
                                      'plots',
