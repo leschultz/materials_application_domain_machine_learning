@@ -4,6 +4,7 @@ from matplotlib import pyplot as pl
 
 import pandas as pd
 import numpy as np
+import json
 import os
 
 
@@ -25,7 +26,12 @@ def make_plot(save, score):
     else:
         sign = 1
 
+    data = {}
+
     for cols in [[score], [score, 'stdcal']]:
+
+        score_name = '_'.join(cols)
+
         y_scores = df[cols].values
         y_scores[:, 0] = y_scores[:, 0]*sign
 
@@ -37,11 +43,20 @@ def make_plot(save, score):
                                                                y_true,
                                                                y_scores
                                                                )
+
+        data[score_name] = {}
+        data[score_name]['precision'] = precision.tolist()
+        data[score_name]['recall'] = recall.tolist()
+        data[score_name]['thresholds'] = thresholds.tolist()
+
         baseline = sum(y_true)/len(y_true)
         auc_score = auc(recall, precision)
 
         f1_scores = 2*recall*precision/(recall+precision)
         max_f1 = np.nanmax(f1_scores)
+
+        data[score_name]['auc'] = auc_score
+        data[score_name]['max_f1'] = max_f1
 
         fig, ax = pl.subplots()
 
@@ -65,10 +80,15 @@ def make_plot(save, score):
                 'plots',
                 'total',
                 'precision_recall',
-                '_'.join(cols)
+                score_name
                 ]
         name = map(str, name)
         name = os.path.join(*name)
         os.makedirs(name, exist_ok=True)
         name = os.path.join(name, 'precision_recall.png')
         fig.savefig(name)
+
+        # Save plot data
+        jsonfile = name.replace('png', 'json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)

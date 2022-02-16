@@ -6,6 +6,7 @@ import matplotlib.colors as colors
 import pandas as pd
 import numpy as np
 import matplotlib
+import json
 import os
 
 
@@ -102,6 +103,12 @@ def make_plots(save, bin_size, xaxis, dist):
     minx = np.ma.min(minx)
     miny = np.ma.min(miny)
 
+    # For plot data export
+    data_cal = {}
+    data_err = {}
+
+    err_y_label = r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|'
+
     fig, ax = pl.subplots()
     fig_err, ax_err = pl.subplots()
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
@@ -119,12 +126,13 @@ def make_plots(save, bin_size, xaxis, dist):
             marker = '*'
             zorder = 0
 
+        domain = subgroup.upper()
         dens = ax.scatter(
                           x,
                           y,
                           c=c,
                           marker=marker,
-                          label='Domain: {}'.format(subgroup.upper()),
+                          label='Domain: {}'.format(domain),
                           cmap=pl.get_cmap('viridis'),
                           vmin=vmin,
                           vmax=vmax,
@@ -135,9 +143,17 @@ def make_plots(save, bin_size, xaxis, dist):
                        c,
                        z,
                        marker=marker,
-                       label='Domain: {}'.format(subgroup.upper()),
+                       label='Domain: {}'.format(domain),
                        zorder=zorder
                        )
+
+        data_err[domain] = {}
+        data_err[domain][dist_label] = c.tolist()
+        data_err[domain][err_y_label] = z.tolist()
+
+        data_cal[domain] = {}
+        data_cal[domain][r'$\sigma_{m}/\sigma_{y}$'] = x.tolist()
+        data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
 
     ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -150,18 +166,23 @@ def make_plots(save, bin_size, xaxis, dist):
 
     ax_err.legend()
     ax_err.set_xlabel(dist_label)
-    ax_err.set_ylabel(r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|')
+    ax_err.set_ylabel(err_y_label)
 
     cbar = fig.colorbar(dens)
     cbar.set_label(dist_label)
 
     # Make a table
+    cols = [r'Domain', r'RMSE', r'MAE', r'$R^2$']
     table = ax.table(
                      cellText=rows,
-                     colLabels=[r'Domain', r'RMSE', r'MAE', r'$R^2$'],
+                     colLabels=cols,
                      colWidths=[0.15]*3+[0.1],
                      loc='lower right',
                      )
+
+    data_cal['table'] = {}
+    data_cal['table']['metrics'] = cols
+    data_cal['table']['rows'] = rows
 
     table.auto_set_font_size(False)
     table.set_fontsize(10)
@@ -184,6 +205,11 @@ def make_plots(save, bin_size, xaxis, dist):
     name = os.path.join(name, 'calibration.png')
     fig.savefig(name)
 
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_cal, handle)
+
     name = [
             save,
             'aggregate',
@@ -199,3 +225,8 @@ def make_plots(save, bin_size, xaxis, dist):
     fig_err.savefig(name)
 
     pl.close('all')
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_err, handle)
