@@ -57,6 +57,7 @@ def make_plot(save, score):
 
         data[score_name]['auc'] = auc_score
         data[score_name]['max_f1'] = max_f1
+        data[score_name]['baseline'] = baseline
 
         fig, ax = pl.subplots()
 
