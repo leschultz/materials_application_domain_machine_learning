@@ -13,15 +13,21 @@ def make_plot(save, score):
     '''
 
     df = pd.read_csv(os.path.join(save, 'aggregate/data.csv'))
-    df = df[['in_domain', score, 'stdcal']]
     df = df.loc[df['in_domain'] != 'td']
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df = df[df[score].notna()]
 
     y_true = [0 if i == 'id' else 1 for i in df['in_domain'].values]
     scaler = StandardScaler()
 
+    if (score == 'pdf') | (score == 'logpdf'):
+        sign = -1
+    else:
+        sign = 1
+
     for cols in [[score], [score, 'stdcal']]:
         y_scores = df[cols].values
+        y_scores[:, 0] = y_scores[:, 0]*sign
 
         scaler.fit(y_scores)
         y_scores = scaler.transform(y_scores)
@@ -35,7 +41,7 @@ def make_plot(save, score):
         auc_score = auc(recall, precision)
 
         f1_scores = 2*recall*precision/(recall+precision)
-        max_f1 = np.max(f1_scores)
+        max_f1 = np.nanmax(f1_scores)
 
         fig, ax = pl.subplots()
 
