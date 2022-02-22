@@ -70,10 +70,20 @@ def main():
     splits.assess_domain()  # Do ML
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
-    parity.make_plots(save, 'mahalanobis')  # Make parity plots
+
+    # Make parity plots
+    parity.make_plots(save, 'mahalanobis')
+    parity.make_plots(save, 'attention_metric')
+
+    # Make calibration plots
     calibration.make_plots(save, points, 'std', 'mahalanobis')
     calibration.make_plots(save, points, 'stdcal', 'mahalanobis')
+    calibration.make_plots(save, points, 'std', 'attention_metric')
+    calibration.make_plots(save, points, 'stdcal', 'attention_metric')
+
+    # Make precision recall plots (must have top layer of splits)
     pr.make_plot(save, 'mahalanobis')
+    pr.make_plot(save, 'attention_metric')
 
 
 if __name__ == '__main__':
