@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration
+from mad.plots import parity, calibration, pr
 from mad.ml import splitters, domain, feature_selectors
 from mad.functions import poly
 
@@ -73,6 +73,7 @@ class ml_test(unittest.TestCase):
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save, 'mahalanobis')  # Make parity plots
         calibration.make_plots(save, 10, 'stdcal', 'mahalanobis')
+        pr.make_plot(save, 'mahalanobis', 0.2)
 
         # Clean directory
         shutil.rmtree(save)

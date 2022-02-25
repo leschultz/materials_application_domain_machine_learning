@@ -82,8 +82,8 @@ def main():
     calibration.make_plots(save, points, 'stdcal', 'attention_metric')
 
     # Make precision recall plots (must have top layer of splits)
-    pr.make_plot(save, 'mahalanobis')
-    pr.make_plot(save, 'attention_metric')
+    pr.make_plot(save, 'mahalanobis', 0.2)
+    pr.make_plot(save, 'attention_metric', 0.2)
 
 
 if __name__ == '__main__':

@@ -8,17 +8,19 @@ import json
 import os
 
 
-def make_plot(save, score):
+def make_plot(save, score, thresh):
     '''
     Positive class is out of domain
     '''
 
     df = pd.read_csv(os.path.join(save, 'aggregate/data.csv'))
-    df = df.loc[df['in_domain'] != 'td']
+    df = df.loc[df['in_domain'] != 'td']  # Exclude training
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df = df[df[score].notna()]
 
-    y_true = [0 if i == 'id' else 1 for i in df['in_domain'].values]
+    absres = abs(df['y']-df['y_pred'])
+
+    y_true = [1 if i >= thresh else 0 for i in absres]
     scaler = StandardScaler()
 
     if (score == 'pdf') | (score == 'logpdf'):
