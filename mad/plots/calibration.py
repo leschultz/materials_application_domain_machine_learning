@@ -39,11 +39,17 @@ def make_plots(save, bin_size, xaxis, dist):
     zs = []
 
     rows = []
+    rows_table = []
     for subgroup, subvalues in df.groupby('in_domain'):
 
         x = subvalues[xaxis].values
         y = subvalues['ares'].values
         c = subvalues[dist].values*sign
+
+        # Table data
+        nllh = np.ma.mean(subvalues['nllh'].values)
+        rmse = metrics.mean_squared_error(y, x)**0.5
+        r2 = metrics.r2_score(y, x)
 
         x = list(chunck(x, bin_size))
         y = list(chunck(y, bin_size))
@@ -68,18 +74,15 @@ def make_plots(save, bin_size, xaxis, dist):
 
         z = abs(y-x)
 
-        # Table data
-        mae = metrics.mean_absolute_error(y, x)
-        rmse = metrics.mean_squared_error(y, x)**0.5
-        r2 = metrics.r2_score(y, x)
-
         domain_name = subgroup.upper()
+        rows.append([domain_name, rmse, nllh, r2])
+
         domain_name = '{}'.format(domain_name)
         rmse = '{:.2E}'.format(rmse)
-        mae = '{:.2E}'.format(mae)
+        nllh = '{:.2E}'.format(nllh)
         r2 = '{:.2f}'.format(r2)
 
-        rows.append([domain_name, rmse, mae, r2])
+        rows_table.append([domain_name, rmse, nllh, r2])
 
         maxx.append(np.ma.max(x))
         maxy.append(np.ma.max(y))
@@ -172,9 +175,9 @@ def make_plots(save, bin_size, xaxis, dist):
     cbar.set_label(dist_label)
 
     # Make a table
-    cols = [r'Domain', r'RMSE', r'MAE', r'$R^2$']
+    cols = [r'Domain', r'RMSE', r'NLLH', r'$R^2$']
     table = ax.table(
-                     cellText=rows,
+                     cellText=rows_table,
                      colLabels=cols,
                      colWidths=[0.15]*3+[0.1],
                      loc='lower right',
