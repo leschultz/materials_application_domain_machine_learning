@@ -79,3 +79,8 @@ def poly(c, std):
     for i in range(len(c)):
         total += c[i]*std**i
     return abs(total)
+
+
+# Power function
+def power(c, std):
+    return abs(c[0]*std**c[1])
