@@ -259,11 +259,12 @@ class builder:
 
         n_features = X_id_test_select.shape[-1]
 
-        # If model is ensemble regressor
+        # If model is ensemble regressor (need to update varialbe name)
         ensemble_methods = [
                             'RandomForestRegressor',
                             'BaggingRegressor',
-                            'GradientBoostingRegressor'
+                            'GradientBoostingRegressor',
+                            'GaussianProcessRegressor'
                             ]
 
         if model_type in ensemble_methods:
@@ -290,15 +291,18 @@ class builder:
                 y_test = y_id_train[test_index]
 
                 model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
 
-                std = []
-                for i in model.estimators_:
-                    if model_type == 'GradientBoostingRegressor':
-                        i = i[0]
-                    std.append(i.predict(X_test))
+                if model_type == 'GaussianProcessRegressor':
+                    y_pred, std = model.predict(X_test, return_std=True)
+                else:
+                    y_pred = model.predict(X_test)
+                    std = []
+                    for i in model.estimators_:
+                        if model_type == 'GradientBoostingRegressor':
+                            i = i[0]
+                        std.append(i.predict(X_test))
 
-                std = np.std(std, axis=0)
+                    std = np.std(std, axis=0)
 
                 std_id_cv = np.append(std_id_cv, std)
                 d_id_cv = np.append(d_id_cv, d_id_train[test_index])
@@ -320,23 +324,36 @@ class builder:
                 y_ud_test_pred = pipe_best.predict(X_ud_test)
 
             # Ensemble predictions with correct feature set
-            pipe_estimators = pipe_best_model.estimators_
-            std_id_test = []
-            std_ud_test = []
-            for i in pipe_estimators:
-
-                if model_type == 'GradientBoostingRegressor':
-                    i = i[0]
-
-                std_id_test.append(i.predict(X_id_test_select))
+            if model_type == 'GaussianProcessRegressor':
+                _, std_id_test = pipe_best_model.predict(
+                                                         X_id_test_select,
+                                                         return_std=True
+                                                         )
 
                 if teod is not None:
-                    std_ud_test.append(i.predict(X_ud_test_select))
+                    _, std_ud_test = pipe_best_model.predict(
+                                                             X_ud_test_select,
+                                                             return_std=True
+                                                             )
 
-            std_id_test = np.std(std_id_test, axis=0)
+            else:
+                pipe_estimators = pipe_best_model.estimators_
+                std_id_test = []
+                std_ud_test = []
+                for i in pipe_estimators:
 
-            if teod is not None:
-                std_ud_test = np.std(std_ud_test, axis=0)
+                    if model_type == 'GradientBoostingRegressor':
+                        i = i[0]
+
+                    std_id_test.append(i.predict(X_id_test_select))
+
+                    if teod is not None:
+                        std_ud_test.append(i.predict(X_ud_test_select))
+
+                std_id_test = np.std(std_id_test, axis=0)
+
+                if teod is not None:
+                    std_ud_test = np.std(std_ud_test, axis=0)
 
             stdcal_id_cv = uq_func.predict(std_id_cv)
             stdcal_id_test = uq_func.predict(std_id_test)
