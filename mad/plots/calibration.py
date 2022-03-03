@@ -45,23 +45,27 @@ def make_plots(save, bin_size, xaxis, dist):
         x = subvalues[xaxis].values
         y = subvalues['ares'].values
         c = subvalues[dist].values*sign
+        l = subvalues['nllh'].values
 
         x = list(chunck(x, bin_size))
         y = list(chunck(y, bin_size))
         c = list(chunck(c, bin_size))
+        l = list(chunck(l, bin_size))
 
         # Skip values that are empty
-        if (not x) or (not y) or (not c):
+        if (not x) or (not y) or (not c) or (not l):
             continue
 
         # Mask values
         x = np.ma.masked_invalid(x)
         y = np.ma.masked_invalid(y)
         c = np.ma.masked_invalid(c)
+        l = np.ma.masked_invalid(l)
 
         x = np.array([np.ma.mean(i) for i in x])
         y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
         c = np.array([np.ma.mean(i) for i in c])
+        l = np.array([np.ma.mean(i) for i in l])
 
         # Normalization
         x = x/std
@@ -70,7 +74,7 @@ def make_plots(save, bin_size, xaxis, dist):
         z = abs(y-x)
 
         # Table data
-        nllh = np.ma.mean(subvalues['nllh'].values)
+        nllh = np.ma.mean(l)
         rmse = metrics.mean_squared_error(y, x)**0.5
         r2 = metrics.r2_score(y, x)
 
