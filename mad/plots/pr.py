@@ -1,5 +1,4 @@
 from sklearn.metrics import precision_recall_curve, auc
-from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot as pl
 
 import pandas as pd
@@ -8,7 +7,7 @@ import json
 import os
 
 
-def make_plot(save, score, thresh):
+def make_plot(save, score, sigma, thresh):
     '''
     Positive class is out of domain
     '''
@@ -18,10 +17,9 @@ def make_plot(save, score, thresh):
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df = df[df[score].notna()]
 
-    absres = abs(df['y']-df['y_pred'])
+    absres = abs(df['y']-df['y_pred'])/sigma
 
     y_true = [1 if i >= thresh else 0 for i in absres]
-    scaler = StandardScaler()
 
     if (score == 'pdf') | (score == 'logpdf'):
         sign = -1
@@ -30,16 +28,12 @@ def make_plot(save, score, thresh):
 
     data = {}
 
-    for cols in [[score], [score, 'stdcal']]:
+    for cols in [[score], ['stdcal']]:
 
         score_name = '_'.join(cols)
 
         y_scores = df[cols].values
         y_scores[:, 0] = y_scores[:, 0]*sign
-
-        scaler.fit(y_scores)
-        y_scores = scaler.transform(y_scores)
-        y_scores = np.mean(y_scores, axis=1)
 
         precision, recall, thresholds = precision_recall_curve(
                                                                y_true,
@@ -56,9 +50,11 @@ def make_plot(save, score, thresh):
 
         f1_scores = 2*recall*precision/(recall+precision)
         max_f1 = np.nanmax(f1_scores)
+        max_f1_threshold = thresholds[np.where(f1_scores == max_f1)][0]
 
         data[score_name]['auc'] = auc_score
         data[score_name]['max_f1'] = max_f1
+        data[score_name]['max_f1_threshold'] = max_f1_threshold
         data[score_name]['baseline'] = baseline
 
         fig, ax = pl.subplots()

@@ -73,7 +73,7 @@ class ml_test(unittest.TestCase):
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save, 'mahalanobis')  # Make parity plots
         calibration.make_plots(save, 10, 'stdcal', 'mahalanobis')
-        pr.make_plot(save, 'mahalanobis', 0.2)
+        pr.make_plot(save, 'mahalanobis', np.std(y), 0.2)
 
         # Clean directory
         shutil.rmtree(save)
