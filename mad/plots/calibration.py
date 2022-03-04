@@ -1,4 +1,4 @@
-from sklearn.metrics import precision_recall_curve, auc
+from sklearn.metrics import precision_recall_curve, auc, roc_curve
 from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as pl
 from mad.functions import chunck
@@ -126,6 +126,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
 
     fig, ax = pl.subplots()
     fig_err, ax_err = pl.subplots()
+    fig_roc, ax_roc = pl.subplots()
     fig_pr, ax_pr = pl.subplots()
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
@@ -248,7 +249,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     with open(jsonfile, 'w') as handle:
         json.dump(data_err, handle)
 
-    # Precision recall for detecting out of domain.
+    # ROC and Precision recall for detecting out of domain.
     labels = []
     y_scores = []
     err_in_errs = []
@@ -313,6 +314,53 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     jsonfile = name.replace('png', 'json')
     with open(jsonfile, 'w') as handle:
         json.dump(data_pr, handle)
+
+    tpr, fpr, thresholds = roc_curve(
+                                     y_true,
+                                     y_scores
+                                     )
+    data_roc = {}
+    data_roc['tpr'] = tpr.tolist()
+    data_roc['fpr'] = fpr.tolist()
+    data_roc['thresholds'] = thresholds.tolist()
+
+    auc_score = auc(tpr, fpr)
+
+    data_roc['auc'] = auc_score
+
+    ax_roc.plot(
+                tpr,
+                fpr,
+                color='b',
+                label='AUC={:.2f}'.format(auc_score)
+                )
+
+    ax_roc.plot([0, 1], [0, 1], color='r', label='Baseline', linestyle=':')
+    ax_roc.set_xlim(0.0, 1.05)
+    ax_roc.set_ylim(0.0, 1.05)
+    ax_roc.set_xlabel('False Positive Rate')
+    ax_roc.set_ylabel('True Positive Rate')
+    ax_roc.legend()
+
+    fig_roc.tight_layout()
+    name = [
+            save,
+            'aggregate',
+            'plots',
+            'total',
+            'roc',
+            dist
+            ]
+    name = map(str, name)
+    name = os.path.join(*name)
+    os.makedirs(name, exist_ok=True)
+    name = os.path.join(name, 'roc.png')
+    fig_roc.savefig(name)
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_roc, handle)
 
     # Confusion matrix on threshold
     y_pred = [1 if i >= max_f1_threshold else 0 for i in y_scores]
