@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration, pr
+from mad.plots import parity, calibration
 from mad.functions import poly
 
 import numpy as np
@@ -72,7 +72,6 @@ def main():
     parity.make_plots(save, 'pdf')  # Make parity plots
     calibration.make_plots(save, points, 'std', 'pdf')
     calibration.make_plots(save, points, 'stdcal', 'pdf')
-    pr.make_plot(save, 'mahalanobis', np.std(y), 0.2)
 
 
 if __name__ == '__main__':
