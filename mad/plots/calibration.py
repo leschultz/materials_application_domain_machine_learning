@@ -183,6 +183,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
     ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
+    ax_err.axhline(thresh, color='r', linestyle=':', label='Boundary')
     ax_err.legend()
     ax_err.set_xlabel(dist_label)
     ax_err.set_ylabel(err_y_label)
@@ -302,7 +303,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
             'plots',
             'total',
             'precision_recall',
-            dist
+            xaxis+'_vs_'+dist
             ]
     name = map(str, name)
     name = os.path.join(*name)
@@ -349,7 +350,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
             'plots',
             'total',
             'roc',
-            dist
+            xaxis+'_vs_'+dist
             ]
     name = map(str, name)
     name = os.path.join(*name)
@@ -384,7 +385,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
             'plots',
             'total',
             'confusion',
-            dist
+            xaxis+'_vs_'+dist
             ]
     name = map(str, name)
     name = os.path.join(*name)
