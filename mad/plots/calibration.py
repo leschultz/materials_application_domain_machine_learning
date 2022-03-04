@@ -1,9 +1,11 @@
 from sklearn.metrics import precision_recall_curve, auc
+from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as pl
 from mad.functions import chunck
 from sklearn import metrics
 
 import matplotlib.colors as colors
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -42,6 +44,9 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     rows = []
     rows_table = []
     for subgroup, subvalues in df.groupby('in_domain'):
+
+        if subgroup == 'td':
+            continue
 
         x = subvalues[xaxis].values
         y = subvalues['ares'].values
@@ -108,7 +113,6 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     # For plot data export
     data_cal = {}
     data_err = {}
-    data_pr = {}
 
     err_y_label = r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|'
 
@@ -124,7 +128,6 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
             marker = 'x'
             zorder = 2
         elif subgroup == 'td':
-            continue  # Skip training data
             marker = '.'
             zorder = 1
         else:
@@ -196,6 +199,45 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     fig.tight_layout()
     fig_err.tight_layout()
 
+    name = [
+            save,
+            'aggregate',
+            'plots',
+            'total',
+            'calibration',
+            xaxis+'_vs_'+dist
+            ]
+
+    name = map(str, name)
+    name = os.path.join(*name)
+    os.makedirs(name, exist_ok=True)
+    name = os.path.join(name, 'calibration.png')
+    fig_err.savefig(name)
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_cal, handle)
+
+    name = [
+            save,
+            'aggregate',
+            'plots',
+            'total',
+            'err_in_err',
+            xaxis+'_vs_'+dist
+            ]
+    name = map(str, name)
+    name = os.path.join(*name)
+    os.makedirs(name, exist_ok=True)
+    name = os.path.join(name, 'err_in_err.png')
+    fig_err.savefig(name)
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_err, handle)
+
     # Precision recall for detecting out of domain.
     labels = []
     y_scores = []
@@ -212,10 +254,10 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
                                                            y_true,
                                                            y_scores
                                                            )
-    data_pr[dist] = {}
-    data_pr[dist]['precision'] = precision.tolist()
-    data_pr[dist]['recall'] = recall.tolist()
-    data_pr[dist]['thresholds'] = thresholds.tolist()
+    data_pr = {}
+    data_pr['precision'] = precision.tolist()
+    data_pr['recall'] = recall.tolist()
+    data_pr['thresholds'] = thresholds.tolist()
 
     baseline = sum(y_true)/len(y_true)
     auc_score = auc(recall, precision)
@@ -224,10 +266,10 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     max_f1 = np.nanmax(f1_scores)
     max_f1_threshold = thresholds[np.where(f1_scores == max_f1)][0]
 
-    data_pr[dist]['auc'] = auc_score
-    data_pr[dist]['max_f1'] = max_f1
-    data_pr[dist]['max_f1_threshold'] = max_f1_threshold
-    data_pr[dist]['baseline'] = baseline
+    data_pr['auc'] = auc_score
+    data_pr['max_f1'] = max_f1
+    data_pr['max_f1_threshold'] = max_f1_threshold
+    data_pr['baseline'] = baseline
 
     ax_pr.plot(
                recall,
@@ -256,49 +298,43 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     os.makedirs(name, exist_ok=True)
     name = os.path.join(name, 'precision_recall.png')
     fig_pr.savefig(name)
-    print(name)
 
     # Save plot data
     jsonfile = name.replace('png', 'json')
     with open(jsonfile, 'w') as handle:
         json.dump(data_pr, handle)
 
+    # Confusion matrix on threshold
+    y_pred = [1 if i >= max_f1_threshold else 0 for i in y_scores]
+    matrix = confusion_matrix(y_true, y_pred)
+
+    data_conf = {}
+    data_conf['matrix'] = matrix.tolist()
+
+    fig, ax = pl.subplots()
+    ax = sns.heatmap(matrix, annot=True, cmap='Blues')
+    ax.set_xlabel('Predicted Values')
+    ax.set_ylabel('Actual Values')
+    ax.xaxis.set_ticklabels(['False', 'True'])
+    ax.yaxis.set_ticklabels(['False', 'True'])
+
+    fig.tight_layout()
+
     name = [
             save,
             'aggregate',
             'plots',
             'total',
-            'calibration',
-            xaxis+'_vs_'+dist
+            'confusion',
+            dist
             ]
     name = map(str, name)
     name = os.path.join(*name)
     os.makedirs(name, exist_ok=True)
-    name = os.path.join(name, 'calibration.png')
+    name = os.path.join(name, 'confusion.png')
     fig.savefig(name)
 
     # Save plot data
     jsonfile = name.replace('png', 'json')
     with open(jsonfile, 'w') as handle:
-        json.dump(data_cal, handle)
-
-    name = [
-            save,
-            'aggregate',
-            'plots',
-            'total',
-            'err_in_err',
-            xaxis+'_vs_'+dist
-            ]
-    name = map(str, name)
-    name = os.path.join(*name)
-    os.makedirs(name, exist_ok=True)
-    name = os.path.join(name, 'err_in_err.png')
-    fig_err.savefig(name)
-
-    pl.close('all')
-
-    # Save plot data
-    jsonfile = name.replace('png', 'json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data_err, handle)
+        json.dump(data_conf, handle)
