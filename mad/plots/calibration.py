@@ -79,7 +79,15 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
         rmse = metrics.mean_squared_error(y, x)**0.5
         r2 = metrics.r2_score(y, x)
 
-        domain_name = subgroup.upper()
+        if subgroup == 'ud':
+            domain_name = 'Out of Domain'
+        elif subgroup == 'id':
+            domain_name = 'In Domain'
+        elif subgroup == 'td':
+            domain_name = 'Train Domain'
+        else:
+            domain_name = 'Error'
+
         rows.append([domain_name, rmse, r2])
 
         domain_name = '{}'.format(domain_name)
@@ -122,25 +130,27 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
         if subgroup == 'id':
+            domain = 'In Domain'
             marker = '1'
             zorder = 3
         elif subgroup == 'ud':
+            domain = 'Out of Domain'
             marker = 'x'
             zorder = 2
         elif subgroup == 'td':
+            domain = 'Train Domain'
             marker = '.'
             zorder = 1
         else:
             marker = '*'
             zorder = 0
 
-        domain = subgroup.upper()
         dens = ax.scatter(
                           x,
                           y,
                           c=c,
                           marker=marker,
-                          label='Domain: {}'.format(domain),
+                          label='{}'.format(domain),
                           cmap=pl.get_cmap('viridis'),
                           vmin=vmin,
                           vmax=vmax,
@@ -184,7 +194,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     table = ax.table(
                      cellText=rows_table,
                      colLabels=cols,
-                     colWidths=[0.15]*2+[0.1],
+                     colWidths=[0.22]*2+[0.1],
                      loc='lower right',
                      )
 
@@ -212,7 +222,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     name = os.path.join(*name)
     os.makedirs(name, exist_ok=True)
     name = os.path.join(name, 'calibration.png')
-    fig_err.savefig(name)
+    fig.savefig(name)
 
     # Save plot data
     jsonfile = name.replace('png', 'json')
@@ -241,14 +251,14 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     # Precision recall for detecting out of domain.
     labels = []
     y_scores = []
-    absres = []
+    err_in_errs = []
     for i, j, k in zip(ds, xs, zs):
         labels += [i]*len(j)
         y_scores += j.tolist()
-        absres += k.tolist()
+        err_in_errs += k.tolist()
 
     # Out of domain as postivie (UD).
-    y_true = [1 if i >= thresh else 0 for i in absres]
+    y_true = [1 if i >= thresh else 0 for i in err_in_errs]
 
     precision, recall, thresholds = precision_recall_curve(
                                                            y_true,
@@ -306,15 +316,15 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
 
     # Confusion matrix on threshold
     y_pred = [1 if i >= max_f1_threshold else 0 for i in y_scores]
-    matrix = confusion_matrix(y_true, y_pred)
+    matrix = confusion_matrix(y_true, y_pred)/len(y_scores)*100
 
     data_conf = {}
     data_conf['matrix'] = matrix.tolist()
 
     fig, ax = pl.subplots()
     ax = sns.heatmap(matrix, annot=True, cmap='Blues')
-    ax.set_xlabel('Predicted Values')
-    ax.set_ylabel('Actual Values')
+    ax.set_xlabel('Percent Predicted Values')
+    ax.set_ylabel('Percent Actual Values')
     ax.xaxis.set_ticklabels(['False', 'True'])
     ax.yaxis.set_ticklabels(['False', 'True'])
 
