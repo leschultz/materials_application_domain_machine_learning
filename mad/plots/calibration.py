@@ -1,3 +1,4 @@
+from sklearn.metrics import precision_recall_curve, auc
 from matplotlib import pyplot as pl
 from mad.functions import chunck
 from sklearn import metrics
@@ -10,7 +11,7 @@ import json
 import os
 
 
-def make_plots(save, bin_size, xaxis, dist):
+def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
 
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
@@ -45,27 +46,23 @@ def make_plots(save, bin_size, xaxis, dist):
         x = subvalues[xaxis].values
         y = subvalues['ares'].values
         c = subvalues[dist].values*sign
-        l = subvalues['nllh'].values
 
         x = list(chunck(x, bin_size))
         y = list(chunck(y, bin_size))
         c = list(chunck(c, bin_size))
-        l = list(chunck(l, bin_size))
 
         # Skip values that are empty
-        if (not x) or (not y) or (not c) or (not l):
+        if (not x) or (not y) or (not c):
             continue
 
         # Mask values
         x = np.ma.masked_invalid(x)
         y = np.ma.masked_invalid(y)
         c = np.ma.masked_invalid(c)
-        l = np.ma.masked_invalid(l)
 
         x = np.array([np.ma.mean(i) for i in x])
         y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
         c = np.array([np.ma.mean(i) for i in c])
-        l = np.array([np.ma.mean(i) for i in l])
 
         # Normalization
         x = x/std
@@ -74,19 +71,17 @@ def make_plots(save, bin_size, xaxis, dist):
         z = abs(y-x)
 
         # Table data
-        nllh = np.ma.mean(l)
         rmse = metrics.mean_squared_error(y, x)**0.5
         r2 = metrics.r2_score(y, x)
 
         domain_name = subgroup.upper()
-        rows.append([domain_name, rmse, nllh, r2])
+        rows.append([domain_name, rmse, r2])
 
         domain_name = '{}'.format(domain_name)
         rmse = '{:.2E}'.format(rmse)
-        nllh = '{:.2E}'.format(nllh)
         r2 = '{:.2f}'.format(r2)
 
-        rows_table.append([domain_name, rmse, nllh, r2])
+        rows_table.append([domain_name, rmse, r2])
 
         maxx.append(np.ma.max(x))
         maxy.append(np.ma.max(y))
@@ -113,11 +108,13 @@ def make_plots(save, bin_size, xaxis, dist):
     # For plot data export
     data_cal = {}
     data_err = {}
+    data_pr = {}
 
     err_y_label = r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|'
 
     fig, ax = pl.subplots()
     fig_err, ax_err = pl.subplots()
+    fig_pr, ax_pr = pl.subplots()
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
         if subgroup == 'id':
@@ -127,6 +124,7 @@ def make_plots(save, bin_size, xaxis, dist):
             marker = 'x'
             zorder = 2
         elif subgroup == 'td':
+            continue  # Skip training data
             marker = '.'
             zorder = 1
         else:
@@ -179,11 +177,11 @@ def make_plots(save, bin_size, xaxis, dist):
     cbar.set_label(dist_label)
 
     # Make a table
-    cols = [r'Domain', r'RMSE', r'NLLH', r'$R^2$']
+    cols = [r'Domain', r'RMSE', r'$R^2$']
     table = ax.table(
                      cellText=rows_table,
                      colLabels=cols,
-                     colWidths=[0.15]*3+[0.1],
+                     colWidths=[0.15]*2+[0.1],
                      loc='lower right',
                      )
 
@@ -197,6 +195,73 @@ def make_plots(save, bin_size, xaxis, dist):
 
     fig.tight_layout()
     fig_err.tight_layout()
+
+    # Precision recall for detecting out of domain.
+    labels = []
+    y_scores = []
+    absres = []
+    for i, j, k in zip(ds, xs, zs):
+        labels += [i]*len(j)
+        y_scores += j.tolist()
+        absres += k.tolist()
+
+    # Out of domain as postivie (UD).
+    y_true = [1 if i >= thresh else 0 for i in absres]
+
+    precision, recall, thresholds = precision_recall_curve(
+                                                           y_true,
+                                                           y_scores
+                                                           )
+    data_pr[dist] = {}
+    data_pr[dist]['precision'] = precision.tolist()
+    data_pr[dist]['recall'] = recall.tolist()
+    data_pr[dist]['thresholds'] = thresholds.tolist()
+
+    baseline = sum(y_true)/len(y_true)
+    auc_score = auc(recall, precision)
+
+    f1_scores = 2*recall*precision/(recall+precision)
+    max_f1 = np.nanmax(f1_scores)
+    max_f1_threshold = thresholds[np.where(f1_scores == max_f1)][0]
+
+    data_pr[dist]['auc'] = auc_score
+    data_pr[dist]['max_f1'] = max_f1
+    data_pr[dist]['max_f1_threshold'] = max_f1_threshold
+    data_pr[dist]['baseline'] = baseline
+
+    ax_pr.plot(
+               recall,
+               precision,
+               color='b',
+               label='AUC={:.2f}\nMax F1={:.2f}'.format(auc_score, max_f1)
+               )
+    ax_pr.axhline(baseline, color='r', linestyle=':', label='Baseline')
+    ax_pr.set_xlim(0.0, 1.05)
+    ax_pr.set_ylim(0.0, 1.05)
+    ax_pr.set_xlabel('Recall')
+    ax_pr.set_ylabel('Precision')
+    ax_pr.legend()
+
+    fig_pr.tight_layout()
+    name = [
+            save,
+            'aggregate',
+            'plots',
+            'total',
+            'precision_recall',
+            dist
+            ]
+    name = map(str, name)
+    name = os.path.join(*name)
+    os.makedirs(name, exist_ok=True)
+    name = os.path.join(name, 'precision_recall.png')
+    fig_pr.savefig(name)
+    print(name)
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_pr, handle)
 
     name = [
             save,
