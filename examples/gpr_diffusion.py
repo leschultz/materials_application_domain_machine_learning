@@ -23,7 +23,7 @@ def main():
     save = 'run_gpr_diffusion'
     points = 15
     uq_func = poly
-    uq_coeffs_start = [0.0, 1.1, 0.0]
+    uq_coeffs_start = [0.0, 1.0]
 
     # Load data
     data = load_data.diffusion()
@@ -33,7 +33,7 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = None
+    top_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=2, groups=d)
     mid_split = RepeatedKFold(n_splits=5, n_repeats=2)
     bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
 

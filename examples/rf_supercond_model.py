@@ -24,7 +24,7 @@ def main():
     save = 'run_rf_supercond_model'
     points = 15
     uq_func = poly
-    uq_coeffs_start = [0.0, 1.1, 0.0]
+    uq_coeffs_start = [0.0, 1.0]
 
     # Load data
     data = load_data.super_cond_train()

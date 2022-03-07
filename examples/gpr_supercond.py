@@ -1,4 +1,5 @@
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
 
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -19,13 +20,13 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_rf_diffusion'
+    save = 'run_gpr_diffusion'
     points = 15
     uq_func = poly
-    uq_coeffs_start = [0.0, 1.0]
+    uq_coeffs_start = [0.0, 1.1, 0.0]
 
     # Load data
-    data = load_data.diffusion()
+    data = load_data.super_cond()
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -40,22 +41,22 @@ def main():
     scale = StandardScaler()
     selector = feature_selectors.no_selection()
 
-    # Random forest regression
+    # Gaussian Process Regression
+    kernel = RBF()
+    model = GaussianProcessRegressor()
     grid = {}
-    model = RandomForestRegressor()
-    grid['model__n_estimators'] = [100]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
+    grid['model__alpha'] = np.logspace(-2, 2, 5)
+    grid['model__kernel'] = [RBF()]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('select', selector),
                            ('model', model)
                            ])
-    rf = GridSearchCV(pipe, grid, cv=bot_split)
+    gpr = GridSearchCV(pipe, grid, cv=bot_split)
 
     # Evaluate
     splits = domain.builder(
-                            rf,
+                            gpr,
                             X,
                             y,
                             d,
