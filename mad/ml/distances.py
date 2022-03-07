@@ -1,3 +1,4 @@
+from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity, LocalOutlierFactor
@@ -8,7 +9,14 @@ from sklearn.svm import OneClassSVM
 import numpy as np
 
 
-def distance_link(X_train, X_test, dist_type, append_name=''):
+def distance_link(
+                  X_train,
+                  X_test,
+                  dist_type,
+                  append_name='',
+                  y_train=None,
+                  y_test=None
+                  ):
     '''
     Get the distances based on a metric.
     inputs:
@@ -16,6 +24,8 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
         X_test = The features of the test set.
         dist = The distance to consider.
         append_name = The string to append to name of distance metric.
+        y_train = The training target when applicable.
+        y_test = The testing target when applicable.
     ouputs:
         dists = A dictionary of distances.
     '''
@@ -101,6 +111,13 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
         dists[append_name+dist_type] = dist
         dists[append_name+'log'+dist_type] = log_dist
 
+    elif dist_type == 'gpr':
+
+        model = GaussianProcessRegressor()
+        model.fit(X_train, y_train)
+        _, dist = model.predict(X_test, return_std=True)
+        dists[append_name+dist_type] = dist
+
     elif dist_type == 'oneClassSVM':
         model = OneClassSVM(gamma='auto', kernel='rbf').fit(X_train)
         log_dist = model.score_samples(X_test)
@@ -122,7 +139,7 @@ def distance_link(X_train, X_test, dist_type, append_name=''):
     return dists
 
 
-def distance(X_train, X_test):
+def distance(X_train, X_test, y_train=None, y_test=None):
     '''
     Determine the distance from set X_test to set X_train.
     '''
@@ -140,6 +157,12 @@ def distance(X_train, X_test):
     for distance in distance_list:
 
         # Compute regular distances
-        dists.update(distance_link(X_train, X_test, distance))
+        dists.update(distance_link(
+                                   X_train,
+                                   X_test,
+                                   distance,
+                                   y_train=y_train,
+                                   y_test=y_test
+                                   ))
 
     return dists

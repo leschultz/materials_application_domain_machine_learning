@@ -38,11 +38,8 @@ class uq_func_model:
 
 class dist_func_model:
 
-    def __init__(self, X):
-        self.X = X
-
-    def train(self, X):
-        self.dist_func = lambda x: distances.distance(self.X, x)
+    def train(self, X, y=None):
+        self.dist_func = lambda x: distances.distance(X, x, y)
 
     def predict(self, X):
         return self.dist_func(X)
@@ -248,8 +245,8 @@ class builder:
             X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
 
         # Setup distance model
-        dists = dist_func_model(X_id_train_select)
-        dists.train(X_id_train_select)
+        dists = dist_func_model()
+        dists.train(X_id_train_select, y_id_train)
 
         # Calculate distances after feature transformations from ML workflow.
         df_id = dists.predict(X_id_test_select)
