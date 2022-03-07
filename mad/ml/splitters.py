@@ -75,6 +75,72 @@ class BootstrappedLeaveOneGroupOut:
                 yield indx_sample[train], indx_sample[test]
 
 
+class ClusterSplit:
+    '''
+    Custom splitting class which pre-clusters data and then splits
+    to folds.
+    '''
+
+    def __init__(self, clust, *args, **kwargs):
+        '''
+        inputs:
+            clust = The class of cluster from Scikit-learn.
+            n_splits = The number of splits to apply.
+            n_repeats = The number of times to apply splitting.
+        '''
+
+        self.clust = clust(*args, **kwargs)
+
+        # Make sure it runs in serial
+        if hasattr(self.clust, 'n_jobs'):
+            self.clust.n_jobs = 1
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        '''
+        A method to return the number of splits.
+        '''
+
+        return self.n_splits
+
+    def split(self, X, y=None, groups=None):
+        '''
+        Cluster data, randomize cluster order, randomize case order,
+        and then split into train and test sets self.reps number of times.
+
+        inputs:
+            X = The features.
+        outputs:
+            A generator for train and test splits.
+        '''
+
+        self.clust.fit(X)  # Do clustering
+
+        # Get splits based on cluster labels
+        df = pd.DataFrame(X)
+        df['cluster'] = self.clust.labels_
+        cluster_order = list(set(self.clust.labels_))
+        self.n_splits = len(cluster_order)
+
+        # Shuffle data
+        random.shuffle(cluster_order)
+        df = df.sample(frac=1)
+
+        # Randomize cluster order
+        df = [df.loc[df['cluster'] == i] for i in cluster_order]
+
+        # Do for requested repeats
+        for i in range(self.n_splits):
+
+            te = df[i]  # Test
+            tr = pd.concat(df[:i]+df[i+1:])  # Train
+
+            # Get the indexes
+            train = tr.index.tolist()
+            test = te.index.tolist()
+
+            yield train, test
+
+
 class RepeatedClusterSplit:
     '''
     Custom splitting class which pre-clusters data and then splits
