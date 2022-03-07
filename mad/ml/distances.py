@@ -111,7 +111,7 @@ def distance_link(
         dists[append_name+dist_type] = dist
         dists[append_name+'log'+dist_type] = log_dist
 
-    elif dist_type == 'gpr':
+    elif dist_type == 'gpr_std':
 
         model = GaussianProcessRegressor()
         model.fit(X_train, y_train)
@@ -150,7 +150,8 @@ def distance(X_train, X_test, y_train=None, y_test=None):
                      'cosine',
                      'oneClassSVM',
                      'attention_metric',
-                     'lof'
+                     'lof',
+                     'gpr_std',
                      ]
 
     dists = {}

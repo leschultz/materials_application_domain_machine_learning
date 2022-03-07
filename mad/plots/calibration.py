@@ -320,6 +320,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
                                      y_true,
                                      y_scores
                                      )
+
     data_roc = {}
     data_roc['tpr'] = tpr.tolist()
     data_roc['fpr'] = fpr.tolist()
