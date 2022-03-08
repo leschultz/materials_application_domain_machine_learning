@@ -148,8 +148,8 @@ class builder:
             id_count = 0  # In domain count
             for i in mid.split(X, y, d):
 
-                tr_index = i[0]  # The in domain train.
-                te_index = i[1]  # The in domain test.
+                tr_index = np.array(i[0])  # The in domain train.
+                te_index = np.array(i[1])  # The in domain test.
                 teud_index = None  # The other domain.
 
                 trid_teid_teod = (
