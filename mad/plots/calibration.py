@@ -13,7 +13,7 @@ import json
 import os
 
 
-def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
+def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
 
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
@@ -121,6 +121,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     # For plot data export
     data_cal = {}
     data_err = {}
+    data_rmse = {}
 
     err_y_label = r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|'
 
@@ -128,6 +129,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     fig_err, ax_err = pl.subplots()
     fig_roc, ax_roc = pl.subplots()
     fig_pr, ax_pr = pl.subplots()
+    fig_rmse, ax_rmse = pl.subplots()
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
         if subgroup == 'id':
@@ -166,12 +168,24 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
                        zorder=zorder
                        )
 
+        ax_rmse.scatter(
+                        c,
+                        y,
+                        marker=marker,
+                        label='{}'.format(domain),
+                        zorder=zorder
+                        )
+
         data_err[domain] = {}
         data_err[domain][dist_label] = c.tolist()
         data_err[domain][err_y_label] = z.tolist()
 
         data_cal[domain] = {}
         data_cal[domain][r'$\sigma_{m}/\sigma_{y}$'] = x.tolist()
+        data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
+        data_cal[domain][dist_label] = c.tolist()
+
+        data_rmse[domain] = {}
         data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
         data_cal[domain][dist_label] = c.tolist()
 
@@ -188,6 +202,11 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     ax_err.legend()
     ax_err.set_xlabel(dist_label)
     ax_err.set_ylabel(err_y_label)
+
+    ax_rmse.axhline(thresh, color='r', linestyle=':', label='Boundary')
+    ax_rmse.legend()
+    ax_rmse.set_xlabel(dist_label)
+    ax_rmse.set_ylabel(r'RMSE/$\sigma_{y}$')
 
     cbar = fig.colorbar(dens)
     cbar.set_label(dist_label)
@@ -211,6 +230,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
 
     fig.tight_layout()
     fig_err.tight_layout()
+    fig_rmse.tight_layout()
 
     name = [
             save,
@@ -250,6 +270,25 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     jsonfile = name.replace('png', 'json')
     with open(jsonfile, 'w') as handle:
         json.dump(data_err, handle)
+
+    name = [
+            save,
+            'aggregate',
+            'plots',
+            'total',
+            'rmse',
+            xaxis+'_vs_'+dist
+            ]
+    name = map(str, name)
+    name = os.path.join(*name)
+    os.makedirs(name, exist_ok=True)
+    name = os.path.join(name, 'rmse.png')
+    fig_rmse.savefig(name)
+
+    # Save plot data
+    jsonfile = name.replace('png', 'json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data_rmse, handle)
 
     '''
     # ROC and Precision recall for detecting out of domain.
