@@ -80,11 +80,11 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
         r2 = metrics.r2_score(y, x)
 
         if subgroup == 'ud':
-            domain_name = 'Out of Domain'
+            domain_name = 'LO-Cluster'
         elif subgroup == 'id':
-            domain_name = 'In Domain'
+            domain_name = 'LO-Random'
         elif subgroup == 'td':
-            domain_name = 'Train Domain'
+            domain_name = 'Train LO-Random'
         else:
             domain_name = 'Error'
 
@@ -131,15 +131,15 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
         if subgroup == 'id':
-            domain = 'In Domain'
+            domain = 'LO-Random'
             marker = '1'
             zorder = 3
         elif subgroup == 'ud':
-            domain = 'Out of Domain'
+            domain = 'LO-Cluster'
             marker = 'x'
             zorder = 2
         elif subgroup == 'td':
-            domain = 'Train Domain'
+            domain = 'Train LO-Random'
             marker = '.'
             zorder = 1
         else:
@@ -162,7 +162,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
                        c,
                        z,
                        marker=marker,
-                       label='Domain: {}'.format(domain),
+                       label='{}'.format(domain),
                        zorder=zorder
                        )
 
@@ -173,6 +173,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
         data_cal[domain] = {}
         data_cal[domain][r'$\sigma_{m}/\sigma_{y}$'] = x.tolist()
         data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
+        data_cal[domain][dist_label] = c.tolist()
 
     ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -250,6 +251,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     with open(jsonfile, 'w') as handle:
         json.dump(data_err, handle)
 
+    '''
     # ROC and Precision recall for detecting out of domain.
     labels = []
     y_scores = []
@@ -398,3 +400,5 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.2):
     jsonfile = name.replace('png', 'json')
     with open(jsonfile, 'w') as handle:
         json.dump(data_conf, handle)
+
+    '''

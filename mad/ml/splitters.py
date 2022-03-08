@@ -77,16 +77,13 @@ class BootstrappedLeaveOneGroupOut:
 
 class ClusterSplit:
     '''
-    Custom splitting class which pre-clusters data and then splits
-    to folds.
+    Custom splitting class which pre-clusters data and then split.
     '''
 
     def __init__(self, clust, *args, **kwargs):
         '''
         inputs:
             clust = The class of cluster from Scikit-learn.
-            n_splits = The number of splits to apply.
-            n_repeats = The number of times to apply splitting.
         '''
 
         self.clust = clust(*args, **kwargs)
@@ -147,11 +144,10 @@ class RepeatedClusterSplit:
     to folds.
     '''
 
-    def __init__(self, clust, n_splits, n_repeats, *args, **kwargs):
+    def __init__(self, clust, n_repeats, *args, **kwargs):
         '''
         inputs:
             clust = The class of cluster from Scikit-learn.
-            n_splits = The number of splits to apply.
             n_repeats = The number of times to apply splitting.
         '''
 
@@ -161,7 +157,6 @@ class RepeatedClusterSplit:
         if hasattr(self.clust, 'n_jobs'):
             self.clust.n_jobs = 1
 
-        self.n_splits = n_splits
         self.n_repeats = n_repeats
 
     def get_n_splits(self, X=None, y=None, groups=None):
@@ -193,19 +188,18 @@ class RepeatedClusterSplit:
 
         # Randomize cluster order
         df = [df.loc[df['cluster'] == i] for i in cluster_order]
-        df = pd.concat(df)
 
-        s = np.array_split(df, self.n_splits)  # Split
+        self.n_splits = len(cluster_order)
         range_splits = range(self.n_splits)
 
         # Do for requested repeats
         for rep in range(self.n_repeats):
 
-            s = [i.sample(frac=1) for i in s]  # Shuffle
+            sub = [i.sample(frac=1) for i in df]  # Shuffle
             for i in range_splits:
 
-                te = s[i]  # Test
-                tr = pd.concat(s[:i]+s[i+1:])  # Train
+                te = sub[i]  # Test
+                tr = pd.concat(sub[:i]+sub[i+1:])  # Train
 
                 # Get the indexes
                 train = tr.index.tolist()
