@@ -5,14 +5,12 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.ml import splitters, feature_selectors, domain, build
+from mad.ml import splitters, feature_selectors, domain
 from mad.datasets import load_data, statistics
 from mad.plots import parity, calibration
 from mad.functions import poly
 
 import numpy as np
-import dill
-import os
 
 
 def main():
@@ -21,13 +19,13 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_rf_diffusion_model'
+    save = 'run_rf_supercond'
     points = 15
     uq_func = poly
-    uq_coeffs_start = [0.1, 1.1, 0.1, 0.1]
+    uq_coeffs_start = [0.0, 1.0]
 
     # Load data
-    data = load_data.diffusion_train()
+    data = load_data.super_cond()
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -72,13 +70,15 @@ def main():
     splits.assess_domain()  # Do ML
     splits.aggregate()  # combine all of the ml data
     statistics.folds(save)  # Gather statistics from data
-    parity.make_plots(save, 'mahalanobis')  # Make parity plots
-    calibration.make_plots(save, points, 'std', 'mahalanobis')
-    calibration.make_plots(save, points, 'stdcal', 'mahalanobis')
 
-    # Build model from smaller models and save
-    model = build.model(save)
-    dill.dump(model, open(os.path.join(save, 'aggregate/model.joblib'), 'wb'))
+    # Make parity plots
+    parity.make_plots(save, 'gpr_std')
+
+    calibration.make_plots(save, points, 'std', 'attention_metric')
+    calibration.make_plots(save, points, 'stdcal', 'attention_metric')
+
+    calibration.make_plots(save, points, 'std', 'gpr_std')
+    calibration.make_plots(save, points, 'stdcal', 'gpr_std')
 
 
 if __name__ == '__main__':

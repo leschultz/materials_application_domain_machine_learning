@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.cluster import KMeans
 
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -19,20 +20,23 @@ def main():
     '''
 
     seed = 14987
-    save = 'run_rf_diffusion'
+    save = 'run_rf_supercond_kmeans'
     points = 15
     uq_func = poly
     uq_coeffs_start = [0.0, 1.0]
 
     # Load data
-    data = load_data.diffusion()
+    data = load_data.super_cond()
     df = data['frame']
     X = data['data']
     y = data['target']
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=2, groups=d)
+    top_split = splitters.ClusterSplit(
+                                       KMeans,
+                                       n_clusters=6
+                                       )
     mid_split = RepeatedKFold(n_splits=5, n_repeats=2)
     bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
 
