@@ -186,8 +186,8 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
         data_cal[domain][dist_label] = c.tolist()
 
         data_rmse[domain] = {}
-        data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
-        data_cal[domain][dist_label] = c.tolist()
+        data_rmse[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
+        data_rmse[domain][dist_label] = c.tolist()
 
     ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
