@@ -145,12 +145,12 @@ def distance(X_train, X_test, y_train=None, y_test=None):
     '''
     # For development
     distance_list = [
-                     'pdf',
-                     'mahalanobis',
-                     'cosine',
-                     'oneClassSVM',
-                     'attention_metric',
-                     'lof',
+                     #'pdf',
+                     #'mahalanobis',
+                     #'cosine',
+                     #'oneClassSVM',
+                     #'attention_metric',
+                     #'lof',
                      'gpr_std',
                      ]
 

@@ -32,8 +32,8 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=2, groups=d)
-    mid_split = RepeatedKFold(n_splits=5, n_repeats=2)
+    top_split = None
+    mid_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=20, groups=d)
     bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
 
     # ML setup
@@ -73,9 +73,6 @@ def main():
 
     # Make parity plots
     parity.make_plots(save, 'gpr_std')
-
-    calibration.make_plots(save, points, 'std', 'attention_metric')
-    calibration.make_plots(save, points, 'stdcal', 'attention_metric')
 
     calibration.make_plots(save, points, 'std', 'gpr_std')
     calibration.make_plots(save, points, 'stdcal', 'gpr_std')
