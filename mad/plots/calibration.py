@@ -52,6 +52,7 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
         y = subvalues['ares'].values
         c = subvalues[dist].values*sign
 
+        '''
         x = list(chunck(x, bin_size))
         y = list(chunck(y, bin_size))
         c = list(chunck(c, bin_size))
@@ -68,6 +69,9 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
         x = np.array([np.ma.mean(i) for i in x])
         y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
         c = np.array([np.ma.mean(i) for i in c])
+        '''
+
+        y **= 2
 
         # Normalization
         x = x/std

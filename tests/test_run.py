@@ -71,8 +71,8 @@ class ml_test(unittest.TestCase):
         splits.assess_domain()  # Do ML
         splits.aggregate()
         statistics.folds(save)  # Gather statistics from data
-        parity.make_plots(save, 'mahalanobis')  # Make parity plots
-        calibration.make_plots(save, 10, 'stdcal', 'mahalanobis')
+        parity.make_plots(save, 'gpr_std')  # Make parity plots
+        calibration.make_plots(save, 10, 'stdcal', 'gpr_std')
 
         # Clean directory
         shutil.rmtree(save)
