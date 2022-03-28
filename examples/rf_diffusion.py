@@ -20,7 +20,6 @@ def main():
 
     seed = 14987
     save = 'run_rf_diffusion'
-    points = 15
     uq_func = poly
     uq_coeffs_start = [0.0, 1.0, 0.1, 0.1]
 
@@ -32,8 +31,7 @@ def main():
     d = data['class_name']
 
     # Splitters
-    top_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=20, groups=d)
-    mid_split = RepeatedKFold(n_splits=5, n_repeats=2)
+    top_split = splitters.BootstrappedLeaveOneGroupOut(n_repeats=2, groups=d)
     bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
 
     # ML setup
@@ -60,7 +58,6 @@ def main():
                             y,
                             d,
                             top_split,
-                            mid_split,
                             save,
                             seed=seed,
                             uq_func=uq_func,
@@ -74,8 +71,8 @@ def main():
     # Make parity plots
     parity.make_plots(save, 'gpr_std')
 
-    calibration.make_plots(save, points, 'std', 'gpr_std')
-    calibration.make_plots(save, points, 'stdcal', 'gpr_std')
+    calibration.make_plots(save, 'stdcal', 'gpr_std')
+    calibration.make_plots(save, 'stdcal', 'attention_metric')
 
 
 if __name__ == '__main__':

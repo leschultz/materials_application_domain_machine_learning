@@ -13,7 +13,7 @@ import json
 import os
 
 
-def make_plots(save, bin_size, xaxis, dist):
+def make_plots(save, xaxis, dist):
 
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
@@ -21,13 +21,6 @@ def make_plots(save, bin_size, xaxis, dist):
     std = np.ma.std(df['y'].values)
     df['ares'] = abs(df['y'].values-df['y_pred'].values)
     df = df.sort_values(by=[xaxis, 'ares', dist])
-
-    if (dist == 'pdf') or (dist == 'logpdf'):
-        sign = -1.0
-        dist_label = 'negative '+dist
-    else:
-        sign = 1.0
-        dist_label = dist
 
     maxx = []
     maxy = []
@@ -50,7 +43,7 @@ def make_plots(save, bin_size, xaxis, dist):
 
         x = subvalues[xaxis].values
         y = subvalues['ares'].values
-        c = subvalues[dist].values*sign
+        c = subvalues[dist].values
 
         # Normalization
         x = x/std
@@ -152,17 +145,17 @@ def make_plots(save, bin_size, xaxis, dist):
                         )
 
         data_err[domain] = {}
-        data_err[domain][dist_label] = c.tolist()
+        data_err[domain][dist] = c.tolist()
         data_err[domain][err_y_label] = z.tolist()
 
         data_cal[domain] = {}
         data_cal[domain][r'$\sigma_{m}/\sigma_{y}$'] = x.tolist()
         data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
-        data_cal[domain][dist_label] = c.tolist()
+        data_cal[domain][dist] = c.tolist()
 
         data_rmse[domain] = {}
         data_rmse[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
-        data_rmse[domain][dist_label] = c.tolist()
+        data_rmse[domain][dist] = c.tolist()
 
     ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
 
@@ -174,15 +167,15 @@ def make_plots(save, bin_size, xaxis, dist):
     ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
     ax_err.legend()
-    ax_err.set_xlabel(dist_label)
+    ax_err.set_xlabel(dist)
     ax_err.set_ylabel(err_y_label)
 
     ax_rmse.legend()
-    ax_rmse.set_xlabel(dist_label)
+    ax_rmse.set_xlabel(dist)
     ax_rmse.set_ylabel(r'RMSE/$\sigma_{y}$')
 
     cbar = fig.colorbar(dens)
-    cbar.set_label(dist_label)
+    cbar.set_label(dist)
 
     # Make a table
     cols = [r'Domain', r'RMSE', r'$R^2$']

@@ -167,8 +167,8 @@ def graphic(save, dist):
     for d, m in zip(df.groupby(groups), mets.groupby(groups)):
 
         name = d[0]
-        new_path = os.path.join(*[path, 'plots', 'total', 'parity'])
-        parity_path = os.path.join(new_path, 'in-domain_{}'.format(name))
+        new_path = os.path.join(*[path, 'plots', 'total', 'parity', dist])
+        parity_path = os.path.join(new_path, '{}'.format(name))
         d = d[1]
         m = m[1]
 
@@ -201,12 +201,13 @@ def graphic(save, dist):
                                      'plots',
                                      'groups',
                                      name,
-                                     'parity'
+                                     'parity',
+                                     dist
                                      ])
 
         for d, m in zip(k[1].groupby('in_domain'), l[1].groupby('in_domain')):
 
-            new_path = os.path.join(parity_path, 'in-domain_{}'.format(d[0]))
+            new_path = os.path.join(parity_path, '{}'.format(d[0]))
             d = d[1]
             m = m[1]
 
