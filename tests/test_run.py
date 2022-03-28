@@ -70,7 +70,7 @@ class ml_test(unittest.TestCase):
         splits.aggregate()
         statistics.folds(save)  # Gather statistics from data
         parity.make_plots(save, 'gpr_std')  # Make parity plots
-        calibration.make_plots(save, 10, 'stdcal', 'gpr_std')
+        calibration.make_plots(save, 'stdcal', 'gpr_std')
 
         # Clean directory
         shutil.rmtree(save)
