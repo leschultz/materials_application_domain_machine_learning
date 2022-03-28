@@ -23,13 +23,12 @@ def eval_reg_metrics(groups):
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 
-    in_domain, id_count, ud_count, domain = group
+    in_domain, test_count, domain = group
 
     results = {}
     results['in_domain'] = in_domain
     results['domain'] = domain
-    results['id_count'] = id_count
-    results['ud_count'] = ud_count
+    results['test_count'] = test_count
     results[r'$RMSE$'] = rmse
     results[r'$RMSE/\sigma$'] = rmse_sig
     results[r'$MAE$'] = mae
@@ -90,12 +89,11 @@ def folds_opperation(save, file_name):
     # Get metrics
     mets = group_metrics(df, [
                               'in_domain',
-                              'id_count',
-                              'ud_count',
+                              'test_count',
                               'domain',
                               ])
 
-    metsstats = mets.drop(['id_count', 'ud_count'], axis=1)
+    metsstats = mets.drop(['test_count'], axis=1)
     metsstats = stats(metsstats, [
                                   'in_domain',
                                   'domain',

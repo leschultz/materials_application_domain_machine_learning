@@ -13,7 +13,7 @@ import json
 import os
 
 
-def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
+def make_plots(save, bin_size, xaxis, dist):
 
     df = os.path.join(save, 'aggregate/data.csv')
     df = pd.read_csv(df)
@@ -52,27 +52,6 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
         y = subvalues['ares'].values
         c = subvalues[dist].values*sign
 
-        '''
-        x = list(chunck(x, bin_size))
-        y = list(chunck(y, bin_size))
-        c = list(chunck(c, bin_size))
-
-        # Skip values that are empty
-        if (not x) or (not y) or (not c):
-            continue
-
-        # Mask values
-        x = np.ma.masked_invalid(x)
-        y = np.ma.masked_invalid(y)
-        c = np.ma.masked_invalid(c)
-
-        x = np.array([np.ma.mean(i) for i in x])
-        y = np.array([(np.ma.sum(i**2)/len(i))**0.5 for i in y])
-        c = np.array([np.ma.mean(i) for i in c])
-        '''
-
-        y **= 2
-
         # Normalization
         x = x/std
         y = y/std
@@ -83,14 +62,10 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
         rmse = metrics.mean_squared_error(y, x)**0.5
         r2 = metrics.r2_score(y, x)
 
-        if subgroup == 'ud':
-            domain_name = 'LO-Cluster'
-        elif subgroup == 'id':
-            domain_name = 'LO-Random'
-        elif subgroup == 'td':
-            domain_name = 'Train LO-Random'
-        else:
-            domain_name = 'Error'
+        if subgroup == 'te':
+            domain_name = 'Test CV'
+        elif subgroup == 'tr':
+            domain_name = 'Train CV'
 
         rows.append([domain_name, rmse, r2])
 
@@ -136,16 +111,12 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
     fig_rmse, ax_rmse = pl.subplots()
     for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
 
-        if subgroup == 'id':
-            domain = 'LO-Random'
+        if subgroup == 'te':
+            domain = 'Test CV'
             marker = '1'
             zorder = 3
-        elif subgroup == 'ud':
-            domain = 'LO-Cluster'
-            marker = 'x'
-            zorder = 2
-        elif subgroup == 'td':
-            domain = 'Train LO-Random'
+        elif subgroup == 'tr':
+            domain = 'Train CV'
             marker = '.'
             zorder = 1
         else:
@@ -202,12 +173,10 @@ def make_plots(save, bin_size, xaxis, dist, thresh=0.1):
     ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
     ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
-    ax_err.axhline(thresh, color='r', linestyle=':', label='Boundary')
     ax_err.legend()
     ax_err.set_xlabel(dist_label)
     ax_err.set_ylabel(err_y_label)
 
-    ax_rmse.axhline(thresh, color='r', linestyle=':', label='Boundary')
     ax_rmse.legend()
     ax_rmse.set_xlabel(dist_label)
     ax_rmse.set_ylabel(r'RMSE/$\sigma_{y}$')

@@ -56,8 +56,7 @@ class builder:
                  X,
                  y,
                  d,
-                 top_splitter,
-                 mid_splitter,
+                 splitter,
                  save,
                  seed=1,
                  uq_func=poly,
@@ -69,8 +68,7 @@ class builder:
             X = The features.
             y = The target variable.
             d = The domain for each case.
-            top_splitter = The top level domain splitter.
-            mid_splitter = The middle level splitter for nested cv.
+            splitter = The test set splitter.
             splitters = The splitting oject to create 2 layers.
             save = The directory to save splits.
             seed = The seed option for reproducibility.
@@ -85,8 +83,7 @@ class builder:
         self.X = X
         self.y = y
         self.d = d
-        self.top_splitter = top_splitter
-        self.mid_splitter = mid_splitter
+        self.splitter = splitter
         self.uq_func = uq_func
         self.uq_coeffs_start = uq_coeffs_start
 
@@ -98,83 +95,41 @@ class builder:
         Asses the model through nested CV with a domain layer.
         '''
 
-        # Renaming conviance
-        X, y, d = (self.X, self.y, self.d)
-        top = self.top_splitter
-        mid = self.mid_splitter
-        pipe = self.pipe
-        uq_func = self.uq_func
-        uq_coeffs_start = self.uq_coeffs_start
-
-        o = np.array(range(X.shape[0]))  # Tracking cases.
+        o = np.array(range(self.X.shape[0]))  # Tracking cases.
 
         # Setup saving directory.
         save = os.path.join(self.save, 'splits')
         os.makedirs(save, exist_ok=True)
 
-        # Make all of the train, test in domain, and test other domain splits.
-        splits = []  # Collect splits
-        if top:
-            ud_count = 0  # Other domain count
-            for id_index, ud_index in top.split(X, y, d):
+        # Make all of the train and test splits.
+        test_count = 0  # In domain count
+        splits = []
+        for i in self.splitter.split(self.X, self.y, self.d):
 
-                # Domain splits
-                X_id, X_od = X[id_index], X[ud_index]
-                y_id, y_od = y[id_index], y[ud_index]
-                d_id, d_od = d[id_index], d[ud_index]
-                o_id, o_od = o[id_index], o[ud_index]
+            tr_index = np.array(i[0])  # The train.
+            te_index = np.array(i[1])  # The test.
 
-                id_count = 0  # In domain count
-                for i in mid.split(X_id, y_id, d_id):
+            tr_te = (
+                     tr_index,
+                     te_index,
+                     test_count,
+                     )
 
-                    tr_index = o_id[i[0]]  # The in domain train.
-                    te_index = o_id[i[1]]  # The in domain test.
-                    teud_index = ud_index  # The other domain.
+            splits.append(tr_te)
 
-                    trid_teid_teod = (
-                                      tr_index,
-                                      te_index,
-                                      teud_index,
-                                      id_count,
-                                      ud_count
-                                      )
-
-                    splits.append(trid_teid_teod)
-
-                    id_count += 1  # Increment in domain count
-
-                ud_count += 1  # Increment other domain count
-        else:
-            id_count = 0  # In domain count
-            for i in mid.split(X, y, d):
-
-                tr_index = np.array(i[0])  # The in domain train.
-                te_index = np.array(i[1])  # The in domain test.
-                teud_index = None  # The other domain.
-
-                trid_teid_teod = (
-                                  tr_index,
-                                  te_index,
-                                  teud_index,
-                                  id_count,
-                                  None
-                                  )
-
-                splits.append(trid_teid_teod)
-
-                id_count += 1  # Increment in domain count
+            test_count += 1  # Increment in domain count
 
         # Do nested CV
         parallel(
                  self.nestedcv,
                  splits,
-                 X=X,
-                 y=y,
-                 d=d,
-                 pipe=pipe,
+                 X=self.X,
+                 y=self.y,
+                 d=self.d,
+                 pipe=self.pipe,
                  save=save,
-                 uq_func=uq_func,
-                 uq_coeffs_start=uq_coeffs_start
+                 uq_func=self.uq_func,
+                 uq_coeffs_start=self.uq_coeffs_start
                  )
 
     def nestedcv(
@@ -205,19 +160,14 @@ class builder:
         '''
 
         # Split indexes and spit count
-        trid, teid, teod, id_count, ud_count = indexes
+        tr, te, test_count = indexes
 
-        X_id_train, X_id_test = X[trid], X[teid]
-        y_id_train, y_id_test = y[trid], y[teid]
-        d_id_train, d_id_test = d[trid], d[teid]
-
-        if teod is not None:
-            X_ud_test = X[teod]
-            y_ud_test = y[teod]
-            d_ud_test = d[teod]
+        X_train, X_test = X[tr], X[te]
+        y_train, y_test = y[tr], y[te]
+        d_train, d_test = d[tr], d[te]
 
         # Fit the model on training data in domain.
-        self.pipe.fit(X_id_train, y_id_train)
+        self.pipe.fit(X_train, y_train)
 
         # Grab model critical information for assessment
         pipe_best = pipe.best_estimator_
@@ -231,30 +181,21 @@ class builder:
         split_type = pipe.cv.__class__.__name__
 
         # Feature transformations
-        X_id_train_trans = pipe_best_scaler.transform(X_id_train)
-        X_id_test_trans = pipe_best_scaler.transform(X_id_test)
-
-        if teod is not None:
-            X_ud_test_trans = pipe_best_scaler.transform(X_ud_test)
+        X_train_trans = pipe_best_scaler.transform(X_train)
+        X_test_trans = pipe_best_scaler.transform(X_test)
 
         # Feature selection
-        X_id_train_select = pipe_best_select.transform(X_id_train_trans)
-        X_id_test_select = pipe_best_select.transform(X_id_test_trans)
-
-        if teod is not None:
-            X_ud_test_select = pipe_best_select.transform(X_ud_test_trans)
+        X_train_select = pipe_best_select.transform(X_train_trans)
+        X_test_select = pipe_best_select.transform(X_test_trans)
 
         # Setup distance model
         dists = dist_func_model()
-        dists.train(X_id_train_select, y_id_train)
+        dists.train(X_train_select, y_train)
 
         # Calculate distances after feature transformations from ML workflow.
-        df_id = dists.predict(X_id_test_select)
+        df_te = dists.predict(X_test_select)
 
-        if teod is not None:
-            df_od = dists.predict(X_ud_test_select)
-
-        n_features = X_id_test_select.shape[-1]
+        n_features = X_test_select.shape[-1]
 
         # If model is ensemble regressor (need to update varialbe name)
         ensemble_methods = [
@@ -267,191 +208,134 @@ class builder:
         if model_type in ensemble_methods:
 
             # Train and test on inner CV
-            std_id_cv = []
-            d_id_cv = []
-            y_id_cv = []
-            y_id_cv_pred = []
-            y_id_cv_indx = []
-            df_td = []
+            std_cv = []
+            d_cv = []
+            y_cv = []
+            y_cv_pred = []
+            y_cv_indx = []
+            df_tr = []
             for train_index, test_index in pipe.cv.split(
-                                                         X_id_train_select,
-                                                         y_id_train,
-                                                         d_id_train
+                                                         X_train_select,
+                                                         y_train,
+                                                         d_train
                                                          ):
 
                 model = clone(pipe_best_model)
 
-                X_train = X_id_train_select[train_index]
-                X_test = X_id_train_select[test_index]
+                X_cv_train = X_train_select[train_index]
+                X_cv_test = X_train_select[test_index]
 
-                y_train = y_id_train[train_index]
-                y_test = y_id_train[test_index]
+                y_cv_train = y_train[train_index]
+                y_cv_test = y_train[test_index]
 
-                model.fit(X_train, y_train)
+                model.fit(X_cv_train, y_cv_train)
 
                 if model_type == 'GaussianProcessRegressor':
-                    y_pred, std = model.predict(X_test, return_std=True)
+                    _, std = model.predict(X_cv_test, return_std=True)
                 else:
-                    y_pred = model.predict(X_test)
                     std = []
                     for i in model.estimators_:
                         if model_type == 'GradientBoostingRegressor':
                             i = i[0]
-                        std.append(i.predict(X_test))
+                        std.append(i.predict(X_cv_test))
 
                     std = np.std(std, axis=0)
 
-                std_id_cv = np.append(std_id_cv, std)
-                d_id_cv = np.append(d_id_cv, d_id_train[test_index])
-                y_id_cv = np.append(y_id_cv, y_test)
-                y_id_cv_pred = np.append(y_id_cv_pred, y_pred)
-                y_id_cv_indx = np.append(y_id_cv_indx, trid[test_index])
-                df_td.append(pd.DataFrame(dists.predict(X_test)))
+                std_cv = np.append(std_cv, std)
+                d_cv = np.append(d_cv, d_train[test_index])
+                y_cv = np.append(y_cv, y_cv_test)
+                y_cv_pred = np.append(y_cv_pred, model.predict(X_cv_test))
+                y_cv_indx = np.append(y_cv_indx, tr[test_index])
+                df_tr.append(pd.DataFrame(dists.predict(X_cv_test)))
 
-            df_td = pd.concat(df_td)
+            df_tr = pd.concat(df_tr)
 
-            # Calibration.
+            # Calibration
             uq_func = uq_func_model(uq_coeffs_start, uq_func)
-            uq_func.train(std_id_cv, y_id_cv, y_id_cv_pred)
+            uq_func.train(std_cv, y_cv, y_cv_pred)
 
-            # Nested in domain prediction for left out data
-            y_id_test_pred = pipe_best.predict(X_id_test)
-
-            if teod is not None:
-                y_ud_test_pred = pipe_best.predict(X_ud_test)
+            # Nested prediction for left out data
+            y_test_pred = pipe_best.predict(X_test)
 
             # Ensemble predictions with correct feature set
             if model_type == 'GaussianProcessRegressor':
-                _, std_id_test = pipe_best_model.predict(
-                                                         X_id_test_select,
-                                                         return_std=True
-                                                         )
-
-                if teod is not None:
-                    _, std_ud_test = pipe_best_model.predict(
-                                                             X_ud_test_select,
-                                                             return_std=True
-                                                             )
+                _, std_test = pipe_best_model.predict(
+                                                      X_test_select,
+                                                      return_std=True
+                                                      )
 
             else:
                 pipe_estimators = pipe_best_model.estimators_
-                std_id_test = []
-                std_ud_test = []
+                std_test = []
                 for i in pipe_estimators:
 
                     if model_type == 'GradientBoostingRegressor':
                         i = i[0]
 
-                    std_id_test.append(i.predict(X_id_test_select))
+                    std_test.append(i.predict(X_test_select))
 
-                    if teod is not None:
-                        std_ud_test.append(i.predict(X_ud_test_select))
+                std_test = np.std(std_test, axis=0)
 
-                std_id_test = np.std(std_id_test, axis=0)
-
-                if teod is not None:
-                    std_ud_test = np.std(std_ud_test, axis=0)
-
-            stdcal_id_cv = uq_func.predict(std_id_cv)
-            stdcal_id_test = uq_func.predict(std_id_test)
-
-            if teod is not None:
-                stdcal_ud_test = uq_func.predict(std_ud_test)
+            stdcal_cv = uq_func.predict(std_cv)
+            stdcal_test = uq_func.predict(std_test)
 
             # Grab standard deviations.
-            df_td['std'] = std_id_cv
-            df_id['std'] = std_id_test
-
-            if teod is not None:
-                df_od['std'] = std_ud_test
+            df_tr['std'] = std_cv
+            df_te['std'] = std_test
 
             # Grab calibrated standard deviations.
-            df_td['stdcal'] = stdcal_id_cv
-            df_id['stdcal'] = stdcal_id_test
-
-            if teod is not None:
-                df_od['stdcal'] = stdcal_ud_test
+            df_tr['stdcal'] = stdcal_cv
+            df_te['stdcal'] = stdcal_test
 
         else:
             raise Exception('Only ensemble models supported.')
 
         # Assign domain.
-        df_td['in_domain'] = ['td']*std_id_cv.shape[0]
-        df_id['in_domain'] = ['id']*X_id_test.shape[0]
-
-        if teod is not None:
-            df_od['in_domain'] = ['ud']*X_ud_test.shape[0]
+        df_tr['in_domain'] = ['tr']*std_cv.shape[0]
+        df_te['in_domain'] = ['te']*X_test.shape[0]
 
         # Grab indexes of tests.
-        df_td['index'] = y_id_cv_indx
-        df_id['index'] = teid
-
-        if teod is not None:
-            df_od['index'] = teod
+        df_tr['index'] = y_cv_indx
+        df_te['index'] = te
 
         # Grab the domain of tests.
-        df_td['domain'] = d_id_cv
-        df_id['domain'] = d_id_test
-
-        if teod is not None:
-            df_od['domain'] = d_ud_test
+        df_tr['domain'] = d_cv
+        df_te['domain'] = d_test
 
         # Grab the true target variables of test.
-        df_td['y'] = y_id_cv
-        df_id['y'] = y_id_test
-
-        if teod is not None:
-            df_od['y'] = y_ud_test
+        df_tr['y'] = y_cv
+        df_te['y'] = y_test
 
         # Grab the predictions of tests.
-        df_td['y_pred'] = y_id_cv_pred
-        df_id['y_pred'] = y_id_test_pred
-
-        if teod is not None:
-            df_od['y_pred'] = y_ud_test_pred
+        df_tr['y_pred'] = y_cv_pred
+        df_te['y_pred'] = y_test_pred
 
         # Calculate the negative log likelihoods
-        df_td['nllh'] = -llh(
-                             std_id_cv,
-                             y_id_cv-y_id_cv_pred,
+        df_tr['nllh'] = -llh(
+                             std_cv,
+                             y_cv-y_cv_pred,
                              uq_func.params,
                              uq_func.uq_func
                              )
-        df_id['nllh'] = -llh(
-                             std_id_test,
-                             y_id_test-y_id_test_pred,
+        df_te['nllh'] = -llh(
+                             std_test,
+                             y_test-y_test_pred,
                              uq_func.params,
                              uq_func.uq_func
                              )
 
-        if teod is not None:
-            df_od['nllh'] = -llh(
-                                 std_ud_test,
-                                 y_ud_test-y_ud_test_pred,
-                                 uq_func.params,
-                                 uq_func.uq_func
-                                 )
+        df_tr = pd.DataFrame(df_tr)
+        df_te = pd.DataFrame(df_te)
 
-        df_td = pd.DataFrame(df_td)
-        df_id = pd.DataFrame(df_id)
-
-        df = pd.concat([df_td, df_id])
-        if teod is not None:
-            df_od = pd.DataFrame(df_od)
-            df = pd.concat([df, df_od])
+        df = pd.concat([df_tr, df_te])
 
         # Assign values that should be the same
-        df['id_count'] = id_count
+        df['test_count'] = test_count
 
-        if teod is not None:
-            df['ud_count'] = ud_count
-        else:
-            df['ud_count'] = None
-
-        dfname = 'split_id_{}_ud_{}.csv'.format(id_count, ud_count)
-        modelname = 'model_id_{}_ud_{}.joblib'.format(id_count, ud_count)
-        uqname = 'uqfunc_id_{}_ud_{}.joblib'.format(id_count, ud_count)
-        distname = 'distfunc_id_{}_ud_{}.joblib'.format(id_count, ud_count)
+        dfname = 'split_{}.csv'.format(test_count)
+        modelname = 'model_{}.joblib'.format(test_count)
+        uqname = 'uqfunc_{}.joblib'.format(test_count)
+        distname = 'distfunc_{}.joblib'.format(test_count)
 
         dfname = os.path.join(save, dfname)
         modelname = os.path.join(save, modelname)
