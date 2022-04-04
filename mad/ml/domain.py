@@ -175,14 +175,19 @@ class builder:
         pipe_best_select = pipe_best.named_steps['select']
         pipe_best_model = pipe_best.named_steps['model']
 
+        if 'manifold' in pipe_best.named_steps:
+            pipe_best_manifold = pipe_best.named_steps['manifold']
+
         # Grab model specific details
         model_type = pipe_best_model.__class__.__name__
-        scaler_type = pipe_best_scaler.__class__.__name__
-        split_type = pipe.cv.__class__.__name__
 
         # Feature transformations
         X_train_trans = pipe_best_scaler.transform(X_train)
         X_test_trans = pipe_best_scaler.transform(X_test)
+
+        if 'manifold' in pipe_best.named_steps:
+            X_train_trans = pipe_best_manifold.transform(X_train)
+            X_test_trans = pipe_best_manifold.transform(X_test)
 
         # Feature selection
         X_train_select = pipe_best_select.transform(X_train_trans)
