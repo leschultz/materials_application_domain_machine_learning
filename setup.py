@@ -19,12 +19,11 @@ install_requires = [
                     'scikit-learn',
                     'pandas',
                     'numpy',
-                    'seaborn',
                     'pathos',
                     'tqdm',
                     'pytest',
                     'openpyxl',
-		    'statsmodels'
+                    'gpytorch'
                     ]
 long_description = open('README.md').read()
 

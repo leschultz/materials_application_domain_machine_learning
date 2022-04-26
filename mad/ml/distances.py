@@ -96,9 +96,6 @@ def distance(X_train, X_test, y_train=None, y_test=None):
     '''
     # For development
     distance_list = [
-                     'mahalanobis',
-                     'cosine',
-                     'attention_metric',
                      'gpr_std',
                      ]
 
