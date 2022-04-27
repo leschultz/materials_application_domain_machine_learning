@@ -5,7 +5,6 @@ from mad.functions import chunck
 from sklearn import metrics
 
 import matplotlib.colors as colors
-import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib
