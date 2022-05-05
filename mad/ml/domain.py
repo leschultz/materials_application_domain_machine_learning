@@ -246,12 +246,15 @@ class builder:
 
                     std = np.std(std, axis=0)
 
+                dists_cv = dist_func_model()
+                dists_cv.train(X_cv_train, y_cv_train)
+
                 std_cv = np.append(std_cv, std)
                 d_cv = np.append(d_cv, d_train[test_index])
                 y_cv = np.append(y_cv, y_cv_test)
                 y_cv_pred = np.append(y_cv_pred, model.predict(X_cv_test))
                 y_cv_indx = np.append(y_cv_indx, tr[test_index])
-                df_tr.append(pd.DataFrame(dists.predict(X_cv_test)))
+                df_tr.append(pd.DataFrame(dists_cv.predict(X_cv_test)))
 
             df_tr = pd.concat(df_tr)
 
