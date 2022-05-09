@@ -9,16 +9,9 @@ class ml_test(unittest.TestCase):
         Test data import for all supported sets.
         '''
 
-        load_data.sigmoid(1)
-        load_data.sigmoid(2)
-        load_data.sigmoid(3)
         load_data.friedman()
         load_data.diffusion()
-        load_data.diffusion_train()
-        load_data.diffusion_test()
         load_data.super_cond()
-        load_data.super_cond_train()
-        load_data.super_cond_test()
         load_data.perovskite_stability()
         load_data.electromigration()
         load_data.thermal_conductivity()
