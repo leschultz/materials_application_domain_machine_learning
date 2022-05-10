@@ -24,10 +24,10 @@ class ml_test(unittest.TestCase):
         seed = 14987
         save = 'run'
         uq_func = poly
-        uq_coeffs_start = [0.0, 1.1, 0.0]
+        uq_coeffs_start = [0.0, 1.0, 0.1]
 
         # Load data
-        data = load_data.sigmoid(3)
+        data = load_data.diffusion()
         df = data['frame']
         X = data['data']
         y = data['target']

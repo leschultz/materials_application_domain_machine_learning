@@ -435,7 +435,7 @@ def make_plots(save, xaxis, dist):
     The general workflow.
     '''
 
-    bins = 15
+    bins = 10
     control = 'quantiles'
 
     df = pd.read_csv(os.path.join(save, 'aggregate/data.csv'))
@@ -465,6 +465,7 @@ def make_plots(save, xaxis, dist):
             ]
 
     save = os.path.join(*save)
+    os.makedirs(save, exist_ok=True)
 
     plot_calibration(data, stdc, ecut, save)
     plot_score(data, stdc, ecut, save)
