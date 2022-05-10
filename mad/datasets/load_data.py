@@ -235,6 +235,17 @@ def double_perovskites_gap():
     return load(df, target)
 
 
+def perovskites_opband():
+    '''
+    Load the perovskie ipband dataset.
+    '''
+
+    df = 'Dataset_Perovskite_Opband_simplified.xlsx'
+    target = 'O pband (eV) (GGA)'
+
+    return load(df, target)
+
+
 def elastic_tensor():
     '''
     Load the elastic tensor dataset.

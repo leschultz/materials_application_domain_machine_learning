@@ -129,7 +129,7 @@ def parity(
     cbar.set_label(dist_label)
 
     fig.tight_layout()
-    fig.savefig(os.path.join(save, 'parity.png'.format(name)))
+    fig.savefig(os.path.join(save, 'parity.png'))
     pl.close(fig)
 
     # Repare plot data for saving

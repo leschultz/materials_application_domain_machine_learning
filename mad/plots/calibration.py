@@ -1,256 +1,471 @@
-from sklearn.metrics import precision_recall_curve, auc, roc_curve
-from sklearn.metrics import confusion_matrix
+from pathos.multiprocessing import ProcessingPool as Pool
 from matplotlib import pyplot as pl
-from mad.functions import chunck
-from sklearn import metrics
 
-import matplotlib.colors as colors
+from functools import partial
+from sklearn import metrics
+from pathlib import Path
+from tqdm import tqdm
+
 import pandas as pd
 import numpy as np
-import matplotlib
-import json
+
+import sys
 import os
 
 
-def make_plots(save, xaxis, dist):
+def parallel(func, x, *args, **kwargs):
+    '''
+    Run some function in parallel.
 
-    df = os.path.join(save, 'aggregate/data.csv')
-    df = pd.read_csv(df)
+    inputs:
+        func = The function to apply.
+        x = The list to iterate on.
+        args = Additional arguemnts.
+        kwargs = Additional key word arguments.
 
-    std = np.ma.std(df['y'].values)
-    df['ares'] = abs(df['y'].values-df['y_pred'].values)
-    df = df.sort_values(by=[xaxis, 'ares', dist])
+    outputs:
+        data = A list of independent calculations.
+    '''
 
-    maxx = []
-    maxy = []
-    minx = []
-    miny = []
-    vmin = []
-    vmax = []
-    xs = []
-    ys = []
-    cs = []
-    ds = []
-    zs = []
+    part_func = partial(func, *args, **kwargs)
+    cores = os.cpu_count()
+    with Pool(cores) as pool:
+        data = list(tqdm(
+                         pool.imap(part_func, x),
+                         total=len(x),
+                         file=sys.stdout
+                         ))
 
-    rows = []
-    rows_table = []
-    for subgroup, subvalues in df.groupby('in_domain'):
+    return data
 
-        if subgroup == 'td':
+
+def find(where, pattern):
+    '''
+    Function to find matching files.
+
+    inputs:
+        where = The top diretory to look for files.
+        pattern = The pattern for files to look for.
+
+    outputs:
+        paths = A list of paths of files found.
+    '''
+
+    paths = list(map(str, Path(where).rglob(pattern)))
+
+    return paths
+
+
+def quantiles(groups, bins=100, std_y=1, control='points'):
+    '''
+    Get quantile values.
+    '''
+
+    group, values = groups
+
+    if control == 'points':
+        subbins = values.shape[0]//bins  # Number of quantiles
+    elif control == 'quantiles':
+        subbins = bins
+
+    data = {
+            'set': group,
+            'rmse': [],
+            'stdcal': [],
+            'score': [],
+            'errs': [],
+            }
+
+    if bins > 1:
+        values['bin'] = pd.qcut(values['stdcal'], subbins)  # Quantile split
+
+        for subgroup, subvalues in values.groupby('bin'):
+
+            # RMSE
+            err = metrics.mean_squared_error(
+                                             subvalues['y'],
+                                             subvalues['y_pred']
+                                             )**0.5
+
+            # Mean calibrated STDEV
+            un = subvalues['stdcal'].mean()
+
+            # Mean of dissimilarity metric
+            dis = subvalues['score'].mean()
+
+            # Normalization
+            err /= std_y
+            un /= std_y
+
+            # Error in error
+            err_in_errs = abs(err-un)
+
+            data['rmse'].append(err)
+            data['stdcal'].append(un)
+            data['score'].append(dis)
+            data['errs'].append(err_in_errs)
+
+    else:
+        err = abs(values['y']-values['y_pred'])
+        un = values['stdcal']/std_y  # Normalized
+        dis = values['gpr_std']/std_y  # Normalized
+        err_in_errs = abs(err-un)
+
+        data['rmse'] = err.tolist()
+        data['stdcal'] = un.tolist()
+        data['score'] = dis.tolist()
+        data['errs'] = err_in_errs.tolist()
+
+    return data
+
+
+def ground_truth(data):
+    '''
+    Get the ground truth from data.
+
+    inputs:
+        data = A list of calibration data dictionaries.
+
+    outputs:
+        ecut = The ground truth as the max errror in error from CV.
+        stdc = Calibrated STDEV point deviating from ideal.
+    '''
+
+    ecut = []
+    stdc = []
+    for i in data:
+        if i['set'] == 'tr':
+            ecut += i['errs']
+            stdc += i['stdcal']
+        else:
             continue
 
-        x = subvalues[xaxis].values
-        y = subvalues['ares'].values
-        c = subvalues[dist].values
+    # Return cutoffs as percentiles
+    ecut = np.percentile(ecut, 95.45)
+    stdc = np.percentile(stdc, 95.45)
 
-        # Normalization
-        x = x/std
-        y = y/std
+    return ecut, stdc
 
-        z = abs(y-x)
 
-        # Table data
-        rmse = metrics.mean_squared_error(y, x)**0.5
-        r2 = metrics.r2_score(y, x)
+def domain_pred(data, ecut, stdc):
+    '''
+    Define in domain based on ground truth.
 
-        if subgroup == 'te':
-            domain_name = 'Test CV'
-        elif subgroup == 'tr':
-            domain_name = 'Train CV'
+    inputs:
+        data = A list of calibration data dictionaries.
+        ecut = Max error in error cutoff from CV.
+        stdc = Calibrated STDEV point deviating from ideal.
+    '''
 
-        rows.append([domain_name, rmse, r2])
+    for i in data:
 
-        domain_name = '{}'.format(domain_name)
-        rmse = '{:.2E}'.format(rmse)
-        r2 = '{:.2f}'.format(r2)
+        in_domain = []
+        for j, k in zip(i['errs'], i['stdcal']):
 
-        rows_table.append([domain_name, rmse, r2])
+            if (j < ecut) and (k < stdc):
+                in_domain.append(1)
+            else:
+                in_domain.append(0)
 
-        maxx.append(np.ma.max(x))
-        maxy.append(np.ma.max(y))
-        minx.append(np.ma.min(x))
-        miny.append(np.ma.min(y))
-        vmin.append(np.ma.min(c))
-        vmax.append(np.ma.max(c))
-        xs.append(x)
-        ys.append(y)
-        cs.append(c)
-        zs.append(z)
-        ds.append(subgroup)
+        i['in_domain'] = in_domain
 
-    minx = np.append(minx, 0.0)
-    miny = np.append(miny, 0.0)
 
-    vmin = np.ma.min(vmin)
-    vmax = np.ma.max(vmax)
-    maxx = np.ma.max(maxx)
-    maxy = np.ma.max(maxy)
-    minx = np.ma.min(minx)
-    miny = np.ma.min(miny)
+def plot_calibration(data, stdc, ecut, save):
+    '''
+    Plot the calibration data.
 
-    # For plot data export
-    data_cal = {}
-    data_err = {}
-    data_rmse = {}
+    inputs:
+        data = A list of calibration data dictionaries.
+        stdc = Calibrated STDEV point deviating from ideal.
+        ecut = Max error in error cutoff from CV.
+        save = The directory to save.
 
-    err_y_label = r'|RMSE/$\sigma_{y}-\sigma_{m}/\sigma_{y}$|'
+    outputs:
+        fig = The figure object.
+        ax = The axis object.
+    '''
+
+    fig, ax = pl.subplots(1, 2)
+    for i in data:
+        if 'te' == i['set']:
+            j = 1
+        elif 'tr' == i['set']:
+            j = 0
+        else:
+            continue
+
+        x = np.array(i['stdcal'])
+        y = np.array(i['rmse'])
+
+        indx = np.array(i['errs']) <= ecut
+
+        prop = ax[j].scatter(x[indx], y[indx], marker='.')
+        ax[j].scatter(
+                      x[~indx],
+                      y[~indx],
+                      facecolors='none',
+                      edgecolors=prop.get_edgecolor()
+                      )
+
+    ax[0].set_title('Train')
+    ax[1].set_title('Test')
+    ax[1].yaxis.tick_right()
+    ax[1].yaxis.set_label_position("right")
+    for i in range(2):
+        ax[i].set_xlabel(r'$\sigma_{cal}/\sigma_y$')
+        ax[i].set_ylabel(r'$RMSE/\sigma_y$')
+
+        lims = [*ax[i].get_xlim(), *ax[i].get_ylim()]
+        ax[i].axline([min(lims)]*2, [max(lims)]*2, linestyle=':', color='k')
+        ax[i].set_aspect('equal')
+        ax[i].axvline(stdc, linestyle=':', color='r', label=r'$\sigma_{c}$')
+
+    ax[0].legend()
+
+    # Make same sale
+    ax[0].set_xlim(ax[1].get_xlim())
+    ax[0].set_ylim(ax[1].get_ylim())
+
+    fig.savefig(os.path.join(save, 'calibration.png'))
+
+    return fig, ax
+
+
+def plot_score(data, stdc, ecut, save):
+    '''
+    Plot the error in erros versus the dissimilarity metric.
+
+    inputs:
+        data = A list of calibration data dictionaries.
+        stdc = Calibrated STDEV point deviating from ideal.
+        ecut = Max error in error cutoff from CV.
+        save = The directory to save.
+
+    outputs:
+        fig = The figure object.
+        ax = The axis object.
+    '''
+
+    fig, ax = pl.subplots(1, 2)
+    for i in data:
+        if 'te' == i['set']:
+            j = 1
+        elif 'tr' == i['set']:
+            j = 0
+        else:
+            continue
+
+        x = np.array(i['score'])
+        y = np.array(i['errs'])
+
+        indx = np.array(i['stdcal']) <= stdc
+
+        prop = ax[j].scatter(x[indx], y[indx], marker='.')
+        ax[j].scatter(
+                      x[~indx],
+                      y[~indx],
+                      facecolors='none',
+                      edgecolors=prop.get_edgecolor()
+                      )
+
+    ax[0].set_title('Train')
+    ax[1].set_title('Test')
+    ax[1].yaxis.tick_right()
+    ax[1].yaxis.set_label_position("right")
+    for i in range(2):
+        ax[i].set_ylabel(r'$|RMSE-\sigma_{cal}|/\sigma_{y}$')
+        ax[i].set_xlabel(r'GPR $\sigma$')
+        ax[i].axhline(ecut, linestyle=':', color='r', label=r'$E_{c}$')
+
+    ax[0].legend()
+
+    # Make same sale
+    ax[0].set_xlim(ax[1].get_xlim())
+    ax[0].set_ylim(ax[1].get_ylim())
+
+    fig.savefig(os.path.join(save, 'err_in_errs.png'))
+
+    return fig, ax
+
+
+def pr_sub(y_true, recall, precision, thresholds, title, save):
+    '''
+    Precision recall curve.
+    '''
+
+    baseline = sum(y_true)/len(y_true)
+    auc_score = metrics.auc(recall, precision)
+    auc_baseline = auc_score-baseline
+
+    num = 2*recall*precision
+    den = recall+precision
+    f1_scores = np.divide(num, den, out=np.zeros_like(den), where=(den != 0))
+    max_f1 = np.max(f1_scores)
+    max_f1_thresh = thresholds[np.argmax(f1_scores)]
+
+    label = 'AUC={:.2f}\n'.format(auc_score)
+    label += r'$\Delta$AUC='+'{:.2f}\n'.format(auc_baseline)
+    label += 'Max F1={:.2f}\n'.format(max_f1)
+    label += 'Max F1 Threshold={:.2f}'.format(max_f1_thresh)
 
     fig, ax = pl.subplots()
-    fig_err, ax_err = pl.subplots()
-    fig_roc, ax_roc = pl.subplots()
-    fig_pr, ax_pr = pl.subplots()
-    fig_rmse, ax_rmse = pl.subplots()
-    for x, y, c, z, subgroup in zip(xs, ys, cs, zs, ds):
-
-        if subgroup == 'te':
-            domain = 'Test CV'
-            marker = '1'
-            zorder = 3
-        elif subgroup == 'tr':
-            domain = 'Train CV'
-            marker = '.'
-            zorder = 1
-        else:
-            marker = '*'
-            zorder = 0
-
-        dens = ax.scatter(
-                          x,
-                          y,
-                          c=c,
-                          marker=marker,
-                          label='{}'.format(domain),
-                          cmap=pl.get_cmap('viridis'),
-                          vmin=vmin,
-                          vmax=vmax,
-                          zorder=zorder
-                          )
-
-        ax_err.scatter(
-                       c,
-                       z,
-                       marker=marker,
-                       label='{}'.format(domain),
-                       zorder=zorder
-                       )
-
-        ax_rmse.scatter(
-                        c,
-                        y,
-                        marker=marker,
-                        label='{}'.format(domain),
-                        zorder=zorder
-                        )
-
-        data_err[domain] = {}
-        data_err[domain][dist] = c.tolist()
-        data_err[domain][err_y_label] = z.tolist()
-
-        data_cal[domain] = {}
-        data_cal[domain][r'$\sigma_{m}/\sigma_{y}$'] = x.tolist()
-        data_cal[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
-        data_cal[domain][dist] = c.tolist()
-
-        data_rmse[domain] = {}
-        data_rmse[domain][r'RMSE/$\sigma_{y}$'] = y.tolist()
-        data_rmse[domain][dist] = c.tolist()
-
-    ax.axline([0, 0], [1, 1], linestyle=':', label='Ideal', color='k')
-
-    ax.set_xlim([minx-0.1*abs(minx), maxx+0.1*abs(maxx)])
-    ax.set_ylim([miny-0.1*abs(minx), maxy+0.1*abs(maxx)])
-
+    ax.set_title(title)
+    ax.plot(recall, precision, label=label)
+    ax.axhline(
+               baseline,
+               color='r',
+               linestyle=':',
+               label='Baseline={:.2f}'.format(baseline)
+               )
+    ax.set_xlim(0.0, 1.05)
+    ax.set_ylim(0.0, 1.05)
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
     ax.legend()
-    ax.set_xlabel(r'$\sigma_{m}/\sigma_{y}$')
-    ax.set_ylabel(r'RMSE/$\sigma_{y}$')
 
-    ax_err.legend()
-    ax_err.set_xlabel(dist)
-    ax_err.set_ylabel(err_y_label)
+    fig.savefig(save)
 
-    ax_rmse.legend()
-    ax_rmse.set_xlabel(dist)
-    ax_rmse.set_ylabel(r'RMSE/$\sigma_{y}$')
 
-    cbar = fig.colorbar(dens)
-    cbar.set_label(dist)
+def plot_pr(data, save):
+    '''
+    Plot precision recall curve.
 
-    # Make a table
-    cols = [r'Domain', r'RMSE', r'$R^2$']
-    table = ax.table(
-                     cellText=rows_table,
-                     colLabels=cols,
-                     colWidths=[0.22]*2+[0.1],
-                     loc='lower right',
-                     )
+    inputs:
+        data = A list of calibration data dictionaries.
+        save = The directory to save.
 
-    data_cal['table'] = {}
-    data_cal['table']['metrics'] = cols
-    data_cal['table']['rows'] = rows
+    outputs:
+        fig = The figure object.
+        ax = The axis object.
+    '''
 
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1.25, 1.25)
+    # Hold all data needed for PR
+    pr = {
+          'te_id_domain': [],
+          'te_id_score': [],
+          'te_od_score': [],
+          'tr_id_domain': [],
+          'tr_id_score': [],
+          'tr_od_score': [],
+          }
 
-    fig.tight_layout()
-    fig_err.tight_layout()
-    fig_rmse.tight_layout()
+    for i in data:
+        if i['set'] == 'te':
+            pr['te_id_domain'] += i['in_domain']
+            pr['te_od_score'] += i['score']
 
-    name = [
+        elif i['set'] == 'tr':
+            pr['tr_id_domain'] += i['in_domain']
+            pr['tr_od_score'] += i['score']
+
+        else:
+            continue
+
+    # Score for ID score (just need small values to be large and vice versa)
+    pr['te_id_score'] = [np.exp(-i) for i in pr['te_od_score']]
+    pr['tr_id_score'] = [np.exp(-i) for i in pr['tr_od_score']]
+
+    # Switch class labels for OD
+    pr['te_od_domain'] = [1 if i == 0 else 0 for i in pr['te_id_domain']]
+    pr['tr_od_domain'] = [1 if i == 0 else 0 for i in pr['tr_id_domain']]
+
+    # Compute precision recall
+    te_id_pr = metrics.precision_recall_curve(
+                                              pr['te_id_domain'],
+                                              pr['te_id_score'],
+                                              )
+
+    te_od_pr = metrics.precision_recall_curve(
+                                              pr['te_od_domain'],
+                                              pr['te_od_score'],
+                                              )
+
+    tr_id_pr = metrics.precision_recall_curve(
+                                              pr['tr_id_domain'],
+                                              pr['tr_id_score'],
+                                              )
+
+    tr_od_pr = metrics.precision_recall_curve(
+                                              pr['tr_od_domain'],
+                                              pr['tr_od_score'],
+                                              )
+
+    # Convert thresholds back to GPR STDEV
+    te_id_pr = list(te_id_pr)
+    tr_id_pr = list(tr_id_pr)
+    te_id_pr[2] = np.log(1/te_id_pr[2])
+    tr_id_pr[2] = np.log(1/tr_id_pr[2])
+
+    pr_sub(
+           pr['te_od_domain'],
+           te_od_pr[1],
+           te_od_pr[0],
+           te_od_pr[2],
+           'Test OD as +',
+           os.path.join(save, 'pr_od_test.png')
+           )
+    pr_sub(
+           pr['tr_od_domain'],
+           tr_od_pr[1],
+           tr_od_pr[0],
+           tr_od_pr[2],
+           'Train OD as +',
+           os.path.join(save, 'pr_od_train.png')
+           )
+    pr_sub(
+           pr['te_id_domain'],
+           te_id_pr[1],
+           te_id_pr[0],
+           te_id_pr[2],
+           'Test ID as +',
+           os.path.join(save, 'pr_id_test.png')
+           )
+    pr_sub(
+           pr['tr_id_domain'],
+           tr_id_pr[1],
+           tr_id_pr[0],
+           tr_id_pr[2],
+           'Train ID as +',
+           os.path.join(save, 'pr_id_train.png')
+           )
+
+
+def make_plots(save, xaxis, dist):
+    '''
+    The general workflow.
+    '''
+
+    bins = 15
+    control = 'quantiles'
+
+    df = pd.read_csv(os.path.join(save, 'aggregate/data.csv'))
+    df = df.sort_values(by=['stdcal', 'y_pred', dist])
+
+    # Get values from training CV
+    df_tr = df[df['in_domain'] == 'tr']
+    std_y = df_tr['y'].std()
+
+    df['score'] = df[dist]
+
+    # Grab quantile data for each set of runs
+    group = df.groupby(['in_domain'], sort=False)
+    data = parallel(quantiles, group, bins=bins, std_y=std_y, control=control)
+
+    # Grab ground truth from validation sets and assign class
+    ecut, stdc = ground_truth(data)
+    domain_pred(data, ecut, stdc)
+
+    # Make plots
+    save = [
             save,
             'aggregate',
             'plots',
             'total',
             'calibration',
-            xaxis+'_vs_'+dist
             ]
 
-    name = map(str, name)
-    name = os.path.join(*name)
-    os.makedirs(name, exist_ok=True)
-    name = os.path.join(name, 'calibration.png')
-    fig.savefig(name)
+    save = os.path.join(*save)
 
-    # Save plot data
-    jsonfile = name.replace('png', 'json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data_cal, handle)
-
-    name = [
-            save,
-            'aggregate',
-            'plots',
-            'total',
-            'err_in_err',
-            xaxis+'_vs_'+dist
-            ]
-    name = map(str, name)
-    name = os.path.join(*name)
-    os.makedirs(name, exist_ok=True)
-    name = os.path.join(name, 'err_in_err.png')
-    fig_err.savefig(name)
-
-    # Save plot data
-    jsonfile = name.replace('png', 'json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data_err, handle)
-
-    name = [
-            save,
-            'aggregate',
-            'plots',
-            'total',
-            'rmse',
-            xaxis+'_vs_'+dist
-            ]
-    name = map(str, name)
-    name = os.path.join(*name)
-    os.makedirs(name, exist_ok=True)
-    name = os.path.join(name, 'rmse.png')
-    fig_rmse.savefig(name)
-
-    # Save plot data
-    jsonfile = name.replace('png', 'json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data_rmse, handle)
+    plot_calibration(data, stdc, ecut, save)
+    plot_score(data, stdc, ecut, save)
+    plot_pr(data, save)
