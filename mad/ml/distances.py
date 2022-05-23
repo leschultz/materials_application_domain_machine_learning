@@ -24,59 +24,8 @@ def distance_link(
     '''
 
     dists = {}
-    if dist_type == 'mahalanobis':
-        # Get the inverse of the covariance matrix from training
-        if X_train.shape[1] < 2:
 
-            vals = np.empty(X_test.shape[0])
-            dists[dist_type] = vals
-
-        else:
-            vi = np.linalg.inv(np.cov(X_train.T))
-            dist = cdist(X_train, X_test, dist_type, VI=vi)
-
-            dists[dist_type] = np.mean(dist, axis=0)
-
-    elif dist_type == 'cosine':
-
-        if X_train.shape[1] < 2:
-            vals = np.empty(X_test.shape[0])
-            dists[dist_type] = vals
-        else:
-            dist = cdist(X_train, X_test, metric='cosine')
-            dists[dist_type] = np.mean(dist, axis=0)
-
-    elif dist_type == 'attention_metric':
-
-        if X_train.shape[1] < 2:
-            vals = np.empty(X_test.shape[0])
-            dists[dist_type] = vals
-        else:
-            queries = X_test
-            keys = X_train
-            # obtain cosine similarity range from 0 - 2 (2 means most similar)
-            similarity = 2-cdist(queries, keys, metric='cosine')
-            denominator = np.sum(similarity, axis=1)  # row sum
-
-            vi = np.linalg.pinv(np.cov(keys.T))
-            values = cdist(queries, keys, 'mahalanobis', VI=vi)
-
-            final_dist = np.array(
-                                  [0 for i in range(queries.shape[0])],
-                                  dtype='f'
-                                  )
-
-            for i in range(len(final_dist)):
-                s = np.sum(
-                           [
-                            (similarity[i][j]/denominator[i])*values[i][j]
-                            for j in range(keys.shape[0])
-                            ]
-                           )
-                final_dist[i] = s
-            dists[dist_type] = final_dist
-
-    elif dist_type == 'gpr_std':
+    if dist_type == 'gpr_std':
 
         model = GaussianProcessRegressor()
         model.fit(X_train, y_train)
@@ -97,6 +46,8 @@ def distance(X_train, X_test, y_train=None, y_test=None):
     # For development
     distance_list = [
                      'gpr_std',
+                     'euclidean',
+                     'mahalanobis',
                      ]
 
     dists = {}
