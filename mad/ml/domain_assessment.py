@@ -815,3 +815,31 @@ def calc(bins=10, control='quantiles', dist='gpr_std', perc_stdc=70, perc_ecut=9
     plot_score(data, stdc, ecut)
     plot_pr(data, stdc=None)
     plot_pr(data, stdc)
+
+    # Now do per chemical grouping
+    chem = df[df['run'] == 'chemical']
+    for i in set(chem['domain'].values):
+
+        sub = chem[chem['domain'] == i]
+
+        # Grab quantile data for each set of runs
+        group = sub.groupby([
+                             'run',
+                             'in_domain',
+                             'domain',
+                             'color',
+                             'marker'
+                             ], sort=False)
+
+        data = parallel(quantiles, group, bins=bins, std_y=std_y, control=control)
+
+        # Grab ground truth from validation sets and assign class
+        ecut, stdc = ground_truth(data, perc_stdc, perc_ecut)
+        domain_pred(data, ecut, stdc)
+
+        # Make plots
+        plot_qq(df)
+        plot_calibration(data, stdc, ecut)
+        plot_score(data, stdc, ecut)
+        plot_pr(data, stdc=None)
+        plot_pr(data, stdc)
