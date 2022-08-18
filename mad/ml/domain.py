@@ -200,8 +200,6 @@ class builder:
         # Calculate distances after feature transformations from ML workflow.
         df_te = dists.predict(X_test_select)
 
-        n_features = X_test_select.shape[-1]
-
         # If model is ensemble regressor (need to update varialbe name)
         ensemble_methods = [
                             'RandomForestRegressor',
@@ -339,6 +337,7 @@ class builder:
 
         # Assign values that should be the same
         df['test_count'] = test_count
+        df['run'] = save.replace('/splits', '')
 
         dfname = 'split_{}.csv'.format(test_count)
         modelname = 'model_{}.joblib'.format(test_count)
