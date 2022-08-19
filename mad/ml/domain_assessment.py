@@ -855,9 +855,11 @@ def calc(
 
     # Now do per chemical grouping
     chem = df[df['run'] == 'chemical']
+    rand = df[df['run'] == 'random']
     for i in set(chem['domain'].values):
 
         sub = chem[chem['domain'] == i]  # Sub selection
+        sub = pd.concat([sub, rand])  # Need data from random sampling
 
         # Grab quantile data for each set of runs
         group = sub.groupby([
@@ -881,8 +883,9 @@ def calc(
         domain_pred(data, ecut, stdc)
 
         # Make plots
-        plot_qq(df, save=i)
-        plot_calibration(data, stdc, ecut, save=i)
-        plot_score(data, stdc, ecut, save=i)
-        plot_pr(data, stdc=None, save=i)
-        plot_pr(data, stdc, save=i)
+        name = os.path.join('group', i)
+        plot_qq(df, save=name)
+        plot_calibration(data, stdc, ecut, save=name)
+        plot_score(data, stdc, ecut, save=name)
+        plot_pr(data, stdc=None, save=name)
+        plot_pr(data, stdc, save=name)
