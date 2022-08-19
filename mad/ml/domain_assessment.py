@@ -256,7 +256,7 @@ def cdf_parity(x, ax, fig_data):
     fig_data['y'] = y
 
 
-def plot_qq(df):
+def plot_qq(df, save='.'):
     '''
     Plot the quantile quantile plot for calibrated uncertainties.
 
@@ -291,17 +291,17 @@ def plot_qq(df):
     ax[1].yaxis.set_label_position("right")
     fig.tight_layout()
 
-    save = 'figures/calibration/'
+    save = os.path.join(*['figures', save, 'calibration'])
     os.makedirs(save, exist_ok=True)
-    fig.savefig(save+'qq.png')
+    fig.savefig(os.path.join(save, 'qq.png'))
     pl.close('all')
 
     jsonfile = '{}.json'.format(save)
-    with open(save+'qq.json', 'w') as handle:
+    with open(os.path.join(save, 'qq.json'), 'w') as handle:
         json.dump(fig_data, handle)
 
 
-def plot_calibration(data, stdc, ecut):
+def plot_calibration(data, stdc, ecut, save='.'):
     '''
     Plot the calibration data.
 
@@ -309,6 +309,7 @@ def plot_calibration(data, stdc, ecut):
         data = A list of calibration data dictionaries.
         stdc = Calibrated STDEV point deviating from ideal.
         ecut = Max error in error cutoff from CV.
+        save = The top directory to save data.
 
     outputs:
         fig = The figure object.
@@ -381,15 +382,15 @@ def plot_calibration(data, stdc, ecut):
         ax[i].set_aspect('equal')
         ax[i].axvline(stdc, linestyle=':', color='r', label=r'$\sigma_{c}$')
 
-    save = 'figures/calibration/'
+    save = os.path.join(*['figures', save, 'calibration'])
     os.makedirs(save, exist_ok=True)
-    fig.savefig(save+'calibration.png')
+    fig.savefig(os.path.join(save, 'calibration.png'))
     pl.close('all')
-    with open(save+'calibration.json', 'w') as handle:
+    with open(os.path.join(save, 'calibration.json'), 'w') as handle:
         json.dump(fig_data, handle)
 
 
-def plot_score(data, stdc, ecut):
+def plot_score(data, stdc, ecut, save='.'):
     '''
     Plot the error in erros versus the dissimilarity metric.
 
@@ -397,6 +398,7 @@ def plot_score(data, stdc, ecut):
         data = A list of calibration data dictionaries.
         stdc = Calibrated STDEV point deviating from ideal.
         ecut = Max error in error cutoff from CV.
+        save = The top directory to save data.
     '''
 
     fig_data = []
@@ -422,7 +424,6 @@ def plot_score(data, stdc, ecut):
                       y[indx],
                       marker=marker,
                       color=color,
-                      label=str(i['set'])+'_'+str(i['domain'])+'_'+str(i['run'])
                       )
         ax[j].scatter(
                       x[~indx],
@@ -462,22 +463,31 @@ def plot_score(data, stdc, ecut):
         ax[i].set_xlabel(r'GPR $\sigma$')
         ax[i].axhline(ecut, linestyle=':', color='r', label=r'$E_{c}$')
 
-    save = 'figures/error_in_error/'
+    save = os.path.join(*['figures', save, 'error_in_error'])
     os.makedirs(save, exist_ok=True)
-    fig.savefig(save+'error_in_error.png')
+    fig.savefig(os.path.join(save, 'error_in_error.png'))
     pl.close('all')
-    with open(save+'error_in_error.json', 'w') as handle:
+    with open(os.path.join(save, 'error_in_error.json'), 'w') as handle:
         json.dump(fig_data, handle)
 
 
-def plot_confusion(y_true, score, counts, stdcal, stdc, thresh, name):
+def plot_confusion(
+                   y_true,
+                   score,
+                   counts,
+                   stdcal,
+                   stdc,
+                   thresh,
+                   name,
+                   save='.',
+                   ):
     '''
     Confusion matrix based on threshold choice.
 
     inputs:
-        data = A list of calibration data dictionaries.
         stdc = Calibrated STDEV point deviating from ideal.
-        ecut = Max error in error cutoff from CV.
+        name = The name of plot.
+        save = The top directory to save data.
     '''
 
     fig, ax = pl.subplots()
@@ -503,12 +513,26 @@ def plot_confusion(y_true, score, counts, stdcal, stdc, thresh, name):
         y_pred_mod += [j]*k
 
     conf = metrics.confusion_matrix(y_true_mod, y_pred_mod)
+
+    # In case only one class exists
+    if conf.shape == (1, 1):
+
+        t = list(set(y_true_mod))[0]
+        p = list(set(y_pred_mod))[0]
+
+        if (t == p) and (t == 0):
+            conf = np.array([[conf[0, 0], 0], [0, 0]])
+        elif (t == p) and (t == 1):
+            conf = np.array([[0, 0], [0, conf[0, 0]]])
+        else:
+            raise 'You done fucked up boi!'
+
     disp = metrics.ConfusionMatrixDisplay(conf, display_labels=['OD', 'ID'])
     disp.plot()
     fig_data = conf.tolist()
 
-    disp.figure_.savefig(name+'_confusion.png')
-    with open(name+'_confusion'+'.json', 'w') as handle:
+    disp.figure_.savefig(os.path.join(save, name+'_confusion.png'))
+    with open(os.path.join(save, name+'_confusion'+'.json'), 'w') as handle:
         json.dump(fig_data, handle)
 
 
@@ -521,11 +545,16 @@ def pr_sub(
            scores,
            counts,
            title,
-           stdc
+           stdc,
+           save='.',
            ):
     '''
     Precision recall cruve.
     '''
+
+    recall = recall.astype(float)
+    precision = precision.astype(float)
+    thresholds = thresholds.astype(float)
 
     baseline = sum(y_true)/len(y_true)
     auc_score = metrics.auc(recall, precision)
@@ -573,14 +602,13 @@ def pr_sub(
                 'thresholds': thresholds.tolist(),
                 }
 
-    save = 'figures/pr/'
+    save = os.path.join(*['figures', save, 'pr'])
     os.makedirs(save, exist_ok=True)
 
-    name = save+title
     if stdc is None:
-        name += '_STDc_None'
+        title += '_STDc_None'
     else:
-        name += '_STDc_on'
+        title += '_STDc_on'
 
     plot_confusion(
                    y_true,
@@ -589,7 +617,8 @@ def pr_sub(
                    stdcal,
                    stdc,
                    max_f1_thresh,
-                   name+'_max_F1'
+                   title+'_max_F1',
+                   save,
                    )
     plot_confusion(
                    y_true,
@@ -598,12 +627,13 @@ def pr_sub(
                    stdcal,
                    stdc,
                    max_auc_thresh,
-                   name+'_max_auc'
+                   title+'_max_auc',
+                   save,
                    )
 
-    fig.savefig(name+'.png')
+    fig.savefig(os.path.join(save, title+'.png'))
     pl.close('all')
-    with open(name+'.json', 'w') as handle:
+    with open(os.path.join(save, title+'.json'), 'w') as handle:
         json.dump(fig_data, handle)
 
 
@@ -703,7 +733,7 @@ def precision_recall_curve(
     return precision, recall, thresholds
 
 
-def plot_pr(data, stdc):
+def plot_pr(data, stdc, save='.'):
     '''
     Plot precision recall curve.
 
@@ -762,10 +792,17 @@ def plot_pr(data, stdc):
            pr['te_counts'],
            'Test ID as +',
            stdc,
+           save=save
            )
 
 
-def calc(bins=10, control='quantiles', dist='gpr_std', perc_stdc=70, perc_ecut=95):
+def calc(
+         bins=10,
+         control='quantiles',
+         dist='gpr_std',
+         perc_stdc=70,
+         perc_ecut=95
+         ):
     '''
     The general workflow.
     '''
@@ -810,17 +847,17 @@ def calc(bins=10, control='quantiles', dist='gpr_std', perc_stdc=70, perc_ecut=9
     domain_pred(data, ecut, stdc)
 
     # Make plots
-    plot_qq(df)
-    plot_calibration(data, stdc, ecut)
-    plot_score(data, stdc, ecut)
-    plot_pr(data, stdc=None)
-    plot_pr(data, stdc)
+    plot_qq(df, save='total')
+    plot_calibration(data, stdc, ecut, save='total')
+    plot_score(data, stdc, ecut, save='total')
+    plot_pr(data, stdc=None, save='total')
+    plot_pr(data, stdc, save='total')
 
     # Now do per chemical grouping
     chem = df[df['run'] == 'chemical']
     for i in set(chem['domain'].values):
 
-        sub = chem[chem['domain'] == i]
+        sub = chem[chem['domain'] == i]  # Sub selection
 
         # Grab quantile data for each set of runs
         group = sub.groupby([
@@ -831,15 +868,21 @@ def calc(bins=10, control='quantiles', dist='gpr_std', perc_stdc=70, perc_ecut=9
                              'marker'
                              ], sort=False)
 
-        data = parallel(quantiles, group, bins=bins, std_y=std_y, control=control)
+        data = parallel(
+                        quantiles,
+                        group,
+                        bins=bins,
+                        std_y=std_y,
+                        control=control
+                        )
 
         # Grab ground truth from validation sets and assign class
         ecut, stdc = ground_truth(data, perc_stdc, perc_ecut)
         domain_pred(data, ecut, stdc)
 
         # Make plots
-        plot_qq(df)
-        plot_calibration(data, stdc, ecut)
-        plot_score(data, stdc, ecut)
-        plot_pr(data, stdc=None)
-        plot_pr(data, stdc)
+        plot_qq(df, save=i)
+        plot_calibration(data, stdc, ecut, save=i)
+        plot_score(data, stdc, ecut, save=i)
+        plot_pr(data, stdc=None, save=i)
+        plot_pr(data, stdc, save=i)
