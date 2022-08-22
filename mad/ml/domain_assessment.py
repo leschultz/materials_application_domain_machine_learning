@@ -884,7 +884,7 @@ def calc(
 
         # Make plots
         name = os.path.join('group', i)
-        plot_qq(df, save=name)
+        plot_qq(sub, save=name)
         plot_calibration(data, stdc, ecut, save=name)
         plot_score(data, stdc, ecut, save=name)
         plot_pr(data, stdc=None, save=name)
