@@ -817,6 +817,8 @@ def calc(
     df['marker'] = '.'
     for group, c in zip(df.groupby(['run', 'domain']), cc):
         group, values = group
+        print(group)
+        print(values)
         indx = (df['run'] == group[0]) & (df['domain'] == group[1])
         df['color'].loc[indx] = c['color']
         df['marker'].loc[indx] = c['marker']
@@ -856,9 +858,11 @@ def calc(
     # Now do per chemical grouping
     chem = df[df['run'] == 'chemical']
     rand = df[df['run'] == 'random']
+    rand['color'] = 'b'
     for i in set(chem['domain'].values):
 
         sub = chem[chem['domain'] == i]  # Sub selection
+        sub['color'] = 'r'
         sub = pd.concat([sub, rand])  # Need data from random sampling
 
         # Grab quantile data for each set of runs
