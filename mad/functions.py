@@ -13,7 +13,6 @@ def parallel(func, x, *args, **kwargs):
     Run some function in parallel.
     '''
 
-    pool = Pool(os.cpu_count())
     part_func = partial(func, *args, **kwargs)
     with Pool(os.cpu_count()) as pool:
         data = list(tqdm(
