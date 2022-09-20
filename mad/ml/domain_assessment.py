@@ -89,7 +89,10 @@ def quantiles(groups, bins=100, std_y=1, control='points'):
             }
 
     if bins > 1:
-        values['bin'] = pd.qcut(values['stdcal'], subbins)  # Quantile split
+        values['bin'] = pd.qcut(
+                                values['stdcal'].rank(method='first'),
+                                subbins
+                                )  # Quantile split
 
         for subgroup, subvalues in values.groupby('bin'):
 
@@ -817,8 +820,6 @@ def calc(
     df['marker'] = '.'
     for group, c in zip(df.groupby(['run', 'domain']), cc):
         group, values = group
-        print(group)
-        print(values)
         indx = (df['run'] == group[0]) & (df['domain'] == group[1])
         df['color'].loc[indx] = c['color']
         df['marker'].loc[indx] = c['marker']
