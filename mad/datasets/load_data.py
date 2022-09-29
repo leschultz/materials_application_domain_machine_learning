@@ -60,48 +60,12 @@ def super_cond():
 
     # Dataset information
     df = 'Supercon_data_features_selected.xlsx'
-    target = 'ln(Tc)'
+    target = 'Tc'
     class_name = 'group'
     drop_cols = [
                  'name',
                  'group',
-                 'Tc',
-                 ]
-
-    return load(df, target, drop_cols, class_name)
-
-
-def super_cond_train():
-    '''
-    Load the super conductor data set.
-    '''
-
-    # Dataset information
-    df = 'Supercon_data_features_selected_train_subset.csv'
-    target = 'ln(Tc)'
-    class_name = 'group'
-    drop_cols = [
-                 'name',
-                 'group',
-                 'Tc',
-                 ]
-
-    return load(df, target, drop_cols, class_name)
-
-
-def super_cond_test():
-    '''
-    Load the super conductor data set.
-    '''
-
-    # Dataset information
-    df = 'Supercon_data_features_selected_test_subset.csv'
-    target = 'ln(Tc)'
-    class_name = 'group'
-    drop_cols = [
-                 'name',
-                 'group',
-                 'Tc',
+                 'ln(Tc)',
                  ]
 
     return load(df, target, drop_cols, class_name)
@@ -114,68 +78,14 @@ def diffusion():
 
     # Dataset information
     df = 'Diffusion_Data.csv'
-    target = 'E_regression'
+    target = 'E_regression_shift'
     class_name = 'group'
     drop_cols = [
                  'Material compositions 1',
                  'Material compositions 2',
-                 'E_regression_shift',
+                 'E_regression',
                  'group'
                  ]
-
-    return load(df, target, drop_cols, class_name)
-
-
-def diffusion_train():
-    '''
-    Load the diffusion data set.
-    '''
-
-    # Dataset information
-    df = 'Diffusion_Data_train_subset.csv'
-    target = 'E_regression'
-    class_name = 'group'
-    drop_cols = [
-                 'Material compositions 1',
-                 'Material compositions 2',
-                 'E_regression_shift',
-                 'group'
-                 ]
-
-    return load(df, target, drop_cols, class_name)
-
-
-def diffusion_test():
-    '''
-    Load the diffusion data set.
-    '''
-
-    # Dataset information
-    df = 'Diffusion_Data_test_subset.csv'
-    target = 'E_regression'
-    class_name = 'group'
-    drop_cols = [
-                 'Material compositions 1',
-                 'Material compositions 2',
-                 'E_regression_shift',
-                 'group'
-                 ]
-
-    return load(df, target, drop_cols, class_name)
-
-
-def sigmoid(n):
-    '''
-    Load the sigmoid data set.
-        inputs:
-            n = The sigmoid number which has different class splits.
-    '''
-
-    # Dataset information
-    df = 'sigmoid{}.csv'.format(n)
-    target = 'y'
-    class_name = 'class_name'
-    drop_cols = ['class_name']
 
     return load(df, target, drop_cols, class_name)
 

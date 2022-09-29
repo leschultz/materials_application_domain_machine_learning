@@ -1,6 +1,4 @@
-from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
-from sklearn.cluster import estimate_bandwidth
-from sklearn.neighbors import KernelDensity
+from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.utils import resample
 
 import pandas as pd

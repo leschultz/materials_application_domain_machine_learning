@@ -56,22 +56,6 @@ def set_llh(std, y, y_pred, x, func):
     return params
 
 
-def chunck(x, n, mode='points'):
-    '''
-    Devide x data into n sized bins.
-    '''
-
-    if mode == 'points':
-        size = len(x)
-        n = size//n
-
-    for i in range(0, len(x), n):
-
-        x_new = x[i:i+n]
-        if len(x_new) == n:
-            yield x_new
-
-
 # Polynomial given coefficients
 def poly(c, std):
     total = 0.0
