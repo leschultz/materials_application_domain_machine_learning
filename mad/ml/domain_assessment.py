@@ -4,7 +4,6 @@ from matplotlib import pyplot as pl
 from functools import partial
 from sklearn import metrics
 from cycler import cycler
-from pathlib import Path
 from tqdm import tqdm
 
 from mad.functions import parallel
@@ -44,23 +43,6 @@ cc = (
                      ]
              )
       )
-
-
-def find(where, pattern):
-    '''
-    Function to find matching files.
-
-    inputs:
-        where = The top diretory to look for files.
-        pattern = The pattern for files to look for.
-
-    outputs:
-        paths = A list of paths of files found.
-    '''
-
-    paths = list(map(str, Path(where).rglob(pattern)))
-
-    return paths
 
 
 def quantiles(groups, bins=100, std_y=1, control='points'):
@@ -800,8 +782,8 @@ def plot_pr(data, stdc, save='.'):
 
 
 def calc(
-         bins=10,
-         control='quantiles',
+         bins=1,
+         control='points',
          dist='gpr_std',
          perc_stdc=70,
          perc_ecut=95

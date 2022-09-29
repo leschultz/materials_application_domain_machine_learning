@@ -1,11 +1,29 @@
 from pathos.multiprocessing import ProcessingPool as Pool
 from scipy.optimize import minimize
 from functools import partial
+from pathlib import Path
 from tqdm import tqdm
 
 import numpy as np
 import sys
 import os
+
+
+def find(where, pattern):
+    '''
+    Function to find matching files.
+
+    inputs:
+        where = The top diretory to look for files.
+        pattern = The pattern for files to look for.
+
+    outputs:
+        paths = A list of paths of files found.
+    '''
+
+    paths = list(map(str, Path(where).rglob(pattern)))
+
+    return paths
 
 
 def parallel(func, x, *args, **kwargs):

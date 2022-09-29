@@ -5,7 +5,7 @@ import os
 data_path = pkg_resources.resource_filename('mad', 'datasets/data')
 
 
-def load(df, target, drop_cols=None, class_name=None):
+def load(df, target, drop_cols=None, class_name=None, n=None, frac=None):
     '''
     Returns data for regression task
     '''
@@ -17,6 +17,12 @@ def load(df, target, drop_cols=None, class_name=None):
         df = pd.read_csv(path)
     else:
         df = pd.read_excel(path, engine='openpyxl')
+
+    # Sub sample for testing
+    if n:
+        df = df.sample(n)
+    elif frac:
+        df = df.sample(frac=frac)
 
     if class_name:
         data['class_name'] = df[class_name].values
@@ -41,7 +47,7 @@ def load(df, target, drop_cols=None, class_name=None):
     return data
 
 
-def friedman():
+def friedman(**kwargs):
     '''
     Load the Friedman dataset.
     '''
@@ -50,10 +56,10 @@ def friedman():
     df = 'friedman_data.csv'
     target = 'y'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def super_cond():
+def super_cond(**kwargs):
     '''
     Load the super conductor data set.
     '''
@@ -68,10 +74,10 @@ def super_cond():
                  'ln(Tc)',
                  ]
 
-    return load(df, target, drop_cols, class_name)
+    return load(df, target, drop_cols, class_name, **kwargs)
 
 
-def diffusion():
+def diffusion(**kwargs):
     '''
     Load the diffusion data set.
     '''
@@ -87,10 +93,10 @@ def diffusion():
                  'group'
                  ]
 
-    return load(df, target, drop_cols, class_name)
+    return load(df, target, drop_cols, class_name, **kwargs)
 
 
-def perovskite_stability():
+def perovskite_stability(**kwargs):
     '''
     Load the perovskite stability dataset.
     '''
@@ -98,10 +104,10 @@ def perovskite_stability():
     df = 'Perovskite_stability_Wei_updated_forGlenn.xlsx'
     target = 'EnergyAboveHull'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def electromigration():
+def electromigration(**kwargs):
     '''
     Load the electronmigration dataset.
     '''
@@ -109,10 +115,10 @@ def electromigration():
     df = 'Dataset_electromigration.xlsx'
     target = 'Effective_charge_regression'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def thermal_conductivity():
+def thermal_conductivity(**kwargs):
     '''
     Load the thermal conductivity dataset.
     '''
@@ -120,10 +126,10 @@ def thermal_conductivity():
     df = 'citrine_thermal_conductivity_simplified.xlsx'
     target = 'log(k)'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def dielectric_constant():
+def dielectric_constant(**kwargs):
     '''
     Load the dielectric constant dataset.
     '''
@@ -131,10 +137,10 @@ def dielectric_constant():
     df = 'dielectric_constant_simplified.xlsx'
     target = 'log(poly_total)'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def double_perovskites_gap():
+def double_perovskites_gap(**kwargs):
     '''
     Load the double perovskie gap dataset.
     '''
@@ -142,10 +148,10 @@ def double_perovskites_gap():
     df = 'double_perovskites_gap.xlsx'
     target = 'gap gllbsc'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def perovskites_opband():
+def perovskites_opband(**kwargs):
     '''
     Load the perovskie ipband dataset.
     '''
@@ -153,10 +159,10 @@ def perovskites_opband():
     df = 'Dataset_Perovskite_Opband_simplified.xlsx'
     target = 'O pband (eV) (GGA)'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def elastic_tensor():
+def elastic_tensor(**kwargs):
     '''
     Load the elastic tensor dataset.
     '''
@@ -164,10 +170,10 @@ def elastic_tensor():
     df = 'elastic_tensor_2015_simplified.xlsx'
     target = 'log(K_VRH)'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def heusler_magnetic():
+def heusler_magnetic(**kwargs):
     '''
     Load the heussler magnetic dataset.
     '''
@@ -175,10 +181,10 @@ def heusler_magnetic():
     df = 'heusler_magnetic_simplified.xlsx'
     target = 'mu_b saturation'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def piezoelectric_tensor():
+def piezoelectric_tensor(**kwargs):
     '''
     Load the piezoelectric tensor data.
     '''
@@ -186,10 +192,10 @@ def piezoelectric_tensor():
     df = 'piezoelectric_tensor.xlsx'
     target = 'log(eij_max)'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
 
 
-def steel_yield_strength():
+def steel_yield_strength(**kwargs):
     '''
     Load the steel yield strenght dataset.
     '''
@@ -197,4 +203,4 @@ def steel_yield_strength():
     df = 'steel_strength_simplified.xlsx'
     target = 'yield strength'
 
-    return load(df, target)
+    return load(df, target, **kwargs)
