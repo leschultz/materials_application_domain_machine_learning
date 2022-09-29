@@ -6,7 +6,7 @@ from sklearn import metrics
 from cycler import cycler
 from tqdm import tqdm
 
-from mad.functions import parallel
+from mad.functions import parallel, find
 
 import pandas as pd
 import numpy as np
