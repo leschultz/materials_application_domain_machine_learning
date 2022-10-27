@@ -2,7 +2,11 @@ from sklearn.model_selection import RepeatedKFold
 from mad.functions import parallel
 from sklearn.base import clone
 
+import pandas as pd
 import numpy as np
+
+import random
+import os
 
 
 class NestedCV:
@@ -23,7 +27,11 @@ class NestedCV:
         The groups of data to be split.
     '''
 
-    def __init__(self, X, y, g=None, splitter=RepeatedKFold()):
+    def __init__(self, X, y, g=None, splitter=RepeatedKFold(), seed=64064):
+
+        np.random.seed(seed)
+        random.seed(seed)
+        os.environ['PYTHONHASHSEED'] = str(seed)
 
         self.X = X  # Features
         self.y = y  # Target
@@ -38,8 +46,11 @@ class NestedCV:
     def split(self, X, y, g, splitter):
 
         # Train, test splits
+        count = -1
         for split in splitter.split(X, y, g):
-            yield split
+            train, test = split
+            count += 1
+            yield (train, test, count)
 
     def transforms(self, X_train, y_train, X_test, gs_model):
 
@@ -53,7 +64,7 @@ class NestedCV:
 
     def fit(self, split, gs_model, uq_model, ds_model):
 
-        train, test = split  # train/test
+        train, test, count = split  # train/test
 
         # Fit grid search
         gs_model.fit(self.X[train], self.y[train])
@@ -68,7 +79,6 @@ class NestedCV:
                                         self.g[train],
                                         ):
 
-
             cv_model = clone(gs_model)
             cv_model.fit(self.X[train][tr], self.y[train][tr])
 
@@ -81,7 +91,6 @@ class NestedCV:
                                                   cv_model,
                                                   )
                 std.append(i.predict(X_test))
-
 
             y_cv_pred = np.append(
                                   y_cv_pred,
@@ -122,6 +131,10 @@ class NestedCV:
         data['y_pred'] = y_pred
         data['y_std'] = y_std
         data['dist'] = dist
+        data['index'] = test
+
+        data = pd.DataFrame(data)
+        data['fold'] = count
 
         return data
 
@@ -143,4 +156,5 @@ class NestedCV:
                         ds_model=ds_model,
                         )
 
+        data = pd.concat(data)
         print(data)
