@@ -46,7 +46,8 @@ def main():
     gs_model = GridSearchCV(pipe, grid, cv=splitter)
 
     spl = NestedCV(X, y, g, splitter)
-    spl = spl.predict(gs_model, uq_model, ds_model)
+    spl.predict(gs_model, uq_model, ds_model, save='random')
+    spl.build_model(gs_model, uq_model, ds_model, save='random')
 
 if __name__ == '__main__':
     main()
