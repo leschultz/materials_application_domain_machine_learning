@@ -14,7 +14,7 @@ from mad.models.uq import ensemble_model
 def main():
 
     # Load data
-    data = load_data.diffusion(frac=0.05)
+    data = load_data.diffusion(frac=1)
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -43,11 +43,11 @@ def main():
                            #('select', selector),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=splitter)
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=10))
 
     spl = NestedCV(X, y, g, splitter)
-    spl.predict(gs_model, uq_model, ds_model, save='random')
-    spl.build_model(gs_model, uq_model, ds_model, save='random')
+    spl.assess(gs_model, uq_model, ds_model, save='random')
+    spl.save_model(gs_model, uq_model, ds_model, save='random')
 
 if __name__ == '__main__':
     main()

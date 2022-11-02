@@ -8,6 +8,49 @@ import numpy as np
 import copy
 import os
 
+ensemble_methods = [
+                    'RandomForestRegressor',
+                    'BaggingRegressor',
+                    ]
+
+
+class build_model:
+
+    def __init__(self, gs_model, ds_model, uq_model):
+        self.gs_model = gs_model
+        self.ds_model = ds_model
+        self.uq_model = uq_model
+
+    def fit(self, X, y):
+
+        # Build the model
+        self.gs_model.fit(X, y)
+        self.ds_model.fit(X, y)
+
+        # Do cross validation in nested loop
+        data_cv = self.cv(
+                          self.gs_model,
+                          self.ds_model,
+                          np.arange(y.shape[0])
+                          )
+
+        # Fit on hold out data
+        sef.uq_model.fit(
+                         data_cv['y'],
+                         data_cv['y_pred'],
+                         data_cv['y_std']
+                         )
+
+    def predict(self, X):
+
+        # Model predictions
+        y_pred = self.gs_model.predict(self.X)
+        y_std = self.std_pred(gs_model, self.X)
+        y_std = self.uq_model.predict(y_std)  # Calibrate hold out
+        dist = ds_model.predict(self.X)
+
+        return y_pred, y_std, dist
+
 
 class NestedCV:
 
@@ -57,24 +100,40 @@ class NestedCV:
             count += 1
             yield (train, test, count)
 
-    def transforms(self, X_train, y_train, X_test, gs_model):
+    def transforms(self, gs_model, X_train=None, X_test=None):
 
         for step in list(gs_model.best_estimator_.named_steps)[:-1]:
 
             step = gs_model.best_estimator_.named_steps[step]
-            X_train = step.transform(X_train)
-            X_test = step.transform(X_test)
 
-        return X_train, X_test
+            if X_train is not None:
+                X_train = step.transform(X_train)
+                return X_train
+            elif X_test is not None:
+                X_test = step.transform(X_test)
+                return X_test
+            else:
+                X_train = step.transform(X_train)
+                X_test = step.transform(X_test)
+                return X_train, X_test
 
-    def fit(self, split, gs_model, uq_model, ds_model):
+    def std_pred(self, gs_model, X_test):
+        std = []
+        estimators = gs_model.best_estimator_
+        estimators = estimators.named_steps['model']
+        estimators = estimators.estimators_
+        X_test = self.transforms(
+                                 gs_model,
+                                 X_test=X_test,
+                                 )
+        for i in estimators:
+            std.append(i.predict(X_test))
 
-        train, test, count = split  # train/test
+        std = np.std(std, axis=0)
+        return std
 
-        # Fit grid search
-        gs_model.fit(self.X[train], self.y[train])
+    def cv(self, gs_model, ds_model, train):
 
-        # Inner fold
         y_cv = []
         y_cv_pred = []
         y_cv_std = []
@@ -92,18 +151,7 @@ class NestedCV:
             gs_model_cv.fit(self.X[train][tr], self.y[train][tr])
             ds_model_cv.fit(self.X[train][tr], self.y[train][tr])
 
-            std = []
-            estimators = gs_model_cv.best_estimator_
-            estimators = estimators.named_steps['model']
-            estimators = estimators.estimators_
-            for i in estimators:
-                X_train, X_test = self.transforms(
-                                                  self.X[train][tr],
-                                                  self.y[train][tr],
-                                                  self.X[train][te],
-                                                  gs_model_cv,
-                                                  )
-                std.append(i.predict(X_test))
+            std = self.std_pred(gs_model, self.X[train][te])
 
             y_cv_pred = np.append(
                                   y_cv_pred,
@@ -112,7 +160,7 @@ class NestedCV:
 
             y_cv_std = np.append(
                                  y_cv_std,
-                                 np.std(std, axis=0)
+                                 std
                                  )
             y_cv = np.append(
                              y_cv,
@@ -120,32 +168,48 @@ class NestedCV:
                              )
 
             index_cv = np.append(index_cv, train[te])
-
             dist_cv = np.append(
                                 dist_cv,
                                 ds_model_cv.predict(self.X[train][te])
                                 )
 
-        # Model fitting
+            data = {}
+            data['y'] = y_cv
+            data['y_pred'] = y_cv_pred
+            data['y_std'] = y_cv_std
+            data['dist'] = dist_cv
+            data['index'] = index_cv
+
+            return data
+
+    def fit(self, split, gs_model, uq_model, ds_model):
+
+        train, test, count = split  # train/test
+
+        # Fit models
+        gs_model.fit(self.X[train], self.y[train])
         ds_model.fit(self.X[train], self.y[train])
-        uq_model.fit(y_cv, y_cv_pred, y_cv_std)
+
+        # Do cross validation in nested loop
+        data_cv = self.cv(
+                          gs_model,
+                          ds_model,
+                          train
+                          )
+
+        # Fit on hold out data
+        uq_model.fit(
+                     data_cv['y'],
+                     data_cv['y_pred'],
+                     data_cv['y_std']
+                     )
 
         # Model predictions
-        y_std = []
-        for i in gs_model.best_estimator_.named_steps['model'].estimators_:
-            X_train, X_test = self.transforms(
-                                              self.X[train],
-                                              self.y[train],
-                                              self.X[test],
-                                              gs_model,
-                                              )
-            y_std.append(i.predict(X_test))
-        y_std = np.std(y_std, axis=0)
-
         y_pred = gs_model.predict(self.X[test])
+        y_std = self.std_pred(gs_model, self.X[test])
+        y_std = uq_model.predict(y_std)  # Calibrate hold out
+        y_cv_std = uq_model.predict(data_cv['y_std'])  # Calibrate CV
         dist = ds_model.predict(self.X[test])
-        y_std = uq_model.predict(y_std)
-        y_cv_std = uq_model.predict(y_cv_std)
 
         data_test = pd.DataFrame()
         data_test['y'] = self.y[test]
@@ -156,12 +220,8 @@ class NestedCV:
         data_test['fold'] = count
         data_test['split'] = 'test'
 
-        data_cv = pd.DataFrame()
-        data_cv['y'] = y_cv
-        data_cv['y_pred'] = y_cv_pred
-        data_cv['y_std'] = y_cv_std
-        data_cv['dist'] = dist_cv
-        data_cv['index'] = index_cv
+        data_cv = pd.DataFrame(data_cv)
+        data_cv['y_std'] = y_cv_std  # Replace with calibrated STD
         data_cv['fold'] = count
         data_cv['split'] = 'cv'
 
@@ -170,12 +230,12 @@ class NestedCV:
 
         return data
 
-    def build_model(self, gs_model, uq_model, ds_model, save='.'):
+    def save_model(self, gs_model, uq_model, ds_model, save='.'):
         '''
         Build one model on all data.
         '''
 
-        # Make object to build model for prediction, uq, and domain
+        # Build the model
 
         # Save data used for fitting model
         original_loc = os.path.join(save, 'model')
@@ -192,9 +252,8 @@ class NestedCV:
                                                  original_loc,
                                                  'g.csv'
                                                  ), index=False)
-        return
 
-    def predict(self, gs_model, uq_model, ds_model, save='.'):
+    def assess(self, gs_model, uq_model, ds_model, save='.'):
 
         print('Assessing splits with ML pipeline: {}'.format(save))
         data = parallel(
