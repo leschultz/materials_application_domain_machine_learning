@@ -14,7 +14,7 @@ from mad.models.uq import ensemble_model
 def main():
 
     # Load data
-    data = load_data.diffusion(frac=0.1)
+    data = load_data.diffusion(frac=1)
     df = data['frame']
     X = data['data']
     y = data['target']

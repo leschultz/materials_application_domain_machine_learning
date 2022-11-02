@@ -1,5 +1,7 @@
 from sklearn.model_selection import RepeatedKFold
-from mad.functions import parallel
+from mad.stats.group import stats, group_metrics
+from mad.utils import parallel
+from mad.plots import parity
 from sklearn.base import clone
 
 import pandas as pd
@@ -10,22 +12,13 @@ import dill
 import os
 
 
-def transforms(gs_model, X_train=None, X_test=None):
+def transforms(gs_model, X):
 
     for step in list(gs_model.best_estimator_.named_steps)[:-1]:
 
         step = gs_model.best_estimator_.named_steps[step]
-
-        if X_train is not None:
-            X_train = step.transform(X_train)
-            return X_train
-        elif X_test is not None:
-            X_test = step.transform(X_test)
-            return X_test
-        else:
-            X_train = step.transform(X_train)
-            X_test = step.transform(X_test)
-            return X_train, X_test
+        X = step.transform(X)
+        return X
 
 
 def std_pred(gs_model, X_test):
@@ -35,7 +28,7 @@ def std_pred(gs_model, X_test):
     estimators = estimators.estimators_
     X_test = transforms(
                         gs_model,
-                        X_test=X_test,
+                        X_test,
                         )
     for i in estimators:
         std.append(i.predict(X_test))
@@ -251,7 +244,7 @@ class NestedCV:
 
         pd.DataFrame(data_cv).to_csv(os.path.join(
                                                   original_loc,
-                                                  'data_cv.csv'
+                                                  'cv.csv'
                                                   ), index=False)
 
     def assess(self, gs_model, uq_model, ds_model, save='.'):
@@ -267,9 +260,30 @@ class NestedCV:
 
         data = pd.concat(data)
 
+        # Statistics
+        df_stats = stats(data, ['split', 'index'])
+        mets = group_metrics(data, ['split', 'fold'])
+        mets = stats(mets, ['split'])
+
         # Save assessment data
         assessment_loc = os.path.join(save, 'assessment')
         os.makedirs(assessment_loc, exist_ok=True)
+
+        # Plot assessment
+        for i in ['cv', 'test']:
+            subdf = df_stats[df_stats['split'] == i]
+            submets = mets[mets['split'] == i]
+            parity(
+                   submets,
+                   subdf['y_mean'],
+                   subdf['y_pred_mean'],
+                   subdf['y_pred_sem'],
+                   '',
+                   '',
+                   os.path.join(assessment_loc, '{}'.format(i))
+                   )
+
+        # Save csv
         data.to_csv(os.path.join(
                                  assessment_loc,
                                  'assessment.csv'
