@@ -1,7 +1,7 @@
 from sklearn.model_selection import RepeatedKFold
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
-from mad.plots import parity
+from mad.plots import parity, cdf_parity
 from sklearn.base import clone
 
 import pandas as pd
@@ -222,6 +222,7 @@ class NestedCV:
         data_cv = model.fit(self.X, self.y, self.g)
         data_cv['fold'] = 0
         data_cv['split'] = 'cv'
+        data_cv['index'] = data_cv['index'].astype(int)
 
         # Statistics
         df_stats = stats(data_cv, ['split', 'index'])
@@ -232,7 +233,11 @@ class NestedCV:
         original_loc = os.path.join(save, 'model')
         os.makedirs(original_loc, exist_ok=True)
 
-        # Plot assessment
+        # Plot CDF comparison
+        x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
+        cdf_parity(x, save=os.path.join(original_loc, 'cv'))
+
+        # Plot parity
         parity(
                mets,
                df_stats['y_mean'].values,
@@ -286,8 +291,15 @@ class NestedCV:
 
         # Plot assessment
         for i in ['cv', 'test']:
+            subdata = data[data['split'] == i]
             subdf = df_stats[df_stats['split'] == i]
             submets = mets[mets['split'] == i]
+
+            # Plot CDF comparison
+            x = (subdata['y']-subdata['y_pred'])/subdata['y_std']
+            cdf_parity(x, save=os.path.join(assessment_loc,  '{}'.format(i)))
+
+            # Plot parity
             parity(
                    submets,
                    subdf['y_mean'].values,

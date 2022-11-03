@@ -1,7 +1,14 @@
 from matplotlib import pyplot as pl
 
+import numpy as np
+
+import matplotlib
 import json
 import os
+
+# Font styles
+font = {'font.size': 16, 'lines.markersize': 10}
+matplotlib.rcParams.update(font)
 
 
 def parity(
@@ -121,5 +128,78 @@ def parity(
         data['y_pred_sem'] = list(y_pred_sem)
 
     jsonfile = os.path.join(save, 'parity.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
+def cdf_parity(x, save):
+    '''
+    Plot the quantile quantile plot for cummulative distributions.
+    inputs:
+        x = The residuals normalized by the calibrated uncertainties.
+    '''
+
+    os.makedirs(save, exist_ok=True)
+
+    nx = len(x)
+    nz = 100000
+    z = np.random.normal(0, 1, nz)  # Standard normal distribution
+
+    # Need sorting
+    x = sorted(x)
+    z = sorted(z)
+
+    # Cummulative fractions
+    xfrac = np.arange(nx)/(nx-1)
+    zfrac = np.arange(nz)/(nz-1)
+
+    # Interpolation to compare cdf
+    eval_points = sorted(list(set(x+z)))
+    y_pred = np.interp(eval_points, x, xfrac)  # Predicted
+    y = np.interp(eval_points, z, zfrac)  # Standard Normal
+
+    # Area bertween ideal Gaussian and observed
+    area = np.trapz(abs(y_pred-y), x=y, dx=0.00001)
+
+    y_pred = y_pred.tolist()
+    y = y.tolist()
+
+    fig, ax = pl.subplots()
+    ax.plot(
+            y,
+            y_pred,
+            zorder=0,
+            color='b',
+            label='Area: {:.3f}'.format(area)
+            )
+
+    # Line of best fit
+    ax.plot(
+            [0, 1],
+            [0, 1],
+            color='k',
+            linestyle=':',
+            zorder=1,
+            )
+
+    ax.legend()
+    ax.set_ylabel('Predicted CDF')
+    ax.set_xlabel('Standard Normal CDF')
+
+    h = 8
+    w = 8
+
+    fig.set_size_inches(h, w, forward=True)
+    ax.set_aspect('equal')
+    fig.savefig(os.path.join(save, 'cdf_parity.png'))
+
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['x'] = list(y)
+    data['y'] = list(y_pred)
+
+    jsonfile = os.path.join(save, 'cdf_parity.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
