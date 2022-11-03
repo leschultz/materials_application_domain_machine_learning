@@ -114,7 +114,10 @@ def parity(
     ax.set_ylabel('Predicted {} {}'.format(name, units))
     ax.set_xlabel('Actual {} {}'.format(name, units))
 
-    fig.tight_layout()
+    h = 8
+    w = 8
+
+    fig.set_size_inches(h, w, forward=True)
     fig.savefig(os.path.join(save, 'parity.png'))
     pl.close(fig)
 

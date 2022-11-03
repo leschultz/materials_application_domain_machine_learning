@@ -44,10 +44,13 @@ def group_metrics(df, cols):
     return mets
 
 
-def stats(df, cols):
+def stats(df, cols, drop=None):
     '''
     Get the statistic of a dataframe.
     '''
+
+    if drop:
+        df.drop(drop, axis=1, inplace=True)
 
     groups = df.groupby(cols)
     mean = groups.mean().add_suffix('_mean')

@@ -1,9 +1,12 @@
+from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import RepeatedKFold
-from mad.stats.group import stats, group_metrics
-from mad.utils import parallel
-from mad.plots import parity, cdf_parity
 from sklearn.base import clone
 
+from mad.stats.group import stats, group_metrics
+from mad.plots import parity, cdf_parity
+from mad.utils import parallel
+
+import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 
@@ -94,10 +97,12 @@ def cv(gs_model, ds_model, X, y, g, train):
 
 class build_model:
 
-    def __init__(self, gs_model, ds_model, uq_model):
+    def __init__(self, gs_model, ds_model, uq_model, percentile=1.0):
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
+
+        self.percentile = percentile
 
     def fit(self, X, y, g):
 
@@ -125,6 +130,34 @@ class build_model:
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
+        # Define ground truth
+        self.std = np.std(data_cv['y'])
+        absres = abs(data_cv['y']-data_cv['y_pred'])/self.std
+        y_std = data_cv['y_std']/self.std
+
+        # Fit probability density to space
+        vals = np.array([y_std, absres]).T
+        kde = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
+        pdf = kde.pdf(vals)
+
+        # Ground truth
+        self.cut = np.percentile(pdf, self.percentile)
+
+        score = np.exp(-data_cv['dist'])
+        in_domain = pdf > self.cut
+        precision, recall, thresholds = precision_recall_curve(
+                                                               in_domain,
+                                                               score,
+                                                               pos_label=1,
+                                                               )
+
+        num = 2*recall*precision
+        den = recall+precision
+        f1_scores = np.divide(num, den, out=np.zeros_like(den), where=(den != 0))
+        max_f1_thresh = thresholds[np.argmax(f1_scores)]
+
+        self.dist_cut = np.log(1/max_f1_thresh)
+
         return data_cv
 
     def predict(self, X):
@@ -134,8 +167,17 @@ class build_model:
         y_std = std_pred(self.gs_model, X)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X)
+        in_domain = [True if i < self.dist_cut else False for i in dist]
 
-        return y_pred, y_std, dist
+        pred = {
+                'y_pred': y_pred,
+                'y_std': y_std,
+                'dist': dist,
+                'in_domain': in_domain
+                }
+        pred = pd.DataFrame(pred)
+
+        return pred
 
 
 class NestedCV:
@@ -193,14 +235,9 @@ class NestedCV:
         # Fit models
         model = build_model(gs_model, ds_model, uq_model)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
-        preds = model.predict(self.X[test])
-        y_pred, y_std, dist = preds
+        data_test = model.predict(self.X[test])
 
-        data_test = pd.DataFrame()
         data_test['y'] = self.y[test]
-        data_test['y_pred'] = y_pred
-        data_test['y_std'] = y_std
-        data_test['dist'] = dist
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
@@ -219,14 +256,18 @@ class NestedCV:
 
         # Build the model
         model = build_model(gs_model, ds_model, uq_model)
-        data_cv = model.fit(self.X, self.y, self.g)
-        data_cv['fold'] = 0
-        data_cv['split'] = 'cv'
-        data_cv['index'] = data_cv['index'].astype(int)
+        model.fit(self.X, self.y, self.g)
+        data_train = model.predict(self.X)
+        data_train['y'] = self.y
+        data_train['index'] = np.arange(self.y.shape[0])
+        data_train['fold'] = 0
+        data_train['split'] = 'train'
+        data_train['index'] = data_train['index'].astype(int)
 
         # Statistics
-        df_stats = stats(data_cv, ['split', 'index'])
-        mets = group_metrics(data_cv, ['split', 'fold'])
+        print('Assessing CV statistics from data used for fitting')
+        df_stats = stats(data_train, ['split', 'index'], drop=['in_domain'])
+        mets = group_metrics(data_train, ['split', 'fold'])
         mets = stats(mets, ['split'])
 
         # Save location
@@ -234,15 +275,15 @@ class NestedCV:
         os.makedirs(original_loc, exist_ok=True)
 
         # Plot CDF comparison
-        x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
-        cdf_parity(x, save=os.path.join(original_loc, 'cv'))
+        x = (data_train['y']-data_train['y_pred'])/data_train['y_std']
+        cdf_parity(x, save=os.path.join(original_loc, 'train'))
 
         # Plot parity
         parity(
                mets,
                df_stats['y_mean'].values,
                df_stats['y_pred_mean'].values,
-               save=os.path.join(original_loc, 'cv')
+               save=os.path.join(original_loc, 'train')
                )
 
         # Save the model
@@ -262,10 +303,10 @@ class NestedCV:
                                                  'g.csv'
                                                  ), index=False)
 
-        data_cv.to_csv(os.path.join(
-                                    original_loc,
-                                    'cv.csv'
-                                    ), index=False)
+        data_train.to_csv(os.path.join(
+                                       original_loc,
+                                       'train.csv'
+                                       ), index=False)
 
     def assess(self, gs_model, uq_model, ds_model, save='.'):
 
@@ -281,7 +322,8 @@ class NestedCV:
         data = pd.concat(data)
 
         # Statistics
-        df_stats = stats(data, ['split', 'index'])
+        print('Assessing CV and test statistics')
+        df_stats = stats(data, ['split', 'index'], drop=['in_domain'])
         mets = group_metrics(data, ['split', 'fold'])
         mets = stats(mets, ['split'])
 

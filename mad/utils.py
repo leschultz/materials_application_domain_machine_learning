@@ -26,10 +26,13 @@ def find(where, pattern):
     return paths
 
 
-def parallel(func, x, *args, **kwargs):
+def parallel(func, x, message=None, *args, **kwargs):
     '''
     Run some function in parallel.
     '''
+
+    if message:
+        print(message)
 
     part_func = partial(func, *args, **kwargs)
     with Pool(os.cpu_count()) as pool:
