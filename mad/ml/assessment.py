@@ -81,14 +81,15 @@ def cv(gs_model, ds_model, X, y, g, train):
                             ds_model_cv.predict(X[train][te])
                             )
 
-        data = {}
-        data['y'] = y_cv
-        data['y_pred'] = y_cv_pred
-        data['y_std'] = y_cv_std
-        data['dist'] = dist_cv
-        data['index'] = index_cv
+    data = pd.DataFrame()
+    data['y'] = y_cv
+    data['y_pred'] = y_cv_pred
+    data['y_std'] = y_cv_std
+    data['dist'] = dist_cv
+    data['index'] = index_cv
+    data['split'] = 'cv'
 
-        return data
+    return data
 
 
 class build_model:
@@ -204,9 +205,7 @@ class NestedCV:
         data_test['fold'] = count
         data_test['split'] = 'test'
 
-        data_cv = pd.DataFrame(data_cv)
         data_cv['fold'] = count
-        data_cv['split'] = 'cv'
 
         data = pd.concat([data_cv, data_test])
         data['index'] = data['index'].astype(int)
@@ -221,11 +220,27 @@ class NestedCV:
         # Build the model
         model = build_model(gs_model, ds_model, uq_model)
         data_cv = model.fit(self.X, self.y, self.g)
+        data_cv['fold'] = 0
+        data_cv['split'] = 'cv'
 
-        # Save data used for fitting model
+        # Statistics
+        df_stats = stats(data_cv, ['split', 'index'])
+        mets = group_metrics(data_cv, ['split', 'fold'])
+        mets = stats(mets, ['split'])
+
+        # Save location
         original_loc = os.path.join(save, 'model')
         os.makedirs(original_loc, exist_ok=True)
 
+        # Plot assessment
+        parity(
+               mets,
+               df_stats['y_mean'].values,
+               df_stats['y_pred_mean'].values,
+               save=os.path.join(original_loc, 'cv')
+               )
+
+        # Save the model
         dill.dump(model, open(os.path.join(original_loc, 'model.dill'), 'wb'))
 
         # Data
@@ -242,10 +257,10 @@ class NestedCV:
                                                  'g.csv'
                                                  ), index=False)
 
-        pd.DataFrame(data_cv).to_csv(os.path.join(
-                                                  original_loc,
-                                                  'cv.csv'
-                                                  ), index=False)
+        data_cv.to_csv(os.path.join(
+                                    original_loc,
+                                    'cv.csv'
+                                    ), index=False)
 
     def assess(self, gs_model, uq_model, ds_model, save='.'):
 
@@ -265,7 +280,7 @@ class NestedCV:
         mets = group_metrics(data, ['split', 'fold'])
         mets = stats(mets, ['split'])
 
-        # Save assessment data
+        # Save locations
         assessment_loc = os.path.join(save, 'assessment')
         os.makedirs(assessment_loc, exist_ok=True)
 
@@ -275,12 +290,10 @@ class NestedCV:
             submets = mets[mets['split'] == i]
             parity(
                    submets,
-                   subdf['y_mean'],
-                   subdf['y_pred_mean'],
-                   subdf['y_pred_sem'],
-                   '',
-                   '',
-                   os.path.join(assessment_loc, '{}'.format(i))
+                   subdf['y_mean'].values,
+                   subdf['y_pred_mean'].values,
+                   subdf['y_pred_sem'].values,
+                   save=os.path.join(assessment_loc, '{}'.format(i))
                    )
 
         # Save csv

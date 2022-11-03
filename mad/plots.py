@@ -8,10 +8,10 @@ def parity(
            mets,
            y,
            y_pred,
-           y_pred_sem,
-           name,
-           units,
-           save
+           y_pred_sem=None,
+           name='',
+           units='',
+           save='.'
            ):
     '''
     Make a paroody plot.
@@ -28,10 +28,7 @@ def parity(
 
     os.makedirs(save, exist_ok=True)
 
-    print(mets)
-
     mets = mets.to_dict(orient='records')[0]
-    print(mets)
 
     rmse_sigma = mets[r'$RMSE/\sigma$_mean']
     rmse_sigma_sem = mets[r'$RMSE/\sigma$_sem']
@@ -58,18 +55,18 @@ def parity(
     label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
 
     fig, ax = pl.subplots()
-    ax.errorbar(
-                y,
-                y_pred,
-                yerr=y_pred_sem,
-                linestyle='none',
-                marker='.',
-                markerfacecolor='None',
-                zorder=0,
-                label='Data'
-                )
 
-    # For heat map
+    if y_pred_sem is not None:
+        ax.errorbar(
+                    y,
+                    y_pred,
+                    yerr=y_pred_sem,
+                    linestyle='none',
+                    marker='.',
+                    markerfacecolor='None',
+                    zorder=0,
+                    )
+
     ax.scatter(
                y,
                y_pred,
@@ -117,9 +114,11 @@ def parity(
     # Repare plot data for saving
     data = {}
     data['y_pred'] = list(y_pred)
-    data['y_pred_sem'] = list(y_pred_sem)
     data['y'] = list(y)
     data['metrics'] = mets
+
+    if y_pred_sem is not None:
+        data['y_pred_sem'] = list(y_pred_sem)
 
     jsonfile = os.path.join(save, 'parity.json')
     with open(jsonfile, 'w') as handle:
