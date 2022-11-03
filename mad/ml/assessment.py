@@ -145,18 +145,25 @@ class build_model:
 
         score = np.exp(-data_cv['dist'])
         in_domain = pdf > self.cut
+        in_domain = [True if i == 1 else False for i in in_domain]
         precision, recall, thresholds = precision_recall_curve(
                                                                in_domain,
                                                                score,
-                                                               pos_label=1,
+                                                               pos_label=True,
                                                                )
 
         num = 2*recall*precision
         den = recall+precision
-        f1_scores = np.divide(num, den, out=np.zeros_like(den), where=(den != 0))
+        f1_scores = np.divide(
+                              num,
+                              den,
+                              out=np.zeros_like(den), where=(den != 0)
+                              )
         max_f1_thresh = thresholds[np.argmax(f1_scores)]
 
         self.dist_cut = np.log(1/max_f1_thresh)
+
+        data_cv['in_domain'] = in_domain
 
         return data_cv
 
@@ -256,18 +263,15 @@ class NestedCV:
 
         # Build the model
         model = build_model(gs_model, ds_model, uq_model)
-        model.fit(self.X, self.y, self.g)
-        data_train = model.predict(self.X)
-        data_train['y'] = self.y
-        data_train['index'] = np.arange(self.y.shape[0])
-        data_train['fold'] = 0
-        data_train['split'] = 'train'
-        data_train['index'] = data_train['index'].astype(int)
+        data_cv = model.fit(self.X, self.y, self.g)
+        data_cv['fold'] = 0
+        data_cv['split'] = 'cv'
+        data_cv['index'] = data_cv['index'].astype(int)
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        df_stats = stats(data_train, ['split', 'index'], drop=['in_domain'])
-        mets = group_metrics(data_train, ['split', 'fold'])
+        df_stats = stats(data_cv, ['split', 'index'])
+        mets = group_metrics(data_cv, ['split', 'fold'])
         mets = stats(mets, ['split'])
 
         # Save location
@@ -275,15 +279,15 @@ class NestedCV:
         os.makedirs(original_loc, exist_ok=True)
 
         # Plot CDF comparison
-        x = (data_train['y']-data_train['y_pred'])/data_train['y_std']
-        cdf_parity(x, save=os.path.join(original_loc, 'train'))
+        x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
+        cdf_parity(x, save=os.path.join(original_loc, 'cv'))
 
         # Plot parity
         parity(
                mets,
                df_stats['y_mean'].values,
                df_stats['y_pred_mean'].values,
-               save=os.path.join(original_loc, 'train')
+               save=os.path.join(original_loc, 'cv')
                )
 
         # Save the model
@@ -303,10 +307,10 @@ class NestedCV:
                                                  'g.csv'
                                                  ), index=False)
 
-        data_train.to_csv(os.path.join(
-                                       original_loc,
-                                       'train.csv'
-                                       ), index=False)
+        data_cv.to_csv(os.path.join(
+                                    original_loc,
+                                    'train.csv'
+                                    ), index=False)
 
     def assess(self, gs_model, uq_model, ds_model, save='.'):
 
