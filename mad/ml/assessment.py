@@ -108,7 +108,12 @@ class build_model:
 
         # Build the model
         self.gs_model.fit(X, y)
-        self.ds_model.fit(X, y)
+
+        X_trans = transforms(
+                             self.gs_model,
+                             X,
+                             )
+        self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
         data_cv = cv(
@@ -169,11 +174,16 @@ class build_model:
 
     def predict(self, X):
 
+        X_trans = transforms(
+                             self.gs_model,
+                             X,
+                             )
+
         # Model predictions
         y_pred = self.gs_model.predict(X)
         y_std = std_pred(self.gs_model, X)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
-        dist = self.ds_model.predict(X)
+        dist = self.ds_model.predict(X_trans)
         in_domain = [True if i < self.dist_cut else False for i in dist]
 
         pred = {
