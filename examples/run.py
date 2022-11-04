@@ -1,14 +1,16 @@
 from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.cluster import KMeans
 
-from sklearn.model_selection import RepeatedKFold
-from mad.datasets import load_data
-from mad.ml.assessment import NestedCV
 from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
+from mad.ml.assessment import NestedCV
+from mad.datasets import load_data
+from mad.ml import splitters
 
 
 def main():
@@ -19,9 +21,6 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
-
-    # ML Splits    
-    splitter = RepeatedKFold(n_repeats=2)
 
     # ML Distance model
     ds_model = distance_model(dist='gpr_std')
@@ -45,9 +44,30 @@ def main():
                            ])
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
-    spl = NestedCV(X, y, g, splitter)
-    spl.assess(gs_model, uq_model, ds_model, save='random')
-    spl.save_model(gs_model, uq_model, ds_model, save='random')
+    # Types of sampling to test
+    splits = [('random', RepeatedKFold(n_repeats=2))]
+
+    # Chemical splits
+    n_groups = len(set(g))
+    if n_groups > 1:
+        chem_split = ('chemical', splitters.LeaveOneGroupOut())
+        splits.append(chem_split)
+
+    for i in [2, 4]:
+
+        # Cluster Splits
+        top_split = splitters.RepeatedClusterSplit(
+                                                   KMeans,
+                                                   n_repeats=1,
+                                                   n_clusters=i
+                                                   )
+
+        splits.append(('kmeans_{}'.format(i), top_split))
+
+    for i in splits:
+        spl = NestedCV(X, y, g, i[1])
+        spl.assess(gs_model, uq_model, ds_model, save=i[0])
+        spl.save_model(gs_model, uq_model, ds_model, save=i[0])
 
 if __name__ == '__main__':
     main()
