@@ -42,7 +42,7 @@ def main():
                            #('select', selector),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=5))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=2))]
@@ -66,8 +66,8 @@ def main():
 
     for i in splits:
         spl = NestedCV(X, y, g, i[1])
-        spl.assess(gs_model, uq_model, ds_model, save=i[0])
-        spl.save_model(gs_model, uq_model, ds_model, save=i[0])
+        spl.assess(gs_model, uq_model, ds_model, save='runs/'+i[0])
+        spl.save_model(gs_model, uq_model, ds_model, save='runs/'+i[0])
 
 if __name__ == '__main__':
     main()
