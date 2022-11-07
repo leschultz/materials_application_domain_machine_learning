@@ -188,7 +188,7 @@ class build_model:
 
         in_domain_pred = []
         for i in data_cv['dist']:
-            if i< self.dist_cut:
+            if i < self.dist_cut:
                 in_domain_pred.append(True)
             else:
                 in_domain_pred.append(False)
@@ -301,6 +301,52 @@ class NestedCV:
 
         return data
 
+    def plot(self, df, mets, save):
+
+        i, df = df
+        mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
+
+        # Plot ground truth
+        job_name = list(map(str, i))
+        job_name = os.path.join(*[save, job_name[0], job_name[1]])
+        plots.ground_truth(
+                           df['y'],
+                           df['y_pred'],
+                           df['y_std'],
+                           df['in_domain'],
+                           job_name
+                           )
+
+        # Plot prediction time
+        plots.assessment(
+                         df['y_std'],
+                         df['dist'],
+                         df['in_domain'],
+                         job_name
+                         )
+
+        # Precision recall for in domain
+        plots.pr(
+                 df['dist'],
+                 df['in_domain'],
+                 job_name
+                 )
+
+        # Plot CDF comparison
+        x = (df['y']-df['y_pred'])/df['y_std']
+        plots.cdf_parity(
+                         x,
+                         save=job_name
+                         )
+
+        # Plot parity
+        plots.parity(
+                     mets,
+                     df['y'].values,
+                     df['y_pred'].values,
+                     save=job_name
+                     )
+
     def save_model(self, gs_model, uq_model, ds_model, save='.'):
         '''
         Build one model on all data.
@@ -315,59 +361,20 @@ class NestedCV:
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        df_stats = stats(data_cv, ['split', 'index'])
         mets = group_metrics(data_cv, ['split', 'fold'])
-        mets = stats(mets, ['split'])
-
-        _, _, in_domain_cv = ground_truth(
-                                          data_cv['y'],
-                                          data_cv['y_pred'],
-                                          data_cv['y_std'],
-                                          model.percentile,
-                                          prefit=model.kde
-                                          )
-
-        data_cv['in_domain'] = in_domain_cv
 
         # Save location
         original_loc = os.path.join(save, 'model')
         os.makedirs(original_loc, exist_ok=True)
 
-        # Plot ground truth
-        plots.ground_truth(
-                           data_cv['y'],
-                           data_cv['y_pred'],
-                           data_cv['y_std'],
-                           data_cv['in_domain'],
-                           os.path.join(original_loc, 'cv')
-                           )
-
-        # Plot prediction time
-        plots.assessment(
-                         data_cv['y_std'],
-                         data_cv['dist'],
-                         data_cv['in_domain'],
-                         os.path.join(original_loc, 'cv')
-                         )
-
-        # Precision recall for in domain
-        plots.pr(
-                 data_cv['dist'],
-                 data_cv['in_domain'],
-                 os.path.join(original_loc, 'cv')
+        # Plot assessment
+        print('Plotting results for CV splits: {}'.format(save))
+        parallel(
+                 self.plot,
+                 data_cv.groupby(['split', 'fold']),
+                 mets=mets,
+                 save=original_loc
                  )
-
-        # Plot CDF comparison
-        x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
-        plots.cdf_parity(x, save=os.path.join(original_loc, 'cv'))
-
-        # Plot parity
-        plots.parity(
-                     mets,
-                     df_stats['y_mean'].values,
-                     df_stats['y_pred_mean'].values,
-                     save=os.path.join(original_loc, 'cv')
-                     )
 
         # Save the model
         dill.dump(model, open(os.path.join(original_loc, 'model.dill'), 'wb'))
@@ -403,67 +410,23 @@ class NestedCV:
                         )
 
         data = pd.concat(data)
-        print(data)
 
         # Statistics
-        print('Assessing CV and test statistics')
-        df_stats = stats(
-                         data,
-                         ['split', 'index'],
-                         drop=['in_domain_pred', 'in_domain']
-                         )
+        print('Assessing CV statistics from data used for fitting')
         mets = group_metrics(data, ['split', 'fold'])
-        mets = stats(mets, ['split'])
 
         # Save locations
         assessment_loc = os.path.join(save, 'assessment')
         os.makedirs(assessment_loc, exist_ok=True)
 
         # Plot assessment
-        for i in ['cv', 'test']:
-            subdata = data[data['split'] == i]
-            subdf = df_stats[df_stats['split'] == i]
-            submets = mets[mets['split'] == i]
-
-            # Plot ground truth
-            plots.ground_truth(
-                               subdata['y'],
-                               subdata['y_pred'],
-                               subdata['y_std'],
-                               subdata['in_domain'],
-                               os.path.join(assessment_loc, '{}'.format(i))
-                               )
-
-            # Plot prediction time
-            plots.assessment(
-                             subdata['y_std'],
-                             subdata['dist'],
-                             subdata['in_domain'],
-                             os.path.join(assessment_loc, '{}'.format(i))
-                             )
-
-            # Precision recall for in domain
-            plots.pr(
-                     subdata['dist'],
-                     subdata['in_domain'],
-                     os.path.join(assessment_loc, '{}'.format(i))
-                     )
-
-            # Plot CDF comparison
-            x = (subdata['y']-subdata['y_pred'])/subdata['y_std']
-            plots.cdf_parity(
-                             x,
-                             save=os.path.join(assessment_loc, '{}'.format(i))
-                             )
-
-            # Plot parity
-            plots.parity(
-                         submets,
-                         subdf['y_mean'].values,
-                         subdf['y_pred_mean'].values,
-                         subdf['y_pred_sem'].values,
-                         save=os.path.join(assessment_loc, '{}'.format(i))
-                         )
+        print('Plotting results for test and CV splits: {}'.format(save))
+        parallel(
+                 self.plot,
+                 data.groupby(['split', 'fold']),
+                 mets=mets,
+                 save=assessment_loc
+                 )
 
         # Save csv
         data.to_csv(os.path.join(

@@ -39,29 +39,50 @@ def parity(
 
     mets = mets.to_dict(orient='records')[0]
 
-    rmse_sigma = mets[r'$RMSE/\sigma$_mean']
-    rmse_sigma_sem = mets[r'$RMSE/\sigma$_sem']
+    if y_pred_sem is not None:
 
-    rmse = mets[r'$RMSE$_mean']
-    rmse_sem = mets[r'$RMSE$_sem']
+        rmse_sigma = mets[r'$RMSE/\sigma$_mean']
+        rmse_sigma_sem = mets[r'$RMSE/\sigma$_sem']
 
-    mae = mets[r'$MAE$_mean']
-    mae_sem = mets[r'$MAE$_sem']
+        rmse = mets[r'$RMSE$_mean']
+        rmse_sem = mets[r'$RMSE$_sem']
 
-    r2 = mets[r'$R^{2}$_mean']
-    r2_sem = mets[r'$R^{2}$_sem']
+        mae = mets[r'$MAE$_mean']
+        mae_sem = mets[r'$MAE$_sem']
 
-    label = r'$RMSE/\sigma=$'
-    label += r'{:.2} $\pm$ {:.2}'.format(rmse_sigma, rmse_sigma_sem)
-    label += '\n'
-    label += r'$RMSE=$'
-    label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
-    label += '\n'
-    label += r'$MAE=$'
-    label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
-    label += '\n'
-    label += r'$R^{2}=$'
-    label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+        r2 = mets[r'$R^{2}$_mean']
+        r2_sem = mets[r'$R^{2}$_sem']
+
+        label = r'$RMSE/\sigma=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(rmse_sigma, rmse_sigma_sem)
+        label += '\n'
+        label += r'$RMSE=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
+        label += '\n'
+        label += r'$MAE=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
+        label += '\n'
+        label += r'$R^{2}=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+
+    else:
+
+        rmse_sigma = mets[r'$RMSE/\sigma$']
+        rmse = mets[r'$RMSE$']
+        mae = mets[r'$MAE$']
+        r2 = mets[r'$R^{2}$']
+
+        label = r'$RMSE/\sigma=$'
+        label += r'{:.2}'.format(rmse_sigma)
+        label += '\n'
+        label += r'$RMSE=$'
+        label += r'{:.2}'.format(rmse)
+        label += '\n'
+        label += r'$MAE=$'
+        label += r'{:.2}'.format(mae)
+        label += '\n'
+        label += r'$R^{2}=$'
+        label += r'{:.2}'.format(r2)
 
     fig, ax = pl.subplots()
 
