@@ -206,3 +206,62 @@ def cdf_parity(x, save):
     jsonfile = os.path.join(save, 'cdf_parity.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
+
+
+def ground_truth(y, y_pred, y_std, in_domain, save):
+
+    os.makedirs(save, exist_ok=True)
+
+    absres = abs(y-y_pred)
+    out_domain = ~in_domain
+
+    fig, ax = pl.subplots()
+
+    ax.scatter(absres[in_domain], y_std[in_domain], color='g', marker='.')
+    ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='.')
+
+    ax.set_xlabel(r'$|y-\hat{y}|$')
+    ax.set_ylabel(r'$\sigma_{c}$')
+
+    fig.savefig(os.path.join(save, 'ground_truth.png'))
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['x_green'] = list(absres[in_domain])
+    data['y_green'] = list(y_std[in_domain])
+    data['x_red'] = list(absres[out_domain])
+    data['y_red'] = list(y_std[out_domain])
+
+    jsonfile = os.path.join(save, 'ground_truth.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
+def assessment(y_std, dist, in_domain, save):
+
+    os.makedirs(save, exist_ok=True)
+
+    out_domain = ~in_domain
+
+    fig, ax = pl.subplots()
+
+    ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
+    ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='.')
+
+    ax.set_ylabel(r'$\sigma_{c}$')
+    ax.set_xlabel('dist')
+
+    fig.savefig(os.path.join(save, 'assessment.png'))
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['x_green'] = list(dist[in_domain])
+    data['y_green'] = list(y_std[in_domain])
+    data['x_red'] = list(dist[out_domain])
+    data['y_red'] = list(y_std[out_domain])
+
+    jsonfile = os.path.join(save, 'assessment.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)

@@ -50,7 +50,7 @@ def stats(df, cols, drop=None):
     '''
 
     if drop:
-        df.drop(drop, axis=1, inplace=True)
+        df = df.drop(drop, axis=1)
 
     groups = df.groupby(cols)
     mean = groups.mean().add_suffix('_mean')

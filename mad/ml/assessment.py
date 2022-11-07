@@ -3,8 +3,8 @@ from sklearn.model_selection import RepeatedKFold
 from sklearn.base import clone
 
 from mad.stats.group import stats, group_metrics
-from mad.plots import parity, cdf_parity
 from mad.utils import parallel
+from mad import plots
 
 import statsmodels.api as sm
 import pandas as pd
@@ -15,12 +15,35 @@ import dill
 import os
 
 
+def ground_truth(y, y_pred, y_std, percentile=1, prefit=None):
+
+    # Define ground truth
+    absres = abs(y-y_pred)
+
+    # Fit probability density to space
+    vals = np.array([y_std, absres]).T
+
+    if prefit is None:
+        prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
+
+    pdf = prefit.pdf(vals)
+
+    # Ground truth
+    cut = np.percentile(pdf, percentile)
+
+    in_domain_pred = pdf > cut
+    in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
+
+    return cut, prefit, in_domain_pred
+
+
 def transforms(gs_model, X):
 
     for step in list(gs_model.best_estimator_.named_steps)[:-1]:
 
         step = gs_model.best_estimator_.named_steps[step]
         X = step.transform(X)
+
         return X
 
 
@@ -135,24 +158,19 @@ class build_model:
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
-        # Define ground truth
-        self.std = np.std(data_cv['y'])
-        absres = abs(data_cv['y']-data_cv['y_pred'])/self.std
-        y_std = data_cv['y_std']/self.std
+        cut, kde, in_domain_pred = ground_truth(
+                                                data_cv['y'],
+                                                data_cv['y_pred'],
+                                                data_cv['y_std'],
+                                                self.percentile
+                                                )
 
-        # Fit probability density to space
-        vals = np.array([y_std, absres]).T
-        kde = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
-        pdf = kde.pdf(vals)
-
-        # Ground truth
-        self.cut = np.percentile(pdf, self.percentile)
+        self.cut = cut
+        self.kde = kde
 
         score = np.exp(-data_cv['dist'])
-        in_domain = pdf > self.cut
-        in_domain = [True if i == 1 else False for i in in_domain]
         precision, recall, thresholds = precision_recall_curve(
-                                                               in_domain,
+                                                               in_domain_pred,
                                                                score,
                                                                pos_label=True,
                                                                )
@@ -168,7 +186,7 @@ class build_model:
 
         self.dist_cut = np.log(1/max_f1_thresh)
 
-        data_cv['in_domain'] = in_domain
+        data_cv['in_domain_pred'] = in_domain_pred
 
         return data_cv
 
@@ -184,13 +202,13 @@ class build_model:
         y_std = std_pred(self.gs_model, X)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X_trans)
-        in_domain = [True if i < self.dist_cut else False for i in dist]
+        in_domain_pred = [True if i < self.dist_cut else False for i in dist]
 
         pred = {
                 'y_pred': y_pred,
                 'y_std': y_std,
                 'dist': dist,
-                'in_domain': in_domain
+                'in_domain_pred': in_domain_pred
                 }
         pred = pd.DataFrame(pred)
 
@@ -254,12 +272,30 @@ class NestedCV:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
+        _, _, in_domain_test = ground_truth(
+                                            self.y[test],
+                                            data_test['y_pred'],
+                                            data_test['y_std'],
+                                            model.percentile,
+                                            prefit=model.kde
+                                            )
+
+        _, _, in_domain_cv = ground_truth(
+                                          data_cv['y'],
+                                          data_cv['y_pred'],
+                                          data_cv['y_std'],
+                                          model.percentile,
+                                          prefit=model.kde
+                                          )
+
         data_test['y'] = self.y[test]
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
+        data_test['in_domain'] = in_domain_test
 
         data_cv['fold'] = count
+        data_cv['in_domain'] = in_domain_cv
 
         data = pd.concat([data_cv, data_test])
         data['index'] = data['index'].astype(int)
@@ -284,21 +320,48 @@ class NestedCV:
         mets = group_metrics(data_cv, ['split', 'fold'])
         mets = stats(mets, ['split'])
 
+        _, _, in_domain_cv = ground_truth(
+                                          data_cv['y'],
+                                          data_cv['y_pred'],
+                                          data_cv['y_std'],
+                                          model.percentile,
+                                          prefit=model.kde
+                                          )
+
+        data_cv['in_domain'] = in_domain_cv
+
         # Save location
         original_loc = os.path.join(save, 'model')
         os.makedirs(original_loc, exist_ok=True)
 
+        # Plot ground truth
+        plots.ground_truth(
+                           data_cv['y'],
+                           data_cv['y_pred'],
+                           data_cv['y_std'],
+                           data_cv['in_domain'],
+                           os.path.join(original_loc, 'cv')
+                           )
+
+        # Plot prediction time
+        plots.assessment(
+                         data_cv['y_std'],
+                         data_cv['dist'],
+                         data_cv['in_domain'],
+                         os.path.join(original_loc, 'cv')
+                         )
+
         # Plot CDF comparison
         x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
-        cdf_parity(x, save=os.path.join(original_loc, 'cv'))
+        plots.cdf_parity(x, save=os.path.join(original_loc, 'cv'))
 
         # Plot parity
-        parity(
-               mets,
-               df_stats['y_mean'].values,
-               df_stats['y_pred_mean'].values,
-               save=os.path.join(original_loc, 'cv')
-               )
+        plots.parity(
+                     mets,
+                     df_stats['y_mean'].values,
+                     df_stats['y_pred_mean'].values,
+                     save=os.path.join(original_loc, 'cv')
+                     )
 
         # Save the model
         dill.dump(model, open(os.path.join(original_loc, 'model.dill'), 'wb'))
@@ -334,10 +397,15 @@ class NestedCV:
                         )
 
         data = pd.concat(data)
+        print(data)
 
         # Statistics
         print('Assessing CV and test statistics')
-        df_stats = stats(data, ['split', 'index'], drop=['in_domain'])
+        df_stats = stats(
+                         data,
+                         ['split', 'index'],
+                         drop=['in_domain_pred', 'in_domain']
+                         )
         mets = group_metrics(data, ['split', 'fold'])
         mets = stats(mets, ['split'])
 
@@ -351,18 +419,38 @@ class NestedCV:
             subdf = df_stats[df_stats['split'] == i]
             submets = mets[mets['split'] == i]
 
+            # Plot ground truth
+            plots.ground_truth(
+                               subdata['y'],
+                               subdata['y_pred'],
+                               subdata['y_std'],
+                               subdata['in_domain'],
+                               os.path.join(assessment_loc, '{}'.format(i))
+                               )
+
+            # Plot prediction time
+            plots.assessment(
+                             subdata['y_std'],
+                             subdata['dist'],
+                             subdata['in_domain'],
+                             os.path.join(assessment_loc, '{}'.format(i))
+                             )
+
             # Plot CDF comparison
             x = (subdata['y']-subdata['y_pred'])/subdata['y_std']
-            cdf_parity(x, save=os.path.join(assessment_loc,  '{}'.format(i)))
+            plots.cdf_parity(
+                             x,
+                             save=os.path.join(assessment_loc, '{}'.format(i))
+                             )
 
             # Plot parity
-            parity(
-                   submets,
-                   subdf['y_mean'].values,
-                   subdf['y_pred_mean'].values,
-                   subdf['y_pred_sem'].values,
-                   save=os.path.join(assessment_loc, '{}'.format(i))
-                   )
+            plots.parity(
+                         submets,
+                         subdf['y_mean'].values,
+                         subdf['y_pred_mean'].values,
+                         subdf['y_pred_sem'].values,
+                         save=os.path.join(assessment_loc, '{}'.format(i))
+                         )
 
         # Save csv
         data.to_csv(os.path.join(

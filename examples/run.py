@@ -42,10 +42,10 @@ def main():
                            #('select', selector),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=5))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
     # Types of sampling to test
-    splits = [('random', RepeatedKFold(n_repeats=2))]
+    splits = [('random', RepeatedKFold(n_repeats=1))]
 
     # Chemical splits
     n_groups = len(set(g))
