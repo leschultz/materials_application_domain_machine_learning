@@ -1,3 +1,5 @@
+from sklearn.metrics import precision_recall_curve
+
 from matplotlib import pyplot as pl
 
 import numpy as np
@@ -263,5 +265,57 @@ def assessment(y_std, dist, in_domain, save):
     data['y_red'] = list(y_std[out_domain])
 
     jsonfile = os.path.join(save, 'assessment.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
+def pr(dist, in_domain, save):
+
+    os.makedirs(save, exist_ok=True)
+
+    baseline = sum(in_domain)/len(in_domain)
+    score = np.exp(-dist)
+    precision, recall, thresholds = precision_recall_curve(
+                                                           in_domain,
+                                                           score,
+                                                           pos_label=True,
+                                                           )
+
+    num = 2*recall*precision
+    den = recall+precision
+    f1_scores = np.divide(
+                          num,
+                          den,
+                          out=np.zeros_like(den), where=(den != 0)
+                          )
+
+    max_f1 = np.argmax(f1_scores)
+    max_f1_thresh = thresholds[max_f1]
+    max_f1 = f1_scores[max_f1]
+    dist_cut = np.log(1/max_f1_thresh)
+
+    fig, ax = pl.subplots()
+
+    ax.plot(recall, precision, color='b')
+    ax.axhline(baseline, color='r', linestyle=':')
+
+    ax.set_xlim(0.0, 1.05)
+    ax.set_ylim(0.0, 1.05)
+
+    ax.set_ylabel('Recall')
+    ax.set_xlabel('Precision')
+
+    fig.savefig(os.path.join(save, 'pr.png'))
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['recall'] = list(recall)
+    data['precision'] = list(precision)
+    data['baseline'] = baseline
+    data['max_f1'] = max_f1
+    data['max_f1_threshold'] = dist_cut
+
+    jsonfile = os.path.join(save, 'pr.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)

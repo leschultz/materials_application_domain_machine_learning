@@ -158,19 +158,19 @@ class build_model:
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
-        cut, kde, in_domain_pred = ground_truth(
-                                                data_cv['y'],
-                                                data_cv['y_pred'],
-                                                data_cv['y_std'],
-                                                self.percentile
-                                                )
+        cut, kde, in_domain = ground_truth(
+                                           data_cv['y'],
+                                           data_cv['y_pred'],
+                                           data_cv['y_std'],
+                                           self.percentile
+                                           )
 
         self.cut = cut
         self.kde = kde
 
         score = np.exp(-data_cv['dist'])
         precision, recall, thresholds = precision_recall_curve(
-                                                               in_domain_pred,
+                                                               in_domain,
                                                                score,
                                                                pos_label=True,
                                                                )
@@ -186,6 +186,14 @@ class build_model:
 
         self.dist_cut = np.log(1/max_f1_thresh)
 
+        in_domain_pred = []
+        for i in data_cv['dist']:
+            if i< self.dist_cut:
+                in_domain_pred.append(True)
+            else:
+                in_domain_pred.append(False)
+
+        data_cv['in_domain'] = in_domain
         data_cv['in_domain_pred'] = in_domain_pred
 
         return data_cv
@@ -280,14 +288,6 @@ class NestedCV:
                                             prefit=model.kde
                                             )
 
-        _, _, in_domain_cv = ground_truth(
-                                          data_cv['y'],
-                                          data_cv['y_pred'],
-                                          data_cv['y_std'],
-                                          model.percentile,
-                                          prefit=model.kde
-                                          )
-
         data_test['y'] = self.y[test]
         data_test['index'] = test
         data_test['fold'] = count
@@ -295,7 +295,6 @@ class NestedCV:
         data_test['in_domain'] = in_domain_test
 
         data_cv['fold'] = count
-        data_cv['in_domain'] = in_domain_cv
 
         data = pd.concat([data_cv, data_test])
         data['index'] = data['index'].astype(int)
@@ -350,6 +349,13 @@ class NestedCV:
                          data_cv['in_domain'],
                          os.path.join(original_loc, 'cv')
                          )
+
+        # Precision recall for in domain
+        plots.pr(
+                 data_cv['dist'],
+                 data_cv['in_domain'],
+                 os.path.join(original_loc, 'cv')
+                 )
 
         # Plot CDF comparison
         x = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
@@ -435,6 +441,13 @@ class NestedCV:
                              subdata['in_domain'],
                              os.path.join(assessment_loc, '{}'.format(i))
                              )
+
+            # Precision recall for in domain
+            plots.pr(
+                     subdata['dist'],
+                     subdata['in_domain'],
+                     os.path.join(assessment_loc, '{}'.format(i))
+                     )
 
             # Plot CDF comparison
             x = (subdata['y']-subdata['y_pred'])/subdata['y_std']
