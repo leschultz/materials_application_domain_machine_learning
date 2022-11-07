@@ -15,7 +15,7 @@ import dill
 import os
 
 
-def ground_truth(y, y_pred, y_std, percentile=1, prefit=None):
+def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
 
     # Define ground truth
     absres = abs(y-y_pred)
@@ -29,7 +29,8 @@ def ground_truth(y, y_pred, y_std, percentile=1, prefit=None):
     pdf = prefit.pdf(vals)
 
     # Ground truth
-    cut = np.percentile(pdf, percentile)
+    if cut is None:
+        cut = np.percentile(pdf, percentile)
 
     in_domain_pred = pdf > cut
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
@@ -280,12 +281,14 @@ class NestedCV:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
+        print(data_test)
         _, _, in_domain_test = ground_truth(
                                             self.y[test],
                                             data_test['y_pred'],
                                             data_test['y_std'],
                                             model.percentile,
-                                            prefit=model.kde
+                                            prefit=model.kde,
+                                            cut=model.cut,
                                             )
 
         data_test['y'] = self.y[test]
