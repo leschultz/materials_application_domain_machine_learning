@@ -45,7 +45,7 @@ def transforms(gs_model, X):
         step = gs_model.best_estimator_.named_steps[step]
         X = step.transform(X)
 
-        return X
+    return X
 
 
 def std_pred(gs_model, X_test):
@@ -281,7 +281,6 @@ class NestedCV:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        print(data_test)
         _, _, in_domain_test = ground_truth(
                                             self.y[test],
                                             data_test['y_pred'],
