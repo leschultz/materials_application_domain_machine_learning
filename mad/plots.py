@@ -261,7 +261,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(y_std, dist, in_domain, save):
+def assessment(y_std, dist, in_domain, thresh, save):
 
     os.makedirs(save, exist_ok=True)
 
@@ -271,6 +271,7 @@ def assessment(y_std, dist, in_domain, save):
 
     ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
     ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='.')
+    ax.axvline(thresh, color='r')
 
     ax.set_ylabel(r'$\sigma_{c}$')
     ax.set_xlabel('dist')

@@ -187,6 +187,7 @@ class build_model:
 
         data_cv['in_domain'] = in_domain
         data_cv['in_domain_pred'] = in_domain_pred
+        data_cv['max_f1_thresh'] = self.dist_cut
 
         return data_cv
 
@@ -285,6 +286,7 @@ class NestedCV:
         data_test['fold'] = count
         data_test['split'] = 'test'
         data_test['in_domain'] = in_domain_test
+        data_test['max_f1_thresh'] = model.dist_cut
 
         data_cv['fold'] = count
 
@@ -314,6 +316,7 @@ class NestedCV:
                          df['y_std'],
                          df['dist'],
                          df['in_domain'],
+                         df['max_f1_thresh'].values[0],
                          job_name
                          )
 
