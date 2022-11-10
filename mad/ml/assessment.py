@@ -15,27 +15,19 @@ import dill
 import os
 
 
-def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
+def ground_truth(y, y_pred, y_std, percentile=99, cut=None):
 
     # Define ground truth
-    absres = abs(y-y_pred)
-
-    # Fit probability density to space
-    vals = np.array([y_std, absres]).T
-
-    if prefit is None:
-        prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
-
-    pdf = prefit.pdf(vals)
+    errs = abs(y-y_pred)
 
     # Ground truth
     if cut is None:
-        cut = np.percentile(pdf, percentile)
+        cut = np.percentile(errs, percentile)
 
-    in_domain_pred = pdf > cut
+    in_domain_pred = errs < cut
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
 
-    return cut, prefit, in_domain_pred
+    return cut, in_domain_pred
 
 
 def transforms(gs_model, X):
@@ -121,7 +113,7 @@ def cv(gs_model, ds_model, X, y, g, train):
 
 class build_model:
 
-    def __init__(self, gs_model, ds_model, uq_model, percentile=1.0):
+    def __init__(self, gs_model, ds_model, uq_model, percentile=99):
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
@@ -159,15 +151,14 @@ class build_model:
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
-        cut, kde, in_domain = ground_truth(
-                                           data_cv['y'],
-                                           data_cv['y_pred'],
-                                           data_cv['y_std'],
-                                           self.percentile
-                                           )
+        cut, in_domain = ground_truth(
+                                      data_cv['y'],
+                                      data_cv['y_pred'],
+                                      data_cv['y_std'],
+                                      self.percentile
+                                      )
 
         self.cut = cut
-        self.kde = kde
 
         score = np.exp(-data_cv['dist'])
         precision, recall, thresholds = precision_recall_curve(
@@ -281,14 +272,13 @@ class NestedCV:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        _, _, in_domain_test = ground_truth(
-                                            self.y[test],
-                                            data_test['y_pred'],
-                                            data_test['y_std'],
-                                            model.percentile,
-                                            prefit=model.kde,
-                                            cut=model.cut,
-                                            )
+        _, in_domain_test = ground_truth(
+                                         self.y[test],
+                                         data_test['y_pred'],
+                                         data_test['y_std'],
+                                         model.percentile,
+                                         cut=model.cut,
+                                         )
 
         data_test['y'] = self.y[test]
         data_test['index'] = test
