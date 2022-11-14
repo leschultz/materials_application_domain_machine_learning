@@ -1,4 +1,3 @@
-from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -12,8 +11,13 @@ from mad.ml.assessment import NestedCV
 from mad.datasets import load_data
 from mad.ml import splitters
 
+import pandas as pd
+import dill
+
 
 def main():
+
+    run_name = 'run_gpr'
 
     # Load data
     data = load_data.diffusion(frac=1)
@@ -31,7 +35,6 @@ def main():
     # ML Pipeline
     scale = StandardScaler()
     model = RandomForestRegressor()
-    selector = SelectFromModel(model)
 
     grid = {}
     grid['model__n_estimators'] = [100]
@@ -39,7 +42,6 @@ def main():
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
-                           #('select', selector),
                            ('model', model)
                            ])
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
@@ -65,9 +67,19 @@ def main():
         splits.append(('kmeans_{}'.format(i), top_split))
 
     for i in splits:
+
+        # Assess and build model
+        save = '{}/{}'.format(run_name, i[0])
         spl = NestedCV(X, y, g, i[1])
-        spl.assess(gs_model, uq_model, ds_model, save='runs/'+i[0])
-        spl.save_model(gs_model, uq_model, ds_model, save='runs/'+i[0])
+        spl.assess(gs_model, uq_model, ds_model, save=save)
+        spl.save_model(gs_model, uq_model, ds_model, save=save)
+
+        # Load and use model
+        with open('{}/model/model.dill'.format(save), 'rb') as in_strm:
+            model = dill.load(in_strm)
+
+        print('Loaded model predictions')
+        print(pd.DataFrame(model.predict(X)))
 
 if __name__ == '__main__':
     main()
