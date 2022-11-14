@@ -29,7 +29,7 @@ def load(df, target, drop_cols=None, class_name=None, n=None, frac=None):
     if class_name:
         data['class_name'] = df[class_name].values
     else:
-        data['class_name'] = np.ones(df.shape[0])
+        data['class_name'] = ['no-groups']*df.shape[0]
 
     if drop_cols:
         data['dropped'] = df[drop_cols]

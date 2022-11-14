@@ -15,19 +15,25 @@ import dill
 import os
 
 
-def ground_truth(y, y_pred, y_std, percentile=99, cut=None):
+def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
 
     # Define ground truth
-    errs = abs(y-y_pred)
+    absres = abs(y-y_pred)
+    vals = np.array([y_std, absres]).T
+
+    if prefit is None:
+        prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
+
+    pdf = prefit.pdf(vals)
 
     # Ground truth
     if cut is None:
-        cut = np.percentile(errs, percentile)
+        cut = np.percentile(pdf, percentile)
 
-    in_domain_pred = errs < cut
+    in_domain_pred = pdf > cut
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
 
-    return cut, in_domain_pred
+    return cut, prefit, in_domain_pred
 
 
 def transforms(gs_model, X):
@@ -61,6 +67,7 @@ def cv(gs_model, ds_model, X, y, g, train):
     Do cross validation.
     '''
 
+    g_cv = []
     y_cv = []
     y_cv_pred = []
     y_cv_std = []
@@ -93,6 +100,10 @@ def cv(gs_model, ds_model, X, y, g, train):
                          y_cv,
                          y[train][te]
                          )
+        g_cv = np.append(
+                         g_cv,
+                         g[train][te]
+                         )
 
         index_cv = np.append(index_cv, train[te])
         dist_cv = np.append(
@@ -101,6 +112,7 @@ def cv(gs_model, ds_model, X, y, g, train):
                             )
 
     data = pd.DataFrame()
+    data['g'] = g_cv
     data['y'] = y_cv
     data['y_pred'] = y_cv_pred
     data['y_std'] = y_cv_std
@@ -113,7 +125,7 @@ def cv(gs_model, ds_model, X, y, g, train):
 
 class build_model:
 
-    def __init__(self, gs_model, ds_model, uq_model, percentile=99):
+    def __init__(self, gs_model, ds_model, uq_model, percentile=1):
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
@@ -151,15 +163,17 @@ class build_model:
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
-        cut, in_domain = ground_truth(
-                                      data_cv['y'],
-                                      data_cv['y_pred'],
-                                      data_cv['y_std'],
-                                      self.percentile
-                                      )
+        cut, kde, in_domain = ground_truth(
+                                           data_cv['y'],
+                                           data_cv['y_pred'],
+                                           data_cv['y_std'],
+                                           self.percentile
+                                           )
 
         self.cut = cut
+        self.kde = kde
 
+        # Dissimilarity cut-off
         score = np.exp(-data_cv['dist'])
         precision, recall, thresholds = precision_recall_curve(
                                                                in_domain,
@@ -178,16 +192,36 @@ class build_model:
 
         self.dist_cut = np.log(1/max_f1_thresh)
 
+        # Dissimilarity sigma
+        score = np.exp(-data_cv['y_std'])
+        precision, recall, thresholds = precision_recall_curve(
+                                                               in_domain,
+                                                               score,
+                                                               pos_label=True,
+                                                               )
+
+        num = 2*recall*precision
+        den = recall+precision
+        f1_scores = np.divide(
+                              num,
+                              den,
+                              out=np.zeros_like(den), where=(den != 0)
+                              )
+        max_f1_thresh = thresholds[np.argmax(f1_scores)]
+
+        self.sigma_cut = np.log(1/max_f1_thresh)
+
         in_domain_pred = []
-        for i in data_cv['dist']:
-            if i < self.dist_cut:
+        for i, j in zip(data_cv['dist'], data_cv['y_std']):
+            if (i < self.dist_cut) and (j < self.sigma_cut):
                 in_domain_pred.append(True)
             else:
                 in_domain_pred.append(False)
 
         data_cv['in_domain'] = in_domain
         data_cv['in_domain_pred'] = in_domain_pred
-        data_cv['max_f1_thresh'] = self.dist_cut
+        data_cv['dist_thresh'] = self.dist_cut
+        data_cv['sigma_thresh'] = self.sigma_cut
 
         return data_cv
 
@@ -273,20 +307,23 @@ class NestedCV:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        _, in_domain_test = ground_truth(
-                                         self.y[test],
-                                         data_test['y_pred'],
-                                         data_test['y_std'],
-                                         model.percentile,
-                                         cut=model.cut,
-                                         )
+        _, _, in_domain_test = ground_truth(
+                                            self.y[test],
+                                            data_test['y_pred'],
+                                            data_test['y_std'],
+                                            model.percentile,
+                                            cut=model.cut,
+                                            prefit=model.kde,
+                                            )
 
         data_test['y'] = self.y[test]
+        data_test['g'] = self.g[test]
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
         data_test['in_domain'] = in_domain_test
-        data_test['max_f1_thresh'] = model.dist_cut
+        data_test['dist_thresh'] = model.dist_cut
+        data_test['sigma_thresh'] = model.sigma_cut
 
         data_cv['fold'] = count
 
@@ -295,7 +332,7 @@ class NestedCV:
 
         return data
 
-    def plot(self, df, mets, save):
+    def plot(self, df, mets, save, trans_condition=False):
 
         i, df = df
         mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
@@ -314,17 +351,33 @@ class NestedCV:
         # Plot prediction time
         plots.assessment(
                          df['y_std'],
+                         df['y_std'],
+                         df['in_domain'],
+                         df['sigma_thresh'].values[0],
+                         os.path.join(job_name, 'sigma')
+                         )
+
+        plots.assessment(
+                         df['y_std'],
                          df['dist'],
                          df['in_domain'],
-                         df['max_f1_thresh'].values[0],
-                         job_name
+                         df['dist_thresh'].values[0],
+                         os.path.join(job_name, 'dissimilarity'),
+                         trans_condition,
                          )
+
+        # Precision recall for in domain
+        plots.pr(
+                 df['y_std'],
+                 df['in_domain'],
+                 os.path.join(job_name, 'sigma')
+                 )
 
         # Precision recall for in domain
         plots.pr(
                  df['dist'],
                  df['in_domain'],
-                 job_name
+                 os.path.join(job_name, 'dissimilarity')
                  )
 
         # Plot CDF comparison
@@ -364,11 +417,14 @@ class NestedCV:
 
         # Plot assessment
         print('Plotting results for CV splits: {}'.format(save))
+        if model.ds_model.dist == 'gpr_std':
+            trans_condition = True
         parallel(
                  self.plot,
                  data_cv.groupby(['split', 'fold']),
                  mets=mets,
-                 save=original_loc
+                 save=original_loc,
+                 trans_condition=trans_condition
                  )
 
         # Save the model
@@ -416,11 +472,14 @@ class NestedCV:
 
         # Plot assessment
         print('Plotting results for test and CV splits: {}'.format(save))
+        if ds_model.dist == 'gpr_std':
+            trans_condition = True
         parallel(
                  self.plot,
                  data.groupby(['split', 'fold']),
                  mets=mets,
-                 save=assessment_loc
+                 save=assessment_loc,
+                 trans_condition=trans_condition
                  )
 
         # Save csv
