@@ -357,6 +357,13 @@ class NestedCV:
                          os.path.join(job_name, 'sigma')
                          )
 
+        plots.confusion(
+                        df['in_domain'],
+                        score=df['y_std'],
+                        thresh=df['sigma_thresh'].values[0],
+                        save=os.path.join(job_name, 'sigma')
+                        )
+
         plots.assessment(
                          df['y_std'],
                          df['dist'],
@@ -366,6 +373,20 @@ class NestedCV:
                          trans_condition,
                          )
 
+        plots.confusion(
+                        df['in_domain'],
+                        score=df['dist'],
+                        thresh=df['dist_thresh'].values[0],
+                        save=os.path.join(job_name, 'dissimilarity')
+                        )
+
+        # Total
+        plots.confusion(
+                        df['in_domain'],
+                        y_pred=df['in_domain_pred'],
+                        save=job_name
+                        )
+
         # Precision recall for in domain
         plots.pr(
                  df['y_std'],
@@ -373,7 +394,6 @@ class NestedCV:
                  os.path.join(job_name, 'sigma')
                  )
 
-        # Precision recall for in domain
         plots.pr(
                  df['dist'],
                  df['in_domain'],

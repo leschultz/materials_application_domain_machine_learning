@@ -1,4 +1,8 @@
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import (
+                             precision_recall_curve,
+                             confusion_matrix,
+                             ConfusionMatrixDisplay
+                             )
 
 from matplotlib import pyplot as pl
 
@@ -261,7 +265,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(y_std, dist, in_domain, thresh, save, transform=True):
+def assessment(y_std, dist, in_domain, thresh, save, transform=False):
 
     os.makedirs(save, exist_ok=True)
 
@@ -349,3 +353,40 @@ def pr(dist, in_domain, save):
     jsonfile = os.path.join(save, 'pr.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
+
+
+def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):
+
+    if (score is not None) and (thresh is not None) and (y_pred is None):
+
+        y_pred = []
+        for i in score:
+            if i < thresh:
+                y_pred.append(True)
+            else:
+                y_pred.append(False)
+
+    conf = confusion_matrix(y_true, y_pred)
+
+    # In case only one class exists
+    if conf.shape == (1, 1):
+
+        t = list(set(y_true))[0]
+        p = list(set(y_pred))[0]
+
+        if (t == p) and (t == 0):
+            conf = np.array([[conf[0, 0], 0], [0, 0]])
+        elif (t == p) and (t == 1):
+            conf = np.array([[0, 0], [0, conf[0, 0]]])
+        else:
+            raise 'You done fucked up boi!'
+
+    disp = ConfusionMatrixDisplay(conf, display_labels=['OD', 'ID'])
+    disp.plot()
+    fig_data = conf.tolist()
+
+    disp.figure_.savefig(os.path.join(save, 'confusion.png'))
+
+    jsonfile = os.path.join(save, 'confusion.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(fig_data, handle)
