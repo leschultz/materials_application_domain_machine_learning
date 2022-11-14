@@ -1,79 +1,81 @@
 from sklearn.ensemble import RandomForestRegressor
-
-from sklearn.model_selection import GridSearchCV, RepeatedKFold
+from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.cluster import KMeans
 
-from mad.datasets import load_data, statistics
-from mad.plots import parity, calibration
-from mad.ml import splitters, domain, feature_selectors
-from mad.functions import poly
+from mad.models.space import distance_model
+from mad.models.uq import ensemble_model
+from mad.ml.assessment import NestedCV
+from mad.datasets import load_data
 
-import numpy as np
+import pandas as pd
+
 import unittest
 import shutil
+import dill
 
 
 class ml_test(unittest.TestCase):
 
     def test_ml(self):
-        '''
-        Test random forst model.
-        '''
 
-        seed = 14987
-        save = 'run'
-        uq_func = poly
-        uq_coeffs_start = [0.0, 1.0, 0.1]
+        run_name = 'run_gpr'
 
         # Load data
-        data = load_data.diffusion()
+        data = load_data.diffusion(frac=1)
         df = data['frame']
         X = data['data']
         y = data['target']
-        d = data['class_name']
+        g = data['class_name']
 
-        # Splitters
-        top_split = splitters.BootstrappedLeaveOneGroupOut(1, d)
-        bot_split = RepeatedKFold(n_splits=5, n_repeats=1)
+        # ML Distance model
+        ds_model = distance_model(dist='gpr_std')
 
-        # ML setup
+        # ML UQ function
+        uq_model = ensemble_model()
+
+        # ML Pipeline
         scale = StandardScaler()
-        selector = feature_selectors.no_selection()
-
-        # Random forest regression
-        grid = {}
         model = RandomForestRegressor()
+
+        grid = {}
         grid['model__n_estimators'] = [100]
         grid['model__max_features'] = [None]
         grid['model__max_depth'] = [None]
         pipe = Pipeline(steps=[
                                ('scaler', scale),
-                               ('select', selector),
                                ('model', model)
                                ])
-        rf = GridSearchCV(pipe, grid, cv=bot_split)
+        gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
-        # Evaluate
-        splits = domain.builder(
-                                rf,
-                                X,
-                                y,
-                                d,
-                                top_split,
-                                save,
-                                seed=seed,
-                                uq_func=poly,
-                                uq_coeffs_start=uq_coeffs_start
-                                )
-        splits.assess_domain()  # Do ML
-        splits.aggregate()
-        statistics.folds(save)  # Gather statistics from data
-        parity.make_plots(save, 'gpr_std')  # Make parity plots
-        calibration.make_plots(save, 'stdcal', 'gpr_std')
+        # Types of sampling to test
+        splits = [('random', RepeatedKFold(n_repeats=1))]
+
+        # Chemical splits
+        n_groups = len(set(g))
+        if n_groups > 1:
+            chem_split = ('chemical', splitters.LeaveOneGroupOut())
+            splits.append(chem_split)
+
+        for i in splits:
+
+            # Assess and build model
+            save = '{}/{}'.format(run_name, i[0])
+            spl = NestedCV(X, y, g, i[1])
+            spl.assess(gs_model, uq_model, ds_model, save=save)
+            spl.save_model(gs_model, uq_model, ds_model, save=save)
+
+            # Load and use model
+            with open('{}/model/model.dill'.format(save), 'rb') as in_strm:
+                model = dill.load(in_strm)
+
+            print('Loaded model predictions')
+            print(pd.DataFrame(model.predict(X)))
 
         # Clean directory
-        shutil.rmtree(save)
+        shutil.rmtree(run_name)
 
 
 if __name__ == '__main__':
