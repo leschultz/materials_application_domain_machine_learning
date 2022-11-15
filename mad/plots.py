@@ -1,7 +1,8 @@
 from sklearn.metrics import (
                              precision_recall_curve,
                              confusion_matrix,
-                             ConfusionMatrixDisplay
+                             ConfusionMatrixDisplay,
+                             auc
                              )
 
 from matplotlib import pyplot as pl
@@ -287,7 +288,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
     ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='x')
 
     ax.set_xlabel(r'$|y-\hat{y}|/\sigma_{y}$')
-    ax.set_ylabel(r'$\sigma_{c}$/\sigma_{y}')
+    ax.set_ylabel(r'$\sigma_{c}/\sigma_{y}$')
 
     fig.savefig(os.path.join(save, 'ground_truth.png'))
     pl.close(fig)
@@ -371,7 +372,16 @@ def pr(dist, in_domain, save):
     max_f1 = np.argmax(f1_scores)
     max_f1_thresh = thresholds[max_f1]
     max_f1 = f1_scores[max_f1]
-    dist_cut = np.log(1/max_f1_thresh)
+
+    auc_score = auc(recall, precision)
+
+    # Maximize recall while keeping precision equal to 1.0
+    indx = max(np.argwhere(precision == np.amax(precision)))[0]
+    indx = np.argmax(precision)
+    max_auc = recall[indx]
+    max_auc_thresh = thresholds[indx]
+
+    dist_cut = -np.log(max_f1_thresh)
 
     fig, ax = pl.subplots()
 
@@ -381,8 +391,8 @@ def pr(dist, in_domain, save):
     ax.set_xlim(0.0, 1.05)
     ax.set_ylim(0.0, 1.05)
 
-    ax.set_ylabel('Recall')
-    ax.set_xlabel('Precision')
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
 
     fig.savefig(os.path.join(save, 'pr.png'))
     pl.close(fig)
@@ -394,6 +404,8 @@ def pr(dist, in_domain, save):
     data['baseline'] = baseline
     data['max_f1'] = max_f1
     data['max_f1_threshold'] = dist_cut
+    data['max_auc'] = max_auc
+    data['max_auc_thresh'] = max_auc_thresh
 
     jsonfile = os.path.join(save, 'pr.json')
     with open(jsonfile, 'w') as handle:

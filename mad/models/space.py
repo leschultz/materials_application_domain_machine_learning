@@ -1,5 +1,4 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.model_selection import LeaveOneGroupOut
 from scipy.spatial.distance import cdist
 
 import statsmodels.api as sm
@@ -9,9 +8,8 @@ import numpy as np
 
 class distance_model:
 
-    def __init__(self, dist='gpr_std', cv=LeaveOneGroupOut()):
+    def __init__(self, dist='gpr_std'):
         self.dist = dist
-        self.cv = cv
 
     def distance(
                  self,

@@ -16,6 +16,8 @@ import os
 
 
 def threshold(score, in_domain):
+
+    baseline = sum(in_domain)/len(in_domain)
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
@@ -29,9 +31,10 @@ def threshold(score, in_domain):
                           den,
                           out=np.zeros_like(den), where=(den != 0)
                           )
-    max_f1_thresh = thresholds[np.argmax(f1_scores)]
 
-    dist_cut = np.log(1/max_f1_thresh)
+    indx = np.argmax(f1_scores)
+    max_f1_thresh = thresholds[indx]
+    dist_cut = -np.log(max_f1_thresh)
 
     return dist_cut
 
@@ -176,7 +179,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_in = cv(
+        data_cv = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -188,53 +191,26 @@ class build_model:
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_in['y'],
-                          data_in['y_pred'],
-                          data_in['y_std']
+                          data_cv['y'],
+                          data_cv['y_pred'],
+                          data_cv['y_std']
                           )
 
         # Update with calibrated data
-        data_in['y_std'] = self.uq_model.predict(data_in['y_std'])
+        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_in['y'],
-                                           data_in['y_pred'],
-                                           data_in['y_std'],
+                                           data_cv['y'],
+                                           data_cv['y_pred'],
+                                           data_cv['y_std'],
                                            self.percentile
                                            )
 
-        data_in['in_domain'] = in_domain
+        data_cv['in_domain'] = in_domain
 
         self.cut = cut
         self.kde = kde
-
-        # Now produce out of domain cases
-        data_out = cv(
-                      self.gs_model,
-                      self.ds_model,
-                      X,
-                      y,
-                      g,
-                      np.arange(y.shape[0]),
-                      self.ds_model.cv
-                      )
-
-        # Update with calibrated data
-        data_out['y_std'] = self.uq_model.predict(data_out['y_std'])
-
-        _, _, out_domain = ground_truth(
-                                        data_out['y'],
-                                        data_out['y_pred'],
-                                        data_out['y_std'],
-                                        self.percentile,
-                                        cut=self.cut,
-                                        prefit=self.kde,
-                                        )
-
-        data_out['in_domain'] = out_domain
-
-        data_cv = pd.concat([data_in, data_out])
 
         # Dissimilarity cut-off
         score = np.exp(-data_cv['dist'])
@@ -392,7 +368,7 @@ class NestedCV:
         plots.assessment(
                          df['y_std'],
                          std,
-                         df['y_std'],
+                         df['y_std']/std,
                          df['in_domain'],
                          df['sigma_thresh'].values[0],
                          os.path.join(job_name, 'sigma')
