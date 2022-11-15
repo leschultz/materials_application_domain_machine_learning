@@ -21,6 +21,7 @@ install_requires = [
                     'numpy',
                     'pathos',
                     'tqdm',
+                    'statsmodels',
                     'pytest',
                     'openpyxl',
                     'gpytorch'

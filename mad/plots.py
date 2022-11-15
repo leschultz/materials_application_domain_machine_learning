@@ -21,6 +21,7 @@ def parity(
            mets,
            y,
            y_pred,
+           in_domain,
            y_pred_sem=None,
            name='',
            units='',
@@ -42,6 +43,8 @@ def parity(
     os.makedirs(save, exist_ok=True)
 
     mets = mets.to_dict(orient='records')[0]
+
+    out_domain = ~in_domain
 
     if y_pred_sem is not None:
 
@@ -92,20 +95,40 @@ def parity(
 
     if y_pred_sem is not None:
         ax.errorbar(
-                    y,
-                    y_pred,
-                    yerr=y_pred_sem,
+                    y[in_domain],
+                    y_pred[in_domain],
+                    yerr=y_pred_sem[in_domain],
                     linestyle='none',
                     marker='.',
                     markerfacecolor='None',
                     zorder=0,
+                    color='b',
+                    )
+        ax.errorbar(
+                    y[out_domain],
+                    y_pred[out_domain],
+                    yerr=y_pred_sem[out_domain],
+                    linestyle='none',
+                    marker='x',
+                    markerfacecolor='None',
+                    zorder=0,
+                    color='r',
                     )
 
     ax.scatter(
-               y,
-               y_pred,
+               y[in_domain],
+               y_pred[in_domain],
                marker='.',
                zorder=1,
+               color='b',
+               )
+
+    ax.scatter(
+               y[out_domain],
+               y_pred[out_domain],
+               marker='x',
+               zorder=1,
+               color='r',
                )
 
     ax.text(
@@ -162,7 +185,7 @@ def parity(
         json.dump(data, handle)
 
 
-def cdf_parity(x, save):
+def cdf_parity(x, in_domain, save):
     '''
     Plot the quantile quantile plot for cummulative distributions.
     inputs:
@@ -171,36 +194,48 @@ def cdf_parity(x, save):
 
     os.makedirs(save, exist_ok=True)
 
-    nx = len(x)
+    out_domain = ~in_domain
+
+    nx_id = len(x[in_domain])
+    nx_od = len(x[out_domain])
     nz = 100000
     z = np.random.normal(0, 1, nz)  # Standard normal distribution
 
     # Need sorting
-    x = sorted(x)
+    x_id = sorted(x[in_domain])
+    x_od = sorted(x[out_domain])
     z = sorted(z)
 
     # Cummulative fractions
-    xfrac = np.arange(nx)/(nx-1)
+    xfrac_id = np.arange(nx_id)/(nx_id-1)
+    xfrac_od = np.arange(nx_od)/(nx_od-1)
     zfrac = np.arange(nz)/(nz-1)
 
     # Interpolation to compare cdf
-    eval_points = sorted(list(set(x+z)))
-    y_pred = np.interp(eval_points, x, xfrac)  # Predicted
+    eval_points = sorted(list(set(x.tolist()+z)))
+    y_pred_id = np.interp(eval_points, x_id, xfrac_id)  # Predicted
+    y_pred_od = np.interp(eval_points, x_od, xfrac_od)  # Predicted
     y = np.interp(eval_points, z, zfrac)  # Standard Normal
 
     # Area bertween ideal Gaussian and observed
-    area = np.trapz(abs(y_pred-y), x=y, dx=0.00001)
-
-    y_pred = y_pred.tolist()
-    y = y.tolist()
+    in_area = np.trapz(abs(y_pred_id-y), x=y, dx=0.00001)
+    out_area = np.trapz(abs(y_pred_od-y), x=y, dx=0.00001)
 
     fig, ax = pl.subplots()
     ax.plot(
             y,
-            y_pred,
+            y_pred_id,
             zorder=0,
             color='b',
-            label='Area: {:.3f}'.format(area)
+            label='ID Area: {:.3f}'.format(in_area),
+            )
+
+    ax.plot(
+            y,
+            y_pred_od,
+            zorder=0,
+            color='r',
+            label='OD Area: {:.3f}'.format(out_area),
             )
 
     # Line of best fit
@@ -228,7 +263,8 @@ def cdf_parity(x, save):
     # Repare plot data for saving
     data = {}
     data['x'] = list(y)
-    data['y'] = list(y_pred)
+    data['y_id'] = list(y_pred_id)
+    data['y_od'] = list(y_pred_od)
 
     jsonfile = os.path.join(save, 'cdf_parity.json')
     with open(jsonfile, 'w') as handle:
@@ -245,7 +281,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
     fig, ax = pl.subplots()
 
     ax.scatter(absres[in_domain], y_std[in_domain], color='g', marker='.')
-    ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='.')
+    ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='x')
 
     ax.set_xlabel(r'$|y-\hat{y}|$')
     ax.set_ylabel(r'$\sigma_{c}$')
@@ -271,20 +307,25 @@ def assessment(y_std, dist, in_domain, thresh, save, transform=False):
 
     out_domain = ~in_domain
 
-    if transform:
+    if transform is True:
         dist = -np.log10(1e-8+1-dist)
         thresh = -np.log10(1e-8+1-thresh)
+    elif transform == 'log10':
+        dist = np.log10(dist)
+        thresh = np.log10(thresh)
 
     fig, ax = pl.subplots()
 
     ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
-    ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='.')
+    ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='x')
     ax.axvline(thresh, color='r')
 
     ax.set_ylabel(r'$\sigma$')
 
-    if transform:
+    if transform is True:
         ax.set_xlabel(r'$-log_{10}(1e-8+GPR_{\sigma})$')
+    elif transform == 'log10':
+        ax.set_xlabel(r'$log_{10}(dist)$')
     else:
         ax.set_xlabel('dist')
 

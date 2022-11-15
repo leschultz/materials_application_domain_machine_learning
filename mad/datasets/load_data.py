@@ -81,6 +81,25 @@ def super_cond(**kwargs):
     return load(df, target, drop_cols, class_name, **kwargs)
 
 
+def diffusion_pure(**kwargs):
+    '''
+    Load the diffusion data set.
+    '''
+
+    # Dataset information
+    df = 'diffusion_pure.csv'
+    target = 'E_regression_shift'
+    class_name = 'group'
+    drop_cols = [
+                 'Material compositions 1',
+                 'Material compositions 2',
+                 'E_regression',
+                 'group'
+                 ]
+
+    return load(df, target, drop_cols, class_name, **kwargs)
+
+
 def diffusion(**kwargs):
     '''
     Load the diffusion data set.

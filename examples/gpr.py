@@ -20,7 +20,7 @@ def main():
     run_name = 'run_gpr'
 
     # Load data
-    data = load_data.diffusion(frac=1)
+    data = load_data.diffusion_pure(frac=1)
     df = data['frame']
     X = data['data']
     y = data['target']

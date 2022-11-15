@@ -1,13 +1,17 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.model_selection import LeaveOneGroupOut
 from scipy.spatial.distance import cdist
+
+import statsmodels.api as sm
 
 import numpy as np
 
 
 class distance_model:
 
-    def __init__(self, dist='gpr_std'):
+    def __init__(self, dist='gpr_std', cv=LeaveOneGroupOut()):
         self.dist = dist
+        self.cv = cv
 
     def distance(
                  self,
@@ -33,6 +37,17 @@ class distance_model:
             model.fit(X_train, y_train)
             _, dist = model.predict(X_test, return_std=True)
             dist = dist
+
+        elif dist_type == 'kde':
+
+            var_type = 'c'*X_train.shape[1]
+            model = sm.nonparametric.KDEMultivariate(
+                                                     X_train,
+                                                     var_type=var_type
+                                                     )
+
+            dist = model.pdf(X_test)
+            dist = np.exp(-dist)   # Lower is supposed to be in domain
 
         else:
             dist = cdist(X_train, X_test, dist_type)

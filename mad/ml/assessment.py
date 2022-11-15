@@ -62,7 +62,7 @@ def std_pred(gs_model, X_test):
     return std
 
 
-def cv(gs_model, ds_model, X, y, g, train):
+def cv(gs_model, ds_model, X, y, g, train, cv):
     '''
     Do cross validation.
     '''
@@ -73,17 +73,28 @@ def cv(gs_model, ds_model, X, y, g, train):
     y_cv_std = []
     index_cv = []
     dist_cv = []
-    for tr, te in gs_model.cv.split(
-                                    X[train],
-                                    y[train],
-                                    g[train],
-                                    ):
+    for tr, te in cv.split(
+                           X[train],
+                           y[train],
+                           g[train],
+                           ):
 
         gs_model_cv = clone(gs_model)
         ds_model_cv = copy.deepcopy(ds_model)
 
         gs_model_cv.fit(X[train][tr], y[train][tr])
-        ds_model_cv.fit(X[train][tr], y[train][tr])
+
+        X_trans_tr = transforms(
+                                gs_model_cv,
+                                X[train][tr],
+                                )
+
+        X_trans_te = transforms(
+                                gs_model_cv,
+                                X[train][te],
+                                )
+
+        ds_model_cv.fit(X_trans_tr, y[train][tr])
 
         std = std_pred(gs_model, X[train][te])
 
@@ -108,7 +119,7 @@ def cv(gs_model, ds_model, X, y, g, train):
         index_cv = np.append(index_cv, train[te])
         dist_cv = np.append(
                             dist_cv,
-                            ds_model_cv.predict(X[train][te])
+                            ds_model_cv.predict(X_trans_te)
                             )
 
     data = pd.DataFrame()
@@ -144,37 +155,69 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_cv = cv(
+        data_in = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
                      y,
                      g,
-                     np.arange(y.shape[0])
+                     np.arange(y.shape[0]),
+                     self.gs_model.cv
                      )
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_cv['y'],
-                          data_cv['y_pred'],
-                          data_cv['y_std']
+                          data_in['y'],
+                          data_in['y_pred'],
+                          data_in['y_std']
                           )
 
         # Update with calibrated data
-        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
+        data_in['y_std'] = self.uq_model.predict(data_in['y_std'])
 
+        # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_cv['y'],
-                                           data_cv['y_pred'],
-                                           data_cv['y_std'],
+                                           data_in['y'],
+                                           data_in['y_pred'],
+                                           data_in['y_std'],
                                            self.percentile
                                            )
+
+        data_in['in_domain'] = in_domain
 
         self.cut = cut
         self.kde = kde
 
+        # Now produce out of domain cases
+        data_out = cv(
+                      self.gs_model,
+                      self.ds_model,
+                      X,
+                      y,
+                      g,
+                      np.arange(y.shape[0]),
+                      self.ds_model.cv
+                      )
+
+        # Update with calibrated data
+        data_out['y_std'] = self.uq_model.predict(data_out['y_std'])
+
+        _, _, out_domain = ground_truth(
+                                        data_out['y'],
+                                        data_out['y_pred'],
+                                        data_out['y_std'],
+                                        self.percentile,
+                                        cut=self.cut,
+                                        prefit=self.kde,
+                                        )
+
+        data_out['in_domain'] = out_domain
+
+        data_cv = pd.concat([data_in, data_out])
+
         # Dissimilarity cut-off
         score = np.exp(-data_cv['dist'])
+        in_domain = data_cv['in_domain']
         precision, recall, thresholds = precision_recall_curve(
                                                                in_domain,
                                                                score,
@@ -218,7 +261,6 @@ class build_model:
             else:
                 in_domain_pred.append(False)
 
-        data_cv['in_domain'] = in_domain
         data_cv['in_domain_pred'] = in_domain_pred
         data_cv['dist_thresh'] = self.dist_cut
         data_cv['sigma_thresh'] = self.sigma_cut
@@ -404,6 +446,7 @@ class NestedCV:
         x = (df['y']-df['y_pred'])/df['y_std']
         plots.cdf_parity(
                          x,
+                         df['in_domain'],
                          save=job_name
                          )
 
@@ -412,6 +455,7 @@ class NestedCV:
                      mets,
                      df['y'].values,
                      df['y_pred'].values,
+                     df['in_domain'].values,
                      save=job_name
                      )
 
@@ -439,6 +483,11 @@ class NestedCV:
         print('Plotting results for CV splits: {}'.format(save))
         if model.ds_model.dist == 'gpr_std':
             trans_condition = True
+        elif model.ds_model.dist == 'kde':
+            trans_condition = 'log10'
+            trans_condition = False
+        else:
+            trans_condition = False
         parallel(
                  self.plot,
                  data_cv.groupby(['split', 'fold']),
@@ -494,6 +543,11 @@ class NestedCV:
         print('Plotting results for test and CV splits: {}'.format(save))
         if ds_model.dist == 'gpr_std':
             trans_condition = True
+        elif ds_model.dist == 'kde':
+            trans_condition = 'log10'
+            trans_condition = False
+        else:
+            trans_condition = False
         parallel(
                  self.plot,
                  data.groupby(['split', 'fold']),
