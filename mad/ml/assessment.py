@@ -15,6 +15,27 @@ import dill
 import os
 
 
+def threshold(score, in_domain):
+    precision, recall, thresholds = precision_recall_curve(
+                                                           in_domain,
+                                                           score,
+                                                           pos_label=True,
+                                                           )
+
+    num = 2*recall*precision
+    den = recall+precision
+    f1_scores = np.divide(
+                          num,
+                          den,
+                          out=np.zeros_like(den), where=(den != 0)
+                          )
+    max_f1_thresh = thresholds[np.argmax(f1_scores)]
+
+    dist_cut = np.log(1/max_f1_thresh)
+
+    return dist_cut
+
+
 def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
 
     # Define ground truth
@@ -218,41 +239,11 @@ class build_model:
         # Dissimilarity cut-off
         score = np.exp(-data_cv['dist'])
         in_domain = data_cv['in_domain']
-        precision, recall, thresholds = precision_recall_curve(
-                                                               in_domain,
-                                                               score,
-                                                               pos_label=True,
-                                                               )
-
-        num = 2*recall*precision
-        den = recall+precision
-        f1_scores = np.divide(
-                              num,
-                              den,
-                              out=np.zeros_like(den), where=(den != 0)
-                              )
-        max_f1_thresh = thresholds[np.argmax(f1_scores)]
-
-        self.dist_cut = np.log(1/max_f1_thresh)
+        self.dist_cut = threshold(score, in_domain)
 
         # Dissimilarity sigma
         score = np.exp(-data_cv['y_std'])
-        precision, recall, thresholds = precision_recall_curve(
-                                                               in_domain,
-                                                               score,
-                                                               pos_label=True,
-                                                               )
-
-        num = 2*recall*precision
-        den = recall+precision
-        f1_scores = np.divide(
-                              num,
-                              den,
-                              out=np.zeros_like(den), where=(den != 0)
-                              )
-        max_f1_thresh = thresholds[np.argmax(f1_scores)]
-
-        self.sigma_cut = np.log(1/max_f1_thresh)
+        self.sigma_cut = threshold(score, in_domain)
 
         in_domain_pred = []
         for i, j in zip(data_cv['dist'], data_cv['y_std']):
@@ -279,7 +270,13 @@ class build_model:
         y_std = std_pred(self.gs_model, X)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X_trans)
-        in_domain_pred = [True if i < self.dist_cut else False for i in dist]
+
+        in_domain_pred = []
+        for i, j in zip(dist, y_std):
+            if (i < self.dist_cut) and (j < self.sigma_cut):
+                in_domain_pred.append(True)
+            else:
+                in_domain_pred.append(False)
 
         pred = {
                 'y_pred': y_pred,
@@ -318,7 +315,7 @@ class NestedCV:
 
         # Grouping
         if g is None:
-            self.g = np.ones(self.X.shape[0])
+            self.g = ['no-groups']*self.X.shape[0]
         else:
             self.g = g
 
@@ -391,8 +388,10 @@ class NestedCV:
                            )
 
         # Plot prediction time
+        std = np.std(df['y'])
         plots.assessment(
                          df['y_std'],
+                         std,
                          df['y_std'],
                          df['in_domain'],
                          df['sigma_thresh'].values[0],
@@ -408,6 +407,7 @@ class NestedCV:
 
         plots.assessment(
                          df['y_std'],
+                         std,
                          df['dist'],
                          df['in_domain'],
                          df['dist_thresh'].values[0],

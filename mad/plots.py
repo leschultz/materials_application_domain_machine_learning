@@ -275,7 +275,10 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
 
     os.makedirs(save, exist_ok=True)
 
-    absres = abs(y-y_pred)
+    std = np.std(y)
+    absres = abs(y-y_pred)/std
+    y_std = y_std/std
+
     out_domain = ~in_domain
 
     fig, ax = pl.subplots()
@@ -283,8 +286,8 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
     ax.scatter(absres[in_domain], y_std[in_domain], color='g', marker='.')
     ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='x')
 
-    ax.set_xlabel(r'$|y-\hat{y}|$')
-    ax.set_ylabel(r'$\sigma_{c}$')
+    ax.set_xlabel(r'$|y-\hat{y}|/\sigma_{y}$')
+    ax.set_ylabel(r'$\sigma_{c}$/\sigma_{y}')
 
     fig.savefig(os.path.join(save, 'ground_truth.png'))
     pl.close(fig)
@@ -301,8 +304,9 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(y_std, dist, in_domain, thresh, save, transform=False):
+def assessment(y_std, std, dist, in_domain, thresh, save, transform=False):
 
+    y_std = y_std/std
     os.makedirs(save, exist_ok=True)
 
     out_domain = ~in_domain
@@ -320,7 +324,7 @@ def assessment(y_std, dist, in_domain, thresh, save, transform=False):
     ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='x')
     ax.axvline(thresh, color='r')
 
-    ax.set_ylabel(r'$\sigma$')
+    ax.set_ylabel(r'$\sigma/\sigma_{y}$')
 
     if transform is True:
         ax.set_xlabel(r'$-log_{10}(1e-8+GPR_{\sigma})$')

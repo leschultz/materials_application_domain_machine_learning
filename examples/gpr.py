@@ -20,7 +20,7 @@ def main():
     run_name = 'run_gpr'
 
     # Load data
-    data = load_data.diffusion_pure(frac=1)
+    data = load_data.diffusion(frac=1)
     df = data['frame']
     X = data['data']
     y = data['target']
@@ -44,7 +44,7 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=1))]
@@ -81,6 +81,6 @@ def main():
         print('Loaded model predictions')
         print(pd.DataFrame(model.predict(X)))
 
+
 if __name__ == '__main__':
     main()
-
