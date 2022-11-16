@@ -41,7 +41,8 @@ class distance_model:
             var_type = 'c'*X_train.shape[1]
             model = sm.nonparametric.KDEMultivariate(
                                                      X_train,
-                                                     var_type=var_type
+                                                     var_type=var_type,
+                                                     bw='normal_reference'
                                                      )
 
             dist = model.pdf(X_test)

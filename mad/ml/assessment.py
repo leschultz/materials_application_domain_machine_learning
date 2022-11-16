@@ -202,9 +202,10 @@ class build_model:
                                   in_domain,
                                   choice='max_f1'
                                   )
+        marginal_index = data_cv['y_std'] < self.sigma_cut
         self.dist_cut = plots.pr(
-                                 data_cv['dist'],
-                                 in_domain,
+                                 data_cv['dist'][marginal_index],
+                                 in_domain[marginal_index],
                                  choice='max_f1'
                                  )
 
