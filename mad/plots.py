@@ -43,54 +43,70 @@ def parity(
 
     os.makedirs(save, exist_ok=True)
 
-    mets = mets.to_dict(orient='records')[0]
-
     out_domain = ~in_domain
 
+    labels = {}
+    mets_save = {}
     if y_pred_sem is not None:
 
-        rmse_sigma = mets[r'$RMSE/\sigma$_mean']
-        rmse_sigma_sem = mets[r'$RMSE/\sigma$_sem']
+        for i in [True, False]:
 
-        rmse = mets[r'$RMSE$_mean']
-        rmse_sem = mets[r'$RMSE$_sem']
+            m = mets[mets['in_domain'] == i]
+            m = m.to_dict(orient='records')[0]
 
-        mae = mets[r'$MAE$_mean']
-        mae_sem = mets[r'$MAE$_sem']
+            rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
+            rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
 
-        r2 = mets[r'$R^{2}$_mean']
-        r2_sem = mets[r'$R^{2}$_sem']
+            rmse = m[r'$RMSE$_mean']
+            rmse_sem = m[r'$RMSE$_sem']
 
-        label = r'$RMSE/\sigma=$'
-        label += r'{:.2} $\pm$ {:.2}'.format(rmse_sigma, rmse_sigma_sem)
-        label += '\n'
-        label += r'$RMSE=$'
-        label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
-        label += '\n'
-        label += r'$MAE=$'
-        label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
-        label += '\n'
-        label += r'$R^{2}=$'
-        label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+            mae = m[r'$MAE$_mean']
+            mae_sem = m[r'$MAE$_sem']
+
+            r2 = m[r'$R^{2}$_mean']
+            r2_sem = m[r'$R^{2}$_sem']
+
+            label = r'$RMSE/\sigma=$'
+            label += r'{:.2} $\pm$ {:.2}'.format(rmse_sigma, rmse_sigma_sem)
+            label += '\n'
+            label += r'$RMSE=$'
+            label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
+            label += '\n'
+            label += r'$MAE=$'
+            label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
+            label += '\n'
+            label += r'$R^{2}=$'
+            label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+
+            labels[i] = label
+            mets_save[i] = m
 
     else:
 
-        rmse_sigma = mets[r'$RMSE/\sigma$']
-        rmse = mets[r'$RMSE$']
-        mae = mets[r'$MAE$']
-        r2 = mets[r'$R^{2}$']
+        for i in [True, False]:
 
-        label = r'$RMSE/\sigma=$'
-        label += r'{:.2}'.format(rmse_sigma)
-        label += '\n'
-        label += r'$RMSE=$'
-        label += r'{:.2}'.format(rmse)
-        label += '\n'
-        label += r'$MAE=$'
-        label += r'{:.2}'.format(mae)
-        label += '\n'
-        label += r'$R^{2}=$'
-        label += r'{:.2}'.format(r2)
+            m = mets[mets['in_domain'] == i]
+            m = m.to_dict(orient='records')[0]
+
+            rmse_sigma = m[r'$RMSE/\sigma$']
+            rmse = m[r'$RMSE$']
+            mae = m[r'$MAE$']
+            r2 = m[r'$R^{2}$']
+
+            label = r'$RMSE/\sigma_{y}=$'
+            label += r'{:.2}'.format(rmse_sigma)
+            label += '\n'
+            label += r'$RMSE=$'
+            label += r'{:.2}'.format(rmse)
+            label += '\n'
+            label += r'$MAE=$'
+            label += r'{:.2}'.format(mae)
+            label += '\n'
+            label += r'$R^{2}=$'
+            label += r'{:.2}'.format(r2)
+
+            labels[i] = label
+            mets_save[i] = m
 
     fig, ax = pl.subplots()
 
@@ -122,6 +138,7 @@ def parity(
                marker='.',
                zorder=1,
                color='b',
+               label=labels[True],
                )
 
     ax.scatter(
@@ -130,15 +147,8 @@ def parity(
                marker='x',
                zorder=1,
                color='r',
+               label=labels[False],
                )
-
-    ax.text(
-            0.55,
-            0.05,
-            label,
-            transform=ax.transAxes,
-            bbox=dict(facecolor='white', edgecolor='black')
-            )
 
     limits = []
     min_range = min(min(y), min(y_pred))
@@ -174,12 +184,17 @@ def parity(
 
     # Repare plot data for saving
     data = {}
-    data['y_pred'] = list(y_pred)
-    data['y'] = list(y)
-    data['metrics'] = mets
+    data['y_pred_id'] = list(y_pred[in_domain])
+    data['y_id'] = list(y[in_domain])
+    data['metrics'] = mets_save[True]
+
+    data['y_pred_od'] = list(y_pred[out_domain])
+    data['y_od'] = list(y[out_domain])
+    data['metrics'] = mets_save[False]
 
     if y_pred_sem is not None:
-        data['y_pred_sem'] = list(y_pred_sem)
+        data['y_pred_sem'] = list(y_pred_sem[in_domain])
+        data['y_pred_sem'] = list(y_pred_sem[out_domain])
 
     jsonfile = os.path.join(save, 'parity.json')
     with open(jsonfile, 'w') as handle:
@@ -227,7 +242,7 @@ def cdf_parity(x, in_domain, save):
             y,
             y_pred_id,
             zorder=0,
-            color='b',
+            color='g',
             label='ID Area: {:.3f}'.format(in_area),
             )
 
@@ -305,7 +320,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(y_std, std, dist, in_domain, thresh, save, transform=False):
+def assessment(y_std, std, dist, in_domain, save, transform=False):
 
     y_std = y_std/std
     os.makedirs(save, exist_ok=True)
@@ -314,16 +329,13 @@ def assessment(y_std, std, dist, in_domain, thresh, save, transform=False):
 
     if transform is True:
         dist = -np.log10(1e-8+1-dist)
-        thresh = -np.log10(1e-8+1-thresh)
     elif transform == 'log10':
         dist = np.log10(dist)
-        thresh = np.log10(thresh)
 
     fig, ax = pl.subplots()
 
     ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
     ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='x')
-    ax.axvline(thresh, color='r')
 
     ax.set_ylabel(r'$\sigma/\sigma_{y}$')
 
@@ -349,7 +361,7 @@ def assessment(y_std, std, dist, in_domain, thresh, save, transform=False):
         json.dump(data, handle)
 
 
-def pr(dist, in_domain, save):
+def pr(dist, in_domain, save, choice=None):
 
     os.makedirs(save, exist_ok=True)
 
@@ -369,24 +381,44 @@ def pr(dist, in_domain, save):
                           out=np.zeros_like(den), where=(den != 0)
                           )
 
-    max_f1 = np.argmax(f1_scores)
-    max_f1_thresh = thresholds[max_f1]
-    max_f1 = f1_scores[max_f1]
+    # Maximum F1 score
+    max_f1_index = np.argmax(f1_scores)
+    max_f1_thresh = thresholds[max_f1_index]
+    max_f1 = f1_scores[max_f1_index]
 
+    # AUC score
     auc_score = auc(recall, precision)
 
-    # Maximize recall while keeping precision equal to 1.0
-    indx = max(np.argwhere(precision == np.amax(precision)))[0]
-    indx = np.argmax(precision)
-    max_auc = recall[indx]
-    max_auc_thresh = thresholds[indx]
+    # Maximize recall while keeping precision equal to highest value
+    max_auc_index = np.where(precision == max(precision[:-1]))[0][0]
+    max_auc = recall[:-1][max_auc_index]
+    max_auc_thresh = thresholds[max_auc_index]
 
     dist_cut = -np.log(max_f1_thresh)
 
     fig, ax = pl.subplots()
 
     ax.plot(recall, precision, color='b')
-    ax.axhline(baseline, color='r', linestyle=':')
+    ax.axhline(
+               baseline,
+               color='r',
+               linestyle=':',
+               label='AUC: {:.2f}'.format(auc_score),
+               )
+    ax.scatter(
+               max_auc,
+               precision[:-1][max_auc_index],
+               marker='o',
+               label='Max Recall: {:.2f}'.format(max_auc),
+               )
+    ax.scatter(
+               recall[max_f1_index],
+               precision[max_f1_index],
+               marker='o',
+               label='Max F1: {:.2f}'.format(max_f1),
+               )
+
+    ax.legend()
 
     ax.set_xlim(0.0, 1.05)
     ax.set_ylim(0.0, 1.05)
@@ -402,6 +434,7 @@ def pr(dist, in_domain, save):
     data['recall'] = list(recall)
     data['precision'] = list(precision)
     data['baseline'] = baseline
+    data['auc'] = auc_score
     data['max_f1'] = max_f1
     data['max_f1_threshold'] = dist_cut
     data['max_auc'] = max_auc
@@ -410,6 +443,11 @@ def pr(dist, in_domain, save):
     jsonfile = os.path.join(save, 'pr.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
+
+    if choice == 'max_auc':
+        return max_auc_thresh
+    elif choice == 'max_f1':
+        return dist_cut
 
 
 def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):

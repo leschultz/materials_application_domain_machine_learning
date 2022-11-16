@@ -370,31 +370,45 @@ class NestedCV:
                          std,
                          df['y_std']/std,
                          df['in_domain'],
-                         df['sigma_thresh'].values[0],
                          os.path.join(job_name, 'sigma')
                          )
-
-        plots.confusion(
-                        df['in_domain'],
-                        score=df['y_std'],
-                        thresh=df['sigma_thresh'].values[0],
-                        save=os.path.join(job_name, 'sigma')
-                        )
 
         plots.assessment(
                          df['y_std'],
                          std,
                          df['dist'],
                          df['in_domain'],
-                         df['dist_thresh'].values[0],
                          os.path.join(job_name, 'dissimilarity'),
                          trans_condition,
                          )
 
+        # Precision recall for in domain
+        sigma_thresh = plots.pr(
+                                df['y_std'],
+                                df['in_domain'],
+                                os.path.join(job_name, 'sigma'),
+                                choice='max_f1',
+                                )
+
+        dist_thresh = plots.pr(
+                               df['dist'],
+                               df['in_domain'],
+                               os.path.join(job_name, 'dissimilarity'),
+                               choice='max_f1',
+                               )
+
+        # Confusion matrixes
+        plots.confusion(
+                        df['in_domain'],
+                        score=df['y_std'],
+                        thresh=sigma_thresh,
+                        save=os.path.join(job_name, 'sigma')
+                        )
+
         plots.confusion(
                         df['in_domain'],
                         score=df['dist'],
-                        thresh=df['dist_thresh'].values[0],
+                        thresh=dist_thresh,
                         save=os.path.join(job_name, 'dissimilarity')
                         )
 
@@ -404,19 +418,6 @@ class NestedCV:
                         y_pred=df['in_domain_pred'],
                         save=job_name
                         )
-
-        # Precision recall for in domain
-        plots.pr(
-                 df['y_std'],
-                 df['in_domain'],
-                 os.path.join(job_name, 'sigma')
-                 )
-
-        plots.pr(
-                 df['dist'],
-                 df['in_domain'],
-                 os.path.join(job_name, 'dissimilarity')
-                 )
 
         # Plot CDF comparison
         x = (df['y']-df['y_pred'])/df['y_std']
@@ -449,7 +450,7 @@ class NestedCV:
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        mets = group_metrics(data_cv, ['split', 'fold'])
+        mets = group_metrics(data_cv, ['split', 'fold', 'in_domain'])
 
         # Save location
         original_loc = os.path.join(save, 'model')
@@ -509,7 +510,7 @@ class NestedCV:
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        mets = group_metrics(data, ['split', 'fold'])
+        mets = group_metrics(data, ['split', 'fold', 'in_domain'])
 
         # Save locations
         assessment_loc = os.path.join(save, 'assessment')
