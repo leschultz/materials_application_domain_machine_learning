@@ -34,7 +34,6 @@ class distance_model:
             model = GaussianProcessRegressor()
             model.fit(X_train, y_train)
             _, dist = model.predict(X_test, return_std=True)
-            dist = dist
 
         elif dist_type == 'kde':
 
@@ -46,7 +45,7 @@ class distance_model:
                                                      )
 
             dist = model.pdf(X_test)
-            dist = np.exp(-dist)   # Lower is supposed to be in domain
+            dist = 1/(1+np.exp(dist))   # Lower is supposed to be in domain
 
         else:
             dist = cdist(X_train, X_test, dist_type)

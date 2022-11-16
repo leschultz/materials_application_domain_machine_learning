@@ -364,7 +364,7 @@ def assessment(y_std, std, dist, in_domain, save, transform=False):
 def pr(dist, in_domain, save=False, choice=None):
 
     baseline = sum(in_domain)/len(in_domain)
-    score = np.exp(-dist)
+    score = 1/(1+np.exp(dist))
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
@@ -392,7 +392,8 @@ def pr(dist, in_domain, save=False, choice=None):
     max_auc = recall[:-1][max_auc_index]
     max_auc_thresh = thresholds[max_auc_index]
 
-    dist_cut = -np.log(max_f1_thresh)
+    max_f1_thresh = np.log(1/max_f1_thresh-1)
+    max_auc_thresh = np.log(1/max_auc_thresh-1)
 
     if save is not False:
 
@@ -443,7 +444,7 @@ def pr(dist, in_domain, save=False, choice=None):
         data['baseline'] = baseline
         data['auc'] = auc_score
         data['max_f1'] = max_f1
-        data['max_f1_threshold'] = dist_cut
+        data['max_f1_threshold'] = max_f1_thresh
         data['max_auc'] = max_auc
         data['max_auc_thresh'] = max_auc_thresh
 
@@ -454,7 +455,7 @@ def pr(dist, in_domain, save=False, choice=None):
     if choice == 'max_auc':
         return max_auc_thresh
     elif choice == 'max_f1':
-        return dist_cut
+        return max_f1_thresh
 
 
 def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):
