@@ -25,7 +25,7 @@ class NoSplit:
         The training and testing indexes are the same.
         '''
 
-        indx = range(X.shape[0])
+        indx = np.array(range(X.shape[0]))
 
         yield indx, indx
 
@@ -86,6 +86,9 @@ class RepeatedLeaveOneGroupOut:
                 # Get the indexes
                 train = tr.index.tolist()
                 test = te.index.tolist()
+
+                train = np.array(train)
+                test = np.array(test)
 
                 yield train, test
 
@@ -202,6 +205,9 @@ class RepeatedClusterSplit:
                 train = tr.index.tolist()
                 test = te.index.tolist()
 
+                train = np.array(train)
+                test = np.array(test)
+
                 yield train, test
 
 
@@ -269,6 +275,9 @@ class BootstrappedClusterSplit:
                 test = sub[i]  # Test
                 train = sub[:i]+sub[i+1:]  # Train
                 train = list(itertools.chain.from_iterable(train))
+
+                train = np.array(train)
+                test = np.array(test)
 
                 yield train, test
 
@@ -341,5 +350,8 @@ class RepeatedClusterSplitCV:
                 # Get the indexes
                 train = tr.index.tolist()
                 test = te.index.tolist()
+
+                train = np.array(train)
+                test = np.array(test)
 
                 yield train, test

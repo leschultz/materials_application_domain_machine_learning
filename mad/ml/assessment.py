@@ -1,5 +1,6 @@
 from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import ShuffleSplit
 from sklearn.base import clone
 
 from mad.stats.group import stats, group_metrics
@@ -13,30 +14,6 @@ import numpy as np
 import copy
 import dill
 import os
-
-
-def threshold(score, in_domain):
-
-    baseline = sum(in_domain)/len(in_domain)
-    precision, recall, thresholds = precision_recall_curve(
-                                                           in_domain,
-                                                           score,
-                                                           pos_label=True,
-                                                           )
-
-    num = 2*recall*precision
-    den = recall+precision
-    f1_scores = np.divide(
-                          num,
-                          den,
-                          out=np.zeros_like(den), where=(den != 0)
-                          )
-
-    indx = np.argmax(f1_scores)
-    max_f1_thresh = thresholds[indx]
-    dist_cut = -np.log(max_f1_thresh)
-
-    return dist_cut
 
 
 def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
@@ -160,11 +137,17 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
 
 class build_model:
 
-    def __init__(self, gs_model, ds_model, uq_model, percentile=1):
+    def __init__(
+                 self,
+                 gs_model,
+                 ds_model,
+                 uq_model,
+                 percentile=1,
+                 ):
+
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
-
         self.percentile = percentile
 
     def fit(self, X, y, g):
@@ -213,13 +196,17 @@ class build_model:
         self.kde = kde
 
         # Dissimilarity cut-off
-        score = np.exp(-data_cv['dist'])
         in_domain = data_cv['in_domain']
-        self.dist_cut = threshold(score, in_domain)
-
-        # Dissimilarity sigma
-        score = np.exp(-data_cv['y_std'])
-        self.sigma_cut = threshold(score, in_domain)
+        self.sigma_cut = plots.pr(
+                                  data_cv['y_std'],
+                                  in_domain,
+                                  choice='max_f1'
+                                  )
+        self.dist_cut = plots.pr(
+                                 data_cv['dist'],
+                                 in_domain,
+                                 choice='max_f1'
+                                 )
 
         in_domain_pred = []
         for i, j in zip(data_cv['dist'], data_cv['y_std']):
@@ -283,11 +270,12 @@ class NestedCV:
         The groups of data to be split.
     '''
 
-    def __init__(self, X, y, g=None, splitter=RepeatedKFold()):
+    def __init__(self, X, y, g=None, splitter=RepeatedKFold(), sub_test=0.0):
 
         self.X = X  # Features
         self.y = y  # Target
         self.splitter = splitter  # Splitter
+        self.sub_test = sub_test
 
         # Grouping
         if g is None:
@@ -310,6 +298,19 @@ class NestedCV:
         count = -1
         for split in splitter.split(X, y, g):
             train, test = split
+
+            # Include some random test points.
+            if self.sub_test > 0.0:
+                sub = ShuffleSplit(n_splits=1, test_size=self.sub_test)
+                sub = sub.split(X[train], y[train], g[train])
+                sub = list(sub)[0]
+
+                train = np.array(train)
+                test = np.array(test)
+
+                test = np.concatenate([test, train[sub[1]]])
+                train = train[sub[0]]
+
             count += 1
             yield (train, test, count)
 
@@ -355,6 +356,13 @@ class NestedCV:
         # Plot ground truth
         job_name = list(map(str, i))
         job_name = os.path.join(*[save, job_name[0], job_name[1]])
+
+        # Save locations
+        sigma_name = os.path.join(job_name, 'sigma')
+        dist_name = os.path.join(job_name, 'dissimilarity')
+        marginal_dist_name = os.path.join(job_name, 'marginal_dissimilarity')
+        marginal_sigma_name = os.path.join(job_name, 'marginal_sigma')
+
         plots.ground_truth(
                            df['y'],
                            df['y_pred'],
@@ -370,7 +378,7 @@ class NestedCV:
                          std,
                          df['y_std']/std,
                          df['in_domain'],
-                         os.path.join(job_name, 'sigma')
+                         sigma_name
                          )
 
         plots.assessment(
@@ -378,7 +386,7 @@ class NestedCV:
                          std,
                          df['dist'],
                          df['in_domain'],
-                         os.path.join(job_name, 'dissimilarity'),
+                         dist_name,
                          trans_condition,
                          )
 
@@ -386,54 +394,74 @@ class NestedCV:
         sigma_thresh = plots.pr(
                                 df['y_std'],
                                 df['in_domain'],
-                                os.path.join(job_name, 'sigma'),
+                                sigma_name,
                                 choice='max_f1',
                                 )
 
         dist_thresh = plots.pr(
                                df['dist'],
                                df['in_domain'],
-                               os.path.join(job_name, 'dissimilarity'),
+                               dist_name,
                                choice='max_f1',
                                )
 
         # Marginal Plots
+        marginal_indx = df['dist'] < dist_thresh
+        plots.assessment(
+                         df['y_std'][marginal_indx],
+                         std,
+                         df['y_std'][marginal_indx]/std,
+                         df['in_domain'][marginal_indx],
+                         marginal_sigma_name,
+                         )
+        marginal_dist_thresh = plots.pr(
+                                        df['y_std'][marginal_indx],
+                                        df['in_domain'][marginal_indx],
+                                        marginal_sigma_name,
+                                        choice='max_f1',
+                                        )
+        plots.confusion(
+                        df['in_domain'][marginal_indx],
+                        score=df['y_std'][marginal_indx],
+                        thresh=marginal_dist_thresh,
+                        save=marginal_sigma_name,
+                        )
+
         marginal_indx = df['y_std'] < sigma_thresh
         plots.assessment(
                          df['y_std'][marginal_indx],
                          std,
                          df['dist'][marginal_indx],
                          df['in_domain'][marginal_indx],
-                         os.path.join(job_name, 'marginal'),
+                         marginal_dist_name,
                          trans_condition,
                          )
         marginal_dist_thresh = plots.pr(
                                         df['dist'][marginal_indx],
                                         df['in_domain'][marginal_indx],
-                                        os.path.join(job_name, 'marginal'),
+                                        marginal_dist_name,
                                         choice='max_f1',
                                         )
+        plots.confusion(
+                        df['in_domain'][marginal_indx],
+                        score=df['dist'][marginal_indx],
+                        thresh=marginal_dist_thresh,
+                        save=marginal_dist_name
+                        )
 
         # Confusion matrixes
         plots.confusion(
                         df['in_domain'],
                         score=df['y_std'],
                         thresh=sigma_thresh,
-                        save=os.path.join(job_name, 'sigma')
+                        save=sigma_name
                         )
 
         plots.confusion(
                         df['in_domain'],
                         score=df['dist'],
                         thresh=dist_thresh,
-                        save=os.path.join(job_name, 'dissimilarity')
-                        )
-
-        plots.confusion(
-                        df['in_domain'][marginal_indx],
-                        score=df['dist'][marginal_indx],
-                        thresh=marginal_dist_thresh,
-                        save=os.path.join(job_name, 'marginal')
+                        save=dist_name
                         )
 
         # Total
@@ -483,7 +511,7 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for CV splits: {}'.format(save))
         if model.ds_model.dist == 'gpr_std':
-            trans_condition = True
+            trans_condition = False
         elif model.ds_model.dist == 'kde':
             trans_condition = 'log10'
             trans_condition = False
@@ -533,7 +561,7 @@ class NestedCV:
         data = pd.concat(data)
 
         # Statistics
-        print('Assessing CV statistics from data used for fitting')
+        print('Assessing test and CV statistics from data used for fitting')
         mets = group_metrics(data, ['split', 'fold', 'in_domain'])
 
         # Save locations
@@ -543,7 +571,7 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for test and CV splits: {}'.format(save))
         if ds_model.dist == 'gpr_std':
-            trans_condition = True
+            trans_condition = False
         elif ds_model.dist == 'kde':
             trans_condition = 'log10'
             trans_condition = False

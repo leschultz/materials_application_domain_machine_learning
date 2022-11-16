@@ -361,9 +361,7 @@ def assessment(y_std, std, dist, in_domain, save, transform=False):
         json.dump(data, handle)
 
 
-def pr(dist, in_domain, save, choice=None):
-
-    os.makedirs(save, exist_ok=True)
+def pr(dist, in_domain, save=False, choice=None):
 
     baseline = sum(in_domain)/len(in_domain)
     score = np.exp(-dist)
@@ -396,53 +394,62 @@ def pr(dist, in_domain, save, choice=None):
 
     dist_cut = -np.log(max_f1_thresh)
 
-    fig, ax = pl.subplots()
+    if save is not False:
 
-    ax.plot(recall, precision, color='b')
-    ax.axhline(
-               baseline,
-               color='r',
-               linestyle=':',
-               label='AUC: {:.2f}'.format(auc_score),
-               )
-    ax.scatter(
-               max_auc,
-               precision[:-1][max_auc_index],
-               marker='o',
-               label='Max Recall: {:.2f}'.format(max_auc),
-               )
-    ax.scatter(
-               recall[max_f1_index],
-               precision[max_f1_index],
-               marker='o',
-               label='Max F1: {:.2f}'.format(max_f1),
-               )
+        os.makedirs(save, exist_ok=True)
 
-    ax.legend()
+        fig, ax = pl.subplots()
 
-    ax.set_xlim(0.0, 1.05)
-    ax.set_ylim(0.0, 1.05)
+        ax.plot(
+                recall,
+                precision,
+                color='b',
+                label='AUC: {:.2f}'.format(auc_score),
+                )
+        ax.axhline(
+                   baseline,
+                   color='r',
+                   linestyle=':',
+                   label='Baseline: {:.2f}'.format(baseline),
+                   )
+        ax.scatter(
+                   max_auc,
+                   precision[:-1][max_auc_index],
+                   marker='o',
+                   label='Max Recall: {:.2f}'.format(max_auc),
+                   )
+        ax.scatter(
+                   recall[max_f1_index],
+                   precision[max_f1_index],
+                   marker='o',
+                   label='Max F1: {:.2f}'.format(max_f1),
+                   )
 
-    ax.set_xlabel('Recall')
-    ax.set_ylabel('Precision')
+        ax.legend()
 
-    fig.savefig(os.path.join(save, 'pr.png'))
-    pl.close(fig)
+        ax.set_xlim(0.0, 1.05)
+        ax.set_ylim(0.0, 1.05)
 
-    # Repare plot data for saving
-    data = {}
-    data['recall'] = list(recall)
-    data['precision'] = list(precision)
-    data['baseline'] = baseline
-    data['auc'] = auc_score
-    data['max_f1'] = max_f1
-    data['max_f1_threshold'] = dist_cut
-    data['max_auc'] = max_auc
-    data['max_auc_thresh'] = max_auc_thresh
+        ax.set_xlabel('Recall')
+        ax.set_ylabel('Precision')
 
-    jsonfile = os.path.join(save, 'pr.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        fig.savefig(os.path.join(save, 'pr.png'))
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['recall'] = list(recall)
+        data['precision'] = list(precision)
+        data['baseline'] = baseline
+        data['auc'] = auc_score
+        data['max_f1'] = max_f1
+        data['max_f1_threshold'] = dist_cut
+        data['max_auc'] = max_auc
+        data['max_auc_thresh'] = max_auc_thresh
+
+        jsonfile = os.path.join(save, 'pr.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
 
     if choice == 'max_auc':
         return max_auc_thresh
@@ -476,11 +483,13 @@ def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):
         else:
             raise 'You done fucked up boi!'
 
+    fig, ax = pl.subplots()
     disp = ConfusionMatrixDisplay(conf, display_labels=['OD', 'ID'])
-    disp.plot()
+    disp.plot(ax=ax)
     fig_data = conf.tolist()
 
     disp.figure_.savefig(os.path.join(save, 'confusion.png'))
+    pl.close(fig)
 
     jsonfile = os.path.join(save, 'confusion.json')
     with open(jsonfile, 'w') as handle:
