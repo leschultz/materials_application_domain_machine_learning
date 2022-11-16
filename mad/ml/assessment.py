@@ -397,6 +397,23 @@ class NestedCV:
                                choice='max_f1',
                                )
 
+        # Marginal Plots
+        marginal_indx = df['y_std'] < sigma_thresh
+        plots.assessment(
+                         df['y_std'][marginal_indx],
+                         std,
+                         df['dist'][marginal_indx],
+                         df['in_domain'][marginal_indx],
+                         os.path.join(job_name, 'marginal'),
+                         trans_condition,
+                         )
+        marginal_dist_thresh = plots.pr(
+                                        df['dist'][marginal_indx],
+                                        df['in_domain'][marginal_indx],
+                                        os.path.join(job_name, 'marginal'),
+                                        choice='max_f1',
+                                        )
+
         # Confusion matrixes
         plots.confusion(
                         df['in_domain'],
@@ -410,6 +427,13 @@ class NestedCV:
                         score=df['dist'],
                         thresh=dist_thresh,
                         save=os.path.join(job_name, 'dissimilarity')
+                        )
+
+        plots.confusion(
+                        df['in_domain'][marginal_indx],
+                        score=df['dist'][marginal_indx],
+                        thresh=marginal_dist_thresh,
+                        save=os.path.join(job_name, 'marginal')
                         )
 
         # Total

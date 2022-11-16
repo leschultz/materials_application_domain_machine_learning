@@ -9,6 +9,7 @@ from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
 from mad.ml.assessment import NestedCV
 from mad.datasets import load_data
+from mad.ml import splitters
 
 import pandas as pd
 
