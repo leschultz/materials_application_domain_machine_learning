@@ -16,7 +16,12 @@ def eval_reg_metrics(groups, cols):
     y_pred = df['y_pred']
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
-    rmse_sig = rmse/np.std(y)
+
+    if y.shape[0] > 1:
+        rmse_sig = rmse/np.std(y)
+    else:
+        rmse_sig = np.nan
+
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
 

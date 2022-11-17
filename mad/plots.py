@@ -52,61 +52,78 @@ def parity(
         for i in [True, False]:
 
             m = mets[mets['in_domain'] == i]
-            m = m.to_dict(orient='records')[0]
 
-            rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
-            rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
+            if m.shape[0] > 1:
 
-            rmse = m[r'$RMSE$_mean']
-            rmse_sem = m[r'$RMSE$_sem']
+                m = m.to_dict(orient='records')[0]
 
-            mae = m[r'$MAE$_mean']
-            mae_sem = m[r'$MAE$_sem']
+                rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
+                rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
 
-            r2 = m[r'$R^{2}$_mean']
-            r2_sem = m[r'$R^{2}$_sem']
+                rmse = m[r'$RMSE$_mean']
+                rmse_sem = m[r'$RMSE$_sem']
 
-            label = r'$RMSE/\sigma=$'
-            label += r'{:.2} $\pm$ {:.2}'.format(rmse_sigma, rmse_sigma_sem)
-            label += '\n'
-            label += r'$RMSE=$'
-            label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
-            label += '\n'
-            label += r'$MAE=$'
-            label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
-            label += '\n'
-            label += r'$R^{2}=$'
-            label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+                mae = m[r'$MAE$_mean']
+                mae_sem = m[r'$MAE$_sem']
 
-            labels[i] = label
-            mets_save[i] = m
+                r2 = m[r'$R^{2}$_mean']
+                r2_sem = m[r'$R^{2}$_sem']
+
+                label = r'$RMSE/\sigma=$'
+                label += r'{:.2} $\pm$ {:.2}'.format(
+                                                     rmse_sigma,
+                                                     rmse_sigma_sem
+                                                     )
+                label += '\n'
+                label += r'$RMSE=$'
+                label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
+                label += '\n'
+                label += r'$MAE=$'
+                label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
+                label += '\n'
+                label += r'$R^{2}=$'
+                label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
+
+                labels[i] = label
+                mets_save[i] = m
+
+            else:
+                labels[i] = 'No out of domain'
+                mets_save[i] = 'No out of domain'
 
     else:
 
         for i in [True, False]:
 
             m = mets[mets['in_domain'] == i]
-            m = m.to_dict(orient='records')[0]
 
-            rmse_sigma = m[r'$RMSE/\sigma$']
-            rmse = m[r'$RMSE$']
-            mae = m[r'$MAE$']
-            r2 = m[r'$R^{2}$']
+            if m.shape[0] > 1:
 
-            label = r'$RMSE/\sigma_{y}=$'
-            label += r'{:.2}'.format(rmse_sigma)
-            label += '\n'
-            label += r'$RMSE=$'
-            label += r'{:.2}'.format(rmse)
-            label += '\n'
-            label += r'$MAE=$'
-            label += r'{:.2}'.format(mae)
-            label += '\n'
-            label += r'$R^{2}=$'
-            label += r'{:.2}'.format(r2)
+                m = m.to_dict(orient='records')[0]
 
-            labels[i] = label
-            mets_save[i] = m
+                rmse_sigma = m[r'$RMSE/\sigma$']
+                rmse = m[r'$RMSE$']
+                mae = m[r'$MAE$']
+                r2 = m[r'$R^{2}$']
+
+                label = r'$RMSE/\sigma_{y}=$'
+                label += r'{:.2}'.format(rmse_sigma)
+                label += '\n'
+                label += r'$RMSE=$'
+                label += r'{:.2}'.format(rmse)
+                label += '\n'
+                label += r'$MAE=$'
+                label += r'{:.2}'.format(mae)
+                label += '\n'
+                label += r'$R^{2}=$'
+                label += r'{:.2}'.format(r2)
+
+                labels[i] = label
+                mets_save[i] = m
+
+            else:
+                labels[i] = 'No out of domain'
+                mets_save[i] = 'No out of domain'
 
     fig, ax = pl.subplots()
 
@@ -201,6 +218,36 @@ def parity(
         json.dump(data, handle)
 
 
+def cdf(x):
+    '''
+    Plot the quantile quantile plot for cummulative distributions.
+    inputs:
+        x = The residuals normalized by the calibrated uncertainties.
+    '''
+
+    nx = len(x)
+    nz = 100000
+    z = np.random.normal(0, 1, nz)  # Standard normal distribution
+
+    # Need sorting
+    x = sorted(x)
+    z = sorted(z)
+
+    # Cummulative fractions
+    xfrac = np.arange(nx)/(nx-1)
+    zfrac = np.arange(nz)/(nz-1)
+
+    # Interpolation to compare cdf
+    eval_points = sorted(list(set(x+z)))
+    y_pred = np.interp(eval_points, x, xfrac)  # Predicted
+    y = np.interp(eval_points, z, zfrac)  # Standard Normal
+
+    # Area bertween ideal Gaussian and observed
+    area = np.trapz(abs(y_pred-y), x=y, dx=0.00001)
+
+    return y, y_pred, area
+
+
 def cdf_parity(x, in_domain, save):
     '''
     Plot the quantile quantile plot for cummulative distributions.
@@ -212,47 +259,31 @@ def cdf_parity(x, in_domain, save):
 
     out_domain = ~in_domain
 
-    nx_id = len(x[in_domain])
-    nx_od = len(x[out_domain])
-    nz = 100000
-    z = np.random.normal(0, 1, nz)  # Standard normal distribution
-
-    # Need sorting
-    x_id = sorted(x[in_domain])
-    x_od = sorted(x[out_domain])
-    z = sorted(z)
-
-    # Cummulative fractions
-    xfrac_id = np.arange(nx_id)/(nx_id-1)
-    xfrac_od = np.arange(nx_od)/(nx_od-1)
-    zfrac = np.arange(nz)/(nz-1)
-
-    # Interpolation to compare cdf
-    eval_points = sorted(list(set(x.tolist()+z)))
-    y_pred_id = np.interp(eval_points, x_id, xfrac_id)  # Predicted
-    y_pred_od = np.interp(eval_points, x_od, xfrac_od)  # Predicted
-    y = np.interp(eval_points, z, zfrac)  # Standard Normal
-
-    # Area bertween ideal Gaussian and observed
-    in_area = np.trapz(abs(y_pred_id-y), x=y, dx=0.00001)
-    out_area = np.trapz(abs(y_pred_od-y), x=y, dx=0.00001)
-
+    data = {}
     fig, ax = pl.subplots()
-    ax.plot(
-            y,
-            y_pred_id,
-            zorder=0,
-            color='g',
-            label='ID Area: {:.3f}'.format(in_area),
-            )
+    if x[in_domain].shape[0] > 1:
+        y_id, y_pred_id, in_area = cdf(x[in_domain])
+        ax.plot(
+                y_id,
+                y_pred_id,
+                zorder=0,
+                color='g',
+                label='ID Area: {:.3f}'.format(in_area),
+                )
+        data['y_id'] = list(y_id)
+        data['y_pred_id'] = list(y_pred_id)
 
-    ax.plot(
-            y,
-            y_pred_od,
-            zorder=0,
-            color='r',
-            label='OD Area: {:.3f}'.format(out_area),
-            )
+    if x[out_domain].shape[0] > 1:
+        y_od, y_pred_od, out_area = cdf(x[out_domain])
+        ax.plot(
+                y_od,
+                y_pred_od,
+                zorder=0,
+                color='r',
+                label='OD Area: {:.3f}'.format(out_area),
+                )
+        data['y_od'] = list(y_od)
+        data['y_pred_od'] = list(y_pred_od)
 
     # Line of best fit
     ax.plot(
@@ -275,12 +306,6 @@ def cdf_parity(x, in_domain, save):
     fig.savefig(os.path.join(save, 'cdf_parity.png'))
 
     pl.close(fig)
-
-    # Repare plot data for saving
-    data = {}
-    data['x'] = list(y)
-    data['y_id'] = list(y_pred_id)
-    data['y_od'] = list(y_pred_od)
 
     jsonfile = os.path.join(save, 'cdf_parity.json')
     with open(jsonfile, 'w') as handle:

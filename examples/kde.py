@@ -26,6 +26,9 @@ def main():
     y = data['target']
     g = data['class_name']
 
+    # The ground truth choice
+    ground = 'residual'
+
     # The fraction of randomly sampled data to include in test set
     sub_test = 0.2  # Fraction
 
@@ -33,7 +36,7 @@ def main():
     ds_model = distance_model(dist='kde')
 
     # ML UQ function
-    uq_model = ensemble_model()
+    uq_model = ensemble_model(params=[0.0, 1.0])
 
     # ML Pipeline
     scale = StandardScaler()
@@ -47,7 +50,7 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=5))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=1))]
@@ -73,7 +76,7 @@ def main():
 
         # Assess and build model
         save = '{}/{}'.format(run_name, i[0])
-        spl = NestedCV(X, y, g, i[1], sub_test)
+        spl = NestedCV(X, y, g, i[1], sub_test, ground=ground)
         spl.assess(gs_model, uq_model, ds_model, save=save)
         spl.save_model(gs_model, uq_model, ds_model, save=save)
 

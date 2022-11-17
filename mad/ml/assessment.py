@@ -16,22 +16,39 @@ import dill
 import os
 
 
-def ground_truth(y, y_pred, y_std, percentile=1, prefit=None, cut=None):
+def ground_truth(
+                 y,
+                 y_pred,
+                 y_std,
+                 percentile=1,
+                 prefit=None,
+                 cut=None,
+                 ground='calibration'
+                 ):
 
     # Define ground truth
     absres = abs(y-y_pred)
-    vals = np.array([y_std, absres]).T
 
-    if prefit is None:
-        prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
+    if ground == 'calibration':
+        vals = np.array([y_std, absres]).T
 
-    pdf = prefit.pdf(vals)
+        if prefit is None:
+            prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
 
-    # Ground truth
-    if cut is None:
-        cut = np.percentile(pdf, percentile)
+        pdf = prefit.pdf(vals)
 
-    in_domain_pred = pdf > cut
+        # Ground truth
+        if cut is None:
+            cut = np.percentile(pdf, percentile)
+
+        in_domain_pred = pdf > cut
+
+    elif ground == 'residual':
+        if cut is None:
+            cut = np.percentile(absres, 100-percentile)
+
+        in_domain_pred = absres < cut
+
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
 
     return cut, prefit, in_domain_pred
@@ -143,12 +160,14 @@ class build_model:
                  ds_model,
                  uq_model,
                  percentile=1,
+                 ground='calibration',
                  ):
 
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
         self.percentile = percentile
+        self.ground = ground
 
     def fit(self, X, y, g):
 
@@ -187,7 +206,8 @@ class build_model:
                                            data_cv['y'],
                                            data_cv['y_pred'],
                                            data_cv['y_std'],
-                                           self.percentile
+                                           self.percentile,
+                                           ground=self.ground
                                            )
 
         data_cv['in_domain'] = in_domain
@@ -271,12 +291,21 @@ class NestedCV:
         The groups of data to be split.
     '''
 
-    def __init__(self, X, y, g=None, splitter=RepeatedKFold(), sub_test=0.0):
+    def __init__(
+                 self,
+                 X,
+                 y,
+                 g=None,
+                 splitter=RepeatedKFold(),
+                 sub_test=0.0,
+                 ground='calibration'
+                 ):
 
         self.X = X  # Features
         self.y = y  # Target
         self.splitter = splitter  # Splitter
         self.sub_test = sub_test
+        self.ground = ground
 
         # Grouping
         if g is None:
@@ -320,7 +349,7 @@ class NestedCV:
         train, test, count = split  # train/test
 
         # Fit models
-        model = build_model(gs_model, ds_model, uq_model)
+        model = build_model(gs_model, ds_model, uq_model, ground=self.ground)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
@@ -331,6 +360,7 @@ class NestedCV:
                                             model.percentile,
                                             cut=model.cut,
                                             prefit=model.kde,
+                                            ground=self.ground,
                                             )
 
         data_test['y'] = self.y[test]
