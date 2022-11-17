@@ -27,7 +27,7 @@ def main():
     g = data['class_name']
 
     # The ground truth choice
-    ground = 'residual'
+    ground = 'calibration'
 
     # The fraction of randomly sampled data to include in test set
     sub_test = 0.2  # Fraction
