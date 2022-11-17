@@ -24,6 +24,7 @@ install_requires = [
                     'statsmodels',
                     'pytest',
                     'openpyxl',
+                    'umap-learn',
                     'gpytorch'
                     ]
 long_description = open('README.md').read()
