@@ -280,7 +280,7 @@ class NestedCV:
 
         # Grouping
         if g is None:
-            self.g = ['no-groups']*self.X.shape[0]
+            self.g = np.array(['no-groups']*self.X.shape[0])
         else:
             self.g = g
 
