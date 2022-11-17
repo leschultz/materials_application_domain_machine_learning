@@ -53,7 +53,7 @@ def parity(
 
             m = mets[mets['in_domain'] == i]
 
-            if m.shape[0] > 1:
+            if m.shape[0] > 0:
 
                 m = m.to_dict(orient='records')[0]
 
@@ -97,7 +97,7 @@ def parity(
 
             m = mets[mets['in_domain'] == i]
 
-            if m.shape[0] > 1:
+            if m.shape[0] > 0:
 
                 m = m.to_dict(orient='records')[0]
 
@@ -135,7 +135,7 @@ def parity(
                     linestyle='none',
                     marker='.',
                     markerfacecolor='None',
-                    zorder=0,
+                    zorder=1,
                     color='b',
                     )
         ax.errorbar(
@@ -153,7 +153,7 @@ def parity(
                y[in_domain],
                y_pred[in_domain],
                marker='.',
-               zorder=1,
+               zorder=2,
                color='b',
                label=labels[True],
                )
