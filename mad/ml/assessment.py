@@ -512,10 +512,9 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for CV splits: {}'.format(save))
         if model.ds_model.dist == 'gpr_std':
-            trans_condition = False
+            trans_condition = True
         elif model.ds_model.dist == 'kde':
             trans_condition = 'log10'
-            trans_condition = False
         else:
             trans_condition = False
         parallel(
@@ -572,10 +571,9 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for test and CV splits: {}'.format(save))
         if ds_model.dist == 'gpr_std':
-            trans_condition = False
+            trans_condition = True
         elif ds_model.dist == 'kde':
             trans_condition = 'log10'
-            trans_condition = False
         else:
             trans_condition = False
         parallel(

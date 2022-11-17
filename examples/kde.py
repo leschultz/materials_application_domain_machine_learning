@@ -17,7 +17,7 @@ import dill
 
 def main():
 
-    run_name = 'run_gpr'
+    run_name = 'run_kde'
 
     # Load data
     data = load_data.diffusion(frac=1)
@@ -26,8 +26,11 @@ def main():
     y = data['target']
     g = data['class_name']
 
+    # The fraction of randomly sampled data to include in test set
+    sub_test = 0.2  # Fraction
+
     # ML Distance model
-    ds_model = distance_model(dist='gpr_std')
+    ds_model = distance_model(dist='kde')
 
     # ML UQ function
     uq_model = ensemble_model()
@@ -44,7 +47,7 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=5))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=1))]
@@ -55,7 +58,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 4]:
+    for i in [2, 20]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
@@ -70,7 +73,7 @@ def main():
 
         # Assess and build model
         save = '{}/{}'.format(run_name, i[0])
-        spl = NestedCV(X, y, g, i[1])
+        spl = NestedCV(X, y, g, i[1], sub_test)
         spl.assess(gs_model, uq_model, ds_model, save=save)
         spl.save_model(gs_model, uq_model, ds_model, save=save)
 
