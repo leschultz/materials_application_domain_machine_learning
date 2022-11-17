@@ -1,9 +1,24 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from scipy.spatial.distance import cdist
+from umap import UMAP
 
 import statsmodels.api as sm
 
 import numpy as np
+
+
+def kde(X_train, X_test):
+    var_type = 'c'*X_train.shape[1]
+    model = sm.nonparametric.KDEMultivariate(
+                                             X_train,
+                                             var_type=var_type,
+                                             bw='normal_reference'
+                                             )
+
+    dist = model.pdf(X_test)
+    dist = 1/(1+np.exp(dist))   # Lower is supposed to be in domain
+
+    return dist
 
 
 class distance_model:
@@ -37,15 +52,18 @@ class distance_model:
 
         elif dist_type == 'kde':
 
-            var_type = 'c'*X_train.shape[1]
-            model = sm.nonparametric.KDEMultivariate(
-                                                     X_train,
-                                                     var_type=var_type,
-                                                     bw='normal_reference'
-                                                     )
+            dist = kde(X_train, X_test)
 
-            dist = model.pdf(X_test)
-            dist = 1/(1+np.exp(dist))   # Lower is supposed to be in domain
+        elif dist_type == 'umap':
+
+            model = UMAP(n_components=X_train.shape[1])
+            model.fit(X_train)
+
+            X_train_transform = model.transform(X_train)
+            X_test_transform = model.transform(X_test)
+
+            dist = cdist(X_train_transform, X_test_transform, 'euclidean')
+            dist = np.mean(dist, axis=0)
 
         else:
             dist = cdist(X_train, X_test, dist_type)
