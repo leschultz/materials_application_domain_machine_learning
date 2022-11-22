@@ -5,7 +5,10 @@ from sklearn.base import clone
 
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
+from mad.ml import splitters
 from mad import plots
+
+from sklearn.cluster import KMeans
 
 import statsmodels.api as sm
 import pandas as pd
@@ -20,7 +23,7 @@ def ground_truth(
                  y,
                  y_pred,
                  y_std,
-                 percentile=1,
+                 percentile=5,
                  prefit=None,
                  cut=None,
                  ground='calibration'
@@ -159,7 +162,7 @@ class build_model:
                  gs_model,
                  ds_model,
                  uq_model,
-                 percentile=1,
+                 percentile=5,
                  ground='calibration',
                  ):
 
@@ -181,7 +184,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_cv = cv(
+        data_id = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -193,27 +196,61 @@ class build_model:
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_cv['y'],
-                          data_cv['y_pred'],
-                          data_cv['y_std']
+                          data_id['y'],
+                          data_id['y_pred'],
+                          data_id['y_std']
                           )
 
         # Update with calibrated data
-        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
+        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
 
         # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_cv['y'],
-                                           data_cv['y_pred'],
-                                           data_cv['y_std'],
+                                           data_id['y'],
+                                           data_id['y_pred'],
+                                           data_id['y_std'],
                                            self.percentile,
                                            ground=self.ground
                                            )
 
-        data_cv['in_domain'] = in_domain
+        data_id['in_domain'] = in_domain
 
         self.cut = cut
         self.kde = kde
+
+        # Out of domain
+        od_split = splitters.RepeatedClusterSplit(
+                                                  KMeans,
+                                                  n_repeats=1,
+                                                  n_clusters=2
+                                                  )
+        data_od = cv(
+                     self.gs_model,
+                     self.ds_model,
+                     X,
+                     y,
+                     g,
+                     np.arange(y.shape[0]),
+                     od_split
+                     )
+
+        # Update with calibrated data
+        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
+
+        # Define ground truth
+        _, _, od_domain = ground_truth(
+                                       data_od['y'],
+                                       data_od['y_pred'],
+                                       data_od['y_std'],
+                                       self.percentile,
+                                       cut=self.cut,
+                                       prefit=self.kde,
+                                       ground=self.ground
+                                       )
+
+        data_od['in_domain'] = od_domain
+
+        data_cv = pd.concat([data_od, data_id])
 
         # Dissimilarity cut-off
         in_domain = data_cv['in_domain']
@@ -225,7 +262,7 @@ class build_model:
         self.dist_cut = plots.pr(
                                  data_cv['dist'],
                                  in_domain,
-                                 choice='max_auc'
+                                 choice='max_f1'
                                  )
 
         in_domain_pred = []
@@ -383,6 +420,9 @@ class NestedCV:
         i, df = df
         mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
 
+        sigma_thresh = df['sigma_thresh'].values[0]
+        dist_thresh = df['dist_thresh'].values[0]
+
         # Plot ground truth
         job_name = list(map(str, i))
         job_name = os.path.join(*[save, job_name[0], job_name[1]])
@@ -417,14 +457,14 @@ class NestedCV:
                  )
 
         # Plot prediction time
-        std = np.std(df['y'])
+        std = df['y'].std()
         plots.assessment(
                          df['y_std'],
                          std,
                          df['y_std']/std,
                          df['in_domain'],
                          sigma_name,
-                         thresh=df['sigma_thresh'][0]/std,
+                         thresh=sigma_thresh/std,
                          )
 
         plots.assessment(
@@ -434,67 +474,69 @@ class NestedCV:
                          df['in_domain'],
                          dist_name,
                          trans_condition,
-                         thresh=df['dist_thresh'][0],
+                         thresh=dist_thresh,
                          )
 
         # Marginal Plots
-        marginal_indx = df['dist'] < df['dist_thresh'].values[0]
-        plots.pr(
-                 df['y_std'][marginal_indx],
-                 df['in_domain'][marginal_indx],
-                 marginal_sigma_name,
-                 choice='max_f1',
-                 )
-        plots.assessment(
-                         df['y_std'][marginal_indx],
-                         std,
-                         df['y_std'][marginal_indx]/std,
-                         df['in_domain'][marginal_indx],
-                         marginal_sigma_name,
-                         thresh=df['sigma_thresh'][0]/std,
-                         )
-        plots.confusion(
-                        df['in_domain'][marginal_indx],
-                        score=df['y_std'][marginal_indx],
-                        thresh=df['sigma_thresh'][0],
-                        save=marginal_sigma_name,
-                        )
+        marginal_indx = df['dist'] < dist_thresh
+        if len(df['in_domain'][marginal_indx]) > 0:
+            plots.pr(
+                     df['y_std'][marginal_indx],
+                     df['in_domain'][marginal_indx],
+                     marginal_sigma_name,
+                     choice='max_f1',
+                     )
+            plots.assessment(
+                             df['y_std'][marginal_indx],
+                             std,
+                             df['y_std'][marginal_indx]/std,
+                             df['in_domain'][marginal_indx],
+                             marginal_sigma_name,
+                             thresh=sigma_thresh/std,
+                             )
+            plots.confusion(
+                            df['in_domain'][marginal_indx],
+                            score=df['y_std'][marginal_indx],
+                            thresh=sigma_thresh,
+                            save=marginal_sigma_name,
+                            )
 
-        marginal_indx = df['y_std'] < df['sigma_thresh'].values[0]
-        plots.pr(
-                 df['dist'][marginal_indx],
-                 df['in_domain'][marginal_indx],
-                 marginal_dist_name,
-                 choice='max_f1',
-                 )
-        plots.assessment(
-                         df['y_std'][marginal_indx],
-                         std,
-                         df['dist'][marginal_indx],
-                         df['in_domain'][marginal_indx],
-                         marginal_dist_name,
-                         trans_condition,
-                         thresh=df['dist_thresh'][0],
-                         )
-        plots.confusion(
-                        df['in_domain'][marginal_indx],
-                        score=df['dist'][marginal_indx],
-                        thresh=df['dist_thresh'][0],
-                        save=marginal_dist_name
-                        )
+        marginal_indx = df['y_std'] < sigma_thresh
+        if len(df['in_domain'][marginal_indx]) > 0:
+            plots.pr(
+                     df['dist'][marginal_indx],
+                     df['in_domain'][marginal_indx],
+                     marginal_dist_name,
+                     choice='max_f1',
+                     )
+            plots.assessment(
+                             df['y_std'][marginal_indx],
+                             std,
+                             df['dist'][marginal_indx],
+                             df['in_domain'][marginal_indx],
+                             marginal_dist_name,
+                             trans_condition,
+                             thresh=dist_thresh,
+                             )
+            plots.confusion(
+                            df['in_domain'][marginal_indx],
+                            score=df['dist'][marginal_indx],
+                            thresh=dist_thresh,
+                            save=marginal_dist_name
+                            )
 
         # Confusion matrixes
         plots.confusion(
                         df['in_domain'],
                         score=df['y_std'],
-                        thresh=df['sigma_thresh'][0],
+                        thresh=sigma_thresh,
                         save=sigma_name
                         )
 
         plots.confusion(
                         df['in_domain'],
                         score=df['dist'],
-                        thresh=df['dist_thresh'][0],
+                        thresh=dist_thresh,
                         save=dist_name
                         )
 
