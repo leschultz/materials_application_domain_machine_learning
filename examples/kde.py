@@ -1,3 +1,4 @@
+from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -12,6 +13,8 @@ from mad.datasets import load_data
 from mad.ml import splitters
 
 import pandas as pd
+import numpy as np
+
 import dill
 
 
@@ -27,7 +30,7 @@ def main():
     g = data['class_name']
 
     # The ground truth choice
-    ground = 'calibration'
+    ground = 'residual'
 
     # The fraction of randomly sampled data to include in test set
     sub_test = 0.2  # Fraction
@@ -42,6 +45,17 @@ def main():
     scale = StandardScaler()
     model = RandomForestRegressor()
 
+    if X.shape[1] < 10:
+        max_features = X.shape[1]
+    else:
+        max_features = 10
+
+    selector = SelectFromModel(
+                               estimator=model,
+                               threshold=-np.inf,
+                               max_features=max_features
+                               )
+
     grid = {}
     grid['model__n_estimators'] = [100]
     grid['model__max_features'] = [None]
@@ -50,7 +64,7 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=1))]

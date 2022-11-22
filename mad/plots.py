@@ -51,7 +51,7 @@ def parity(
 
         for i in [True, False]:
 
-            m = mets[mets['in_domain'] == i]
+            m = mets[mets['in_domain_pred'] == i]
 
             if m.shape[0] > 0:
 
@@ -95,7 +95,7 @@ def parity(
 
         for i in [True, False]:
 
-            m = mets[mets['in_domain'] == i]
+            m = mets[mets['in_domain_pred'] == i]
 
             if m.shape[0] > 0:
 
@@ -261,6 +261,18 @@ def cdf_parity(x, in_domain, save):
 
     data = {}
     fig, ax = pl.subplots()
+
+    y, y_pred, area = cdf(x)
+    ax.plot(
+            y,
+            y_pred,
+            zorder=0,
+            color='b',
+            label='Total Area: {:.3f}'.format(area),
+            )
+    data['y'] = list(y)
+    data['y_pred'] = list(y_pred)
+
     if x[in_domain].shape[0] > 1:
         y_id, y_pred_id, in_area = cdf(x[in_domain])
         ax.plot(
@@ -345,29 +357,38 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(y_std, std, dist, in_domain, save, transform=False):
+def assessment(
+               y_std,
+               std,
+               dist,
+               in_domain,
+               save,
+               transform=False,
+               thresh=None
+               ):
 
     y_std = y_std/std
     os.makedirs(save, exist_ok=True)
 
     out_domain = ~in_domain
 
-    if transform is True:
+    if transform == 'gpr_std':
         dist = -np.log10(1e-8+1-dist)
-    elif transform == 'log10':
-        dist = np.log10(dist)
+        if thresh:
+            thresh = -np.log10(1e-8+1-thresh)
 
     fig, ax = pl.subplots()
 
     ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
     ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='x')
 
+    if thresh:
+        ax.axvline(thresh, color='k')
+
     ax.set_ylabel(r'$\sigma/\sigma_{y}$')
 
-    if transform is True:
-        ax.set_xlabel(r'$-log_{10}(1e-8+GPR_{\sigma})$')
-    elif transform == 'log10':
-        ax.set_xlabel(r'$log_{10}(dist)$')
+    if transform == 'gpr_std':
+        ax.set_xlabel(r'$-log_{10}(1e-8+1-GPR_{\sigma})$')
     else:
         ax.set_xlabel('dist')
 
@@ -381,6 +402,9 @@ def assessment(y_std, std, dist, in_domain, save, transform=False):
     data['x_red'] = list(dist[out_domain])
     data['y_red'] = list(y_std[out_domain])
 
+    if thresh:
+        data['vertical'] = thresh
+
     jsonfile = os.path.join(save, 'assessment.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
@@ -390,6 +414,7 @@ def pr(dist, in_domain, save=False, choice=None):
 
     baseline = sum(in_domain)/len(in_domain)
     score = 1/(1+np.exp(dist))
+
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
@@ -432,12 +457,15 @@ def pr(dist, in_domain, save=False, choice=None):
                 color='b',
                 label='AUC: {:.2f}'.format(auc_score),
                 )
-        ax.axhline(
-                   baseline,
-                   color='r',
-                   linestyle=':',
-                   label='Baseline: {:.2f}'.format(baseline),
-                   )
+        ax.hlines(
+                  baseline,
+                  color='r',
+                  linestyle=':',
+                  label='Baseline: {:.2f}'.format(baseline),
+                  xmin=0.0,
+                  xmax=1.0,
+                  )
+
         ax.scatter(
                    max_auc,
                    precision[:-1][max_auc_index],
@@ -469,7 +497,7 @@ def pr(dist, in_domain, save=False, choice=None):
         data['baseline'] = baseline
         data['auc'] = auc_score
         data['max_f1'] = max_f1
-        data['max_f1_threshold'] = max_f1_thresh
+        data['max_f1_thresh'] = max_f1_thresh
         data['max_auc'] = max_auc
         data['max_auc_thresh'] = max_auc_thresh
 

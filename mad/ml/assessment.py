@@ -222,11 +222,10 @@ class build_model:
                                   in_domain,
                                   choice='max_f1'
                                   )
-        marginal_index = data_cv['y_std'] < self.sigma_cut
         self.dist_cut = plots.pr(
-                                 data_cv['dist'][marginal_index],
-                                 in_domain[marginal_index],
-                                 choice='max_f1'
+                                 data_cv['dist'],
+                                 in_domain,
+                                 choice='max_auc'
                                  )
 
         in_domain_pred = []
@@ -402,6 +401,21 @@ class NestedCV:
                            job_name
                            )
 
+        # Precision recall for in domain
+        plots.pr(
+                 df['y_std'],
+                 df['in_domain'],
+                 sigma_name,
+                 choice='max_f1',
+                 )
+
+        plots.pr(
+                 df['dist'],
+                 df['in_domain'],
+                 dist_name,
+                 choice='max_f1',
+                 )
+
         # Plot prediction time
         std = np.std(df['y'])
         plots.assessment(
@@ -409,7 +423,8 @@ class NestedCV:
                          std,
                          df['y_std']/std,
                          df['in_domain'],
-                         sigma_name
+                         sigma_name,
+                         thresh=df['sigma_thresh'][0]/std,
                          )
 
         plots.assessment(
@@ -419,46 +434,39 @@ class NestedCV:
                          df['in_domain'],
                          dist_name,
                          trans_condition,
+                         thresh=df['dist_thresh'][0],
                          )
 
-        # Precision recall for in domain
-        sigma_thresh = plots.pr(
-                                df['y_std'],
-                                df['in_domain'],
-                                sigma_name,
-                                choice='max_f1',
-                                )
-
-        dist_thresh = plots.pr(
-                               df['dist'],
-                               df['in_domain'],
-                               dist_name,
-                               choice='max_f1',
-                               )
-
         # Marginal Plots
-        marginal_indx = df['dist'] < dist_thresh
+        marginal_indx = df['dist'] < df['dist_thresh'].values[0]
+        plots.pr(
+                 df['y_std'][marginal_indx],
+                 df['in_domain'][marginal_indx],
+                 marginal_sigma_name,
+                 choice='max_f1',
+                 )
         plots.assessment(
                          df['y_std'][marginal_indx],
                          std,
                          df['y_std'][marginal_indx]/std,
                          df['in_domain'][marginal_indx],
                          marginal_sigma_name,
+                         thresh=df['sigma_thresh'][0]/std,
                          )
-        marginal_dist_thresh = plots.pr(
-                                        df['y_std'][marginal_indx],
-                                        df['in_domain'][marginal_indx],
-                                        marginal_sigma_name,
-                                        choice='max_f1',
-                                        )
         plots.confusion(
                         df['in_domain'][marginal_indx],
                         score=df['y_std'][marginal_indx],
-                        thresh=marginal_dist_thresh,
+                        thresh=df['sigma_thresh'][0],
                         save=marginal_sigma_name,
                         )
 
-        marginal_indx = df['y_std'] < sigma_thresh
+        marginal_indx = df['y_std'] < df['sigma_thresh'].values[0]
+        plots.pr(
+                 df['dist'][marginal_indx],
+                 df['in_domain'][marginal_indx],
+                 marginal_dist_name,
+                 choice='max_f1',
+                 )
         plots.assessment(
                          df['y_std'][marginal_indx],
                          std,
@@ -466,17 +474,12 @@ class NestedCV:
                          df['in_domain'][marginal_indx],
                          marginal_dist_name,
                          trans_condition,
+                         thresh=df['dist_thresh'][0],
                          )
-        marginal_dist_thresh = plots.pr(
-                                        df['dist'][marginal_indx],
-                                        df['in_domain'][marginal_indx],
-                                        marginal_dist_name,
-                                        choice='max_f1',
-                                        )
         plots.confusion(
                         df['in_domain'][marginal_indx],
                         score=df['dist'][marginal_indx],
-                        thresh=marginal_dist_thresh,
+                        thresh=df['dist_thresh'][0],
                         save=marginal_dist_name
                         )
 
@@ -484,14 +487,14 @@ class NestedCV:
         plots.confusion(
                         df['in_domain'],
                         score=df['y_std'],
-                        thresh=sigma_thresh,
+                        thresh=df['sigma_thresh'][0],
                         save=sigma_name
                         )
 
         plots.confusion(
                         df['in_domain'],
                         score=df['dist'],
-                        thresh=dist_thresh,
+                        thresh=df['dist_thresh'][0],
                         save=dist_name
                         )
 
@@ -515,7 +518,7 @@ class NestedCV:
                      mets,
                      df['y'].values,
                      df['y_pred'].values,
-                     df['in_domain'].values,
+                     df['in_domain_pred'].values,
                      save=job_name
                      )
 
@@ -533,7 +536,7 @@ class NestedCV:
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        mets = group_metrics(data_cv, ['split', 'fold', 'in_domain'])
+        mets = group_metrics(data_cv, ['split', 'fold', 'in_domain_pred'])
 
         # Save location
         original_loc = os.path.join(save, 'model')
@@ -542,9 +545,9 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for CV splits: {}'.format(save))
         if model.ds_model.dist == 'gpr_std':
-            trans_condition = True
+            trans_condition = 'gpr_std'
         elif model.ds_model.dist == 'kde':
-            trans_condition = 'log10'
+            trans_condition = 'kde'
         else:
             trans_condition = False
         parallel(
@@ -592,7 +595,7 @@ class NestedCV:
 
         # Statistics
         print('Assessing test and CV statistics from data used for fitting')
-        mets = group_metrics(data, ['split', 'fold', 'in_domain'])
+        mets = group_metrics(data, ['split', 'fold', 'in_domain_pred'])
 
         # Save locations
         assessment_loc = os.path.join(save, 'assessment')
@@ -601,9 +604,9 @@ class NestedCV:
         # Plot assessment
         print('Plotting results for test and CV splits: {}'.format(save))
         if ds_model.dist == 'gpr_std':
-            trans_condition = True
+            trans_condition = 'gpr_std'
         elif ds_model.dist == 'kde':
-            trans_condition = 'log10'
+            trans_condition = 'kde'
         else:
             trans_condition = False
         parallel(
