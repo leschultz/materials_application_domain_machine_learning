@@ -5,10 +5,7 @@ from sklearn.base import clone
 
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
-from mad.ml import splitters
 from mad import plots
-
-from sklearn.cluster import KMeans
 
 import statsmodels.api as sm
 import pandas as pd
