@@ -5,7 +5,10 @@ from sklearn.base import clone
 
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
+from mad.ml import splitters
 from mad import plots
+
+from sklearn.cluster import KMeans
 
 import statsmodels.api as sm
 import pandas as pd
@@ -180,7 +183,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_cv = cv(
+        data_id = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -192,27 +195,61 @@ class build_model:
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_cv['y'],
-                          data_cv['y_pred'],
-                          data_cv['y_std']
+                          data_id['y'],
+                          data_id['y_pred'],
+                          data_id['y_std']
                           )
 
         # Update with calibrated data
-        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
+        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
 
         # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_cv['y'],
-                                           data_cv['y_pred'],
-                                           data_cv['y_std'],
+                                           data_id['y'],
+                                           data_id['y_pred'],
+                                           data_id['y_std'],
                                            self.percentile,
                                            ground=self.ground
                                            )
 
-        data_cv['in_domain'] = in_domain
-
         self.cut = cut
         self.kde = kde
+
+        data_id['in_domain'] = in_domain
+
+        # Do cross validation in nested loop
+        od_split = splitters.BootstrappedClusterSplit(
+                                                      KMeans,
+                                                      n_repeats=2,
+                                                      n_clusters=2
+                                                      )
+        data_od = cv(
+                     self.gs_model,
+                     self.ds_model,
+                     X,
+                     y,
+                     g,
+                     np.arange(y.shape[0]),
+                     od_split
+                     )
+
+        # Update with calibrated data
+        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
+
+        # Define ground truth
+        _, _, in_domain = ground_truth(
+                                       data_od['y'],
+                                       data_od['y_pred'],
+                                       data_od['y_std'],
+                                       self.percentile,
+                                       cut=self.cut,
+                                       prefit=self.kde,
+                                       ground=self.ground
+                                       )
+
+        data_od['in_domain'] = in_domain
+
+        data_cv = pd.concat([data_id, data_od])
 
         # Dissimilarity cut-off
         self.sigma_cut = plots.pr(
