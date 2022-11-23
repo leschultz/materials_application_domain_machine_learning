@@ -68,18 +68,17 @@ def transforms(gs_model, X):
 
 
 def std_pred(gs_model, X_test):
-    std = []
+
     estimators = gs_model.best_estimator_
     estimators = estimators.named_steps['model']
     estimators = estimators.estimators_
-    X_test = transforms(
-                        gs_model,
-                        X_test,
-                        )
+
+    std = []
     for i in estimators:
         std.append(i.predict(X_test))
 
     std = np.std(std, axis=0)
+
     return std
 
 
@@ -117,7 +116,7 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
 
         ds_model_cv.fit(X_trans_tr, y[train][tr])
 
-        std = std_pred(gs_model, X[train][te])
+        std = std_pred(gs_model, X_trans_te)
 
         y_cv_pred = np.append(
                               y_cv_pred,
@@ -184,7 +183,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_id = cv(
+        data_cv = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -196,72 +195,39 @@ class build_model:
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_id['y'],
-                          data_id['y_pred'],
-                          data_id['y_std']
+                          data_cv['y'],
+                          data_cv['y_pred'],
+                          data_cv['y_std']
                           )
 
         # Update with calibrated data
-        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
+        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_id['y'],
-                                           data_id['y_pred'],
-                                           data_id['y_std'],
+                                           data_cv['y'],
+                                           data_cv['y_pred'],
+                                           data_cv['y_std'],
                                            self.percentile,
                                            ground=self.ground
                                            )
 
-        data_id['in_domain'] = in_domain
+        data_cv['in_domain'] = in_domain
 
         self.cut = cut
         self.kde = kde
 
-        # Out of domain
-        od_split = splitters.RepeatedClusterSplit(
-                                                  KMeans,
-                                                  n_repeats=1,
-                                                  n_clusters=2
-                                                  )
-        data_od = cv(
-                     self.gs_model,
-                     self.ds_model,
-                     X,
-                     y,
-                     g,
-                     np.arange(y.shape[0]),
-                     od_split
-                     )
-
-        # Update with calibrated data
-        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
-
-        # Define ground truth
-        _, _, od_domain = ground_truth(
-                                       data_od['y'],
-                                       data_od['y_pred'],
-                                       data_od['y_std'],
-                                       self.percentile,
-                                       cut=self.cut,
-                                       prefit=self.kde,
-                                       ground=self.ground
-                                       )
-
-        data_od['in_domain'] = od_domain
-
-        data_cv = pd.concat([data_od, data_id])
-
         # Dissimilarity cut-off
-        in_domain = data_cv['in_domain']
         self.sigma_cut = plots.pr(
                                   data_cv['y_std'],
-                                  in_domain,
+                                  data_cv['in_domain'],
                                   choice='max_f1'
                                   )
+
+        marginal = data_cv['y_std'] < self.sigma_cut
         self.dist_cut = plots.pr(
-                                 data_cv['dist'],
-                                 in_domain,
+                                 data_cv['dist'][marginal],
+                                 data_cv['in_domain'][marginal],
                                  choice='max_f1'
                                  )
 
@@ -287,7 +253,7 @@ class build_model:
 
         # Model predictions
         y_pred = self.gs_model.predict(X)
-        y_std = std_pred(self.gs_model, X)
+        y_std = std_pred(self.gs_model, X_trans)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X_trans)
 
