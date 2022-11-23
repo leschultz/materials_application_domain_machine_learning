@@ -8,7 +8,8 @@ from mad.utils import parallel
 from mad.ml import splitters
 from mad import plots
 
-from sklearn.cluster import KMeans
+from sklearn.model_selection import LeaveOneGroupOut
+from sklearn import cluster
 
 import statsmodels.api as sm
 import pandas as pd
@@ -218,19 +219,16 @@ class build_model:
         data_id['in_domain'] = in_domain
 
         # Do cross validation in nested loop
-        od_split = splitters.BootstrappedClusterSplit(
-                                                      KMeans,
-                                                      n_repeats=2,
-                                                      n_clusters=2
-                                                      )
+        od_split = cluster.KMeans(n_clusters=8)
+        g_od = od_split.fit_predict(X_trans)
         data_od = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
                      y,
-                     g,
+                     g_od,
                      np.arange(y.shape[0]),
-                     od_split
+                     LeaveOneGroupOut()
                      )
 
         # Update with calibrated data
