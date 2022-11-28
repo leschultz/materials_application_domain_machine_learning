@@ -219,7 +219,7 @@ class build_model:
         data_id['in_domain'] = in_domain
 
         # Do cross validation in nested loop
-        od_split = cluster.KMeans(n_clusters=8)
+        od_split = cluster.KMeans(n_clusters=2)
         g_od = od_split.fit_predict(X_trans)
         data_od = cv(
                      self.gs_model,

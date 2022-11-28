@@ -1,4 +1,5 @@
 from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 
 import pandas as pd
@@ -158,6 +159,7 @@ class RepeatedClusterSplit:
             self.clust.n_jobs = 1
 
         self.n_repeats = n_repeats
+        self.scaler = StandardScaler()
 
     def get_n_splits(self, X=None, y=None, groups=None):
         '''
@@ -177,6 +179,7 @@ class RepeatedClusterSplit:
             A generator for train and test splits.
         '''
 
+        X = self.scaler.fit_transform(X)
         self.clust.fit(X)  # Do clustering
 
         # Get splits based on cluster labels
@@ -231,6 +234,7 @@ class BootstrappedClusterSplit:
             self.clust.n_jobs = 1
 
         self.n_repeats = n_repeats
+        self.scaler = StandardScaler()
 
     def get_n_splits(self, X=None, y=None, groups=None):
         '''
@@ -251,6 +255,7 @@ class BootstrappedClusterSplit:
         '''
 
         indx = np.arange(X.shape[0])
+        X = self.scaler.fit_transform(X)
         self.clust.fit(X)  # Do clustering
 
         # Get splits based on cluster labels
@@ -304,6 +309,7 @@ class RepeatedClusterSplitCV:
 
         self.n_splits = n_splits
         self.n_repeats = n_repeats
+        self.scaler = StandardScaler()
 
     def get_n_splits(self, X=None, y=None, groups=None):
         '''
@@ -322,6 +328,7 @@ class RepeatedClusterSplitCV:
             A generator for train and test splits.
         '''
 
+        X = self.scaler.fit_transform(X)
         self.clust.fit(X)  # Do clustering
 
         # Get splits based on cluster labels

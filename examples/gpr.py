@@ -20,7 +20,7 @@ import dill
 
 def main():
 
-    run_name = 'run_kde'
+    run_name = 'run_gpr_std'
 
     # Load data
     data = load_data.diffusion(frac=1)
@@ -36,7 +36,7 @@ def main():
     sub_test = 0.2  # Fraction
 
     # ML Distance model
-    ds_model = distance_model(dist='kde')
+    ds_model = distance_model(dist='gpr_std')
 
     # ML UQ function
     uq_model = ensemble_model(params=[0.0, 1.0])
