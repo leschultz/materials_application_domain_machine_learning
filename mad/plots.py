@@ -413,6 +413,8 @@ def assessment(
 def pr(dist, in_domain, save=False, choice=None):
 
     baseline = sum(in_domain)/len(in_domain)
+    relative_base = 1-baseline  # The amount of area to gain in PR
+
     score = 1/(1+np.exp(dist))
 
     precision, recall, thresholds = precision_recall_curve(
@@ -433,13 +435,16 @@ def pr(dist, in_domain, save=False, choice=None):
     max_f1_index = np.argmax(f1_scores)
     max_f1_thresh = thresholds[max_f1_index]
     max_f1 = f1_scores[max_f1_index]
+    max_f1_relative = max_f1/relative_base
 
     # AUC score
     auc_score = auc(recall, precision)
+    auc_relative = auc_score/relative_base
 
     # Maximize recall while keeping precision equal to highest value
     max_auc_index = np.where(precision == max(precision[:-1]))[0][0]
     max_auc = recall[:-1][max_auc_index]
+    max_auc_relative = max_auc/relative_base
     max_auc_thresh = thresholds[max_auc_index]
 
     max_f1_thresh = np.log(1/max_f1_thresh-1)
@@ -496,9 +501,12 @@ def pr(dist, in_domain, save=False, choice=None):
         data['precision'] = list(precision)
         data['baseline'] = baseline
         data['auc'] = auc_score
+        data['auc_relative'] = auc_relative
         data['max_f1'] = max_f1
+        data['max_f1_relative'] = max_f1_relative
         data['max_f1_thresh'] = max_f1_thresh
         data['max_auc'] = max_auc
+        data['max_auc_relative'] = max_auc_relative
         data['max_auc_thresh'] = max_auc_thresh
 
         jsonfile = os.path.join(save, 'pr.json')
@@ -511,16 +519,7 @@ def pr(dist, in_domain, save=False, choice=None):
         return max_f1_thresh
 
 
-def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):
-
-    if (score is not None) and (thresh is not None) and (y_pred is None):
-
-        y_pred = []
-        for i in score:
-            if i < thresh:
-                y_pred.append(True)
-            else:
-                y_pred.append(False)
+def confusion(y_true, y_pred, save='.'):
 
     conf = confusion_matrix(y_true, y_pred)
 
@@ -535,7 +534,7 @@ def confusion(y_true, y_pred=None, score=None, thresh=None, save='.'):
         elif (t == p) and (t == 1):
             conf = np.array([[0, 0], [0, conf[0, 0]]])
         else:
-            raise 'You done fucked up boi!'
+            raise 'You done fucked up'
 
     fig, ax = pl.subplots()
     disp = ConfusionMatrixDisplay(conf, display_labels=['OD', 'ID'])

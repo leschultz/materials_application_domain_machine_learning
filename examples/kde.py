@@ -28,6 +28,7 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
+    max_features = 20
 
     # The ground truth choice
     ground = 'calibration'
@@ -45,10 +46,10 @@ def main():
     scale = StandardScaler()
     model = RandomForestRegressor()
 
-    if X.shape[1] < 10:
+    if X.shape[1] < max_features:
         max_features = X.shape[1]
     else:
-        max_features = 10
+        max_features = max_features
 
     selector = SelectFromModel(
                                estimator=model,

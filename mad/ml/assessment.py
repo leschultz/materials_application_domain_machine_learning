@@ -253,23 +253,6 @@ class build_model:
 
         data_cv = pd.concat([data_id, data_od])
 
-        # Dissimilarity cut-off
-        self.sigma_cut = plots.pr(
-                                  data_cv['y_std'],
-                                  data_cv['in_domain'],
-                                  choice='max_f1'
-                                  )
-
-        marginal = data_cv['y_std'] < self.sigma_cut
-        self.dist_cut = plots.pr(
-                                 data_cv['dist'][marginal],
-                                 data_cv['in_domain'][marginal],
-                                 choice='max_f1'
-                                 )
-
-        data_cv['dist_thresh'] = self.dist_cut
-        data_cv['sigma_thresh'] = self.sigma_cut
-
         domain_model = SVC()
         domain_model.fit(
                          data_cv[['dist', 'y_std']],
@@ -407,8 +390,6 @@ class NestedCV:
         data_test['fold'] = count
         data_test['split'] = 'test'
         data_test['in_domain'] = in_domain_test
-        data_test['dist_thresh'] = model.dist_cut
-        data_test['sigma_thresh'] = model.sigma_cut
 
         data_cv['fold'] = count
 
@@ -421,9 +402,6 @@ class NestedCV:
 
         i, df = df
         mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
-
-        sigma_thresh = df['sigma_thresh'].values[0]
-        dist_thresh = df['dist_thresh'].values[0]
 
         # Plot ground truth
         job_name = list(map(str, i))
@@ -444,19 +422,19 @@ class NestedCV:
                            )
 
         # Precision recall for in domain
-        plots.pr(
-                 df['y_std'],
-                 df['in_domain'],
-                 sigma_name,
-                 choice='max_f1',
-                 )
+        sigma_thresh = plots.pr(
+                                df['y_std'],
+                                df['in_domain'],
+                                sigma_name,
+                                choice='max_f1',
+                                )
 
-        plots.pr(
-                 df['dist'],
-                 df['in_domain'],
-                 dist_name,
-                 choice='max_f1',
-                 )
+        dist_thresh = plots.pr(
+                               df['dist'],
+                               df['in_domain'],
+                               dist_name,
+                               choice='max_f1',
+                               )
 
         # Plot prediction time
         std = df['y'].std()
@@ -466,7 +444,6 @@ class NestedCV:
                          df['y_std']/std,
                          df['in_domain'],
                          sigma_name,
-                         thresh=sigma_thresh/std,
                          )
 
         plots.assessment(
@@ -476,7 +453,6 @@ class NestedCV:
                          df['in_domain'],
                          dist_name,
                          trans_condition,
-                         thresh=dist_thresh,
                          )
 
         # Marginal Plots
@@ -494,14 +470,7 @@ class NestedCV:
                              df['y_std'][marginal_indx]/std,
                              df['in_domain'][marginal_indx],
                              marginal_sigma_name,
-                             thresh=sigma_thresh/std,
                              )
-            plots.confusion(
-                            df['in_domain'][marginal_indx],
-                            score=df['y_std'][marginal_indx],
-                            thresh=sigma_thresh,
-                            save=marginal_sigma_name,
-                            )
 
         marginal_indx = df['y_std'] < sigma_thresh
         if len(df['in_domain'][marginal_indx]) > 0:
@@ -518,29 +487,7 @@ class NestedCV:
                              df['in_domain'][marginal_indx],
                              marginal_dist_name,
                              trans_condition,
-                             thresh=dist_thresh,
                              )
-            plots.confusion(
-                            df['in_domain'][marginal_indx],
-                            score=df['dist'][marginal_indx],
-                            thresh=dist_thresh,
-                            save=marginal_dist_name
-                            )
-
-        # Confusion matrixes
-        plots.confusion(
-                        df['in_domain'],
-                        score=df['y_std'],
-                        thresh=sigma_thresh,
-                        save=sigma_name
-                        )
-
-        plots.confusion(
-                        df['in_domain'],
-                        score=df['dist'],
-                        thresh=dist_thresh,
-                        save=dist_name
-                        )
 
         # Total
         plots.confusion(
