@@ -4,6 +4,7 @@ from sklearn.model_selection import ShuffleSplit
 from sklearn.cluster import KMeans
 from sklearn.base import clone
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
@@ -20,6 +21,21 @@ import numpy as np
 import copy
 import dill
 import os
+
+
+def domain_pred(dist, y_std, dist_cut, sigma_cut):
+    '''
+    Predict the domain based on thresholds.
+    '''
+
+    in_domain_pred = []
+    for i, j in zip(dist, y_std):
+        if (i < dist_cut) and (j < sigma_cut):
+            in_domain_pred.append(True)
+        else:
+            in_domain_pred.append(False)
+
+    return in_domain_pred
 
 
 def ground_truth(
@@ -253,18 +269,29 @@ class build_model:
 
         data_cv = pd.concat([data_id, data_od])
 
-        domain_model = SVC()
-        domain_model.fit(
-                         data_cv[['dist', 'y_std']],
-                         data_cv['in_domain']
-                         )
+        # Dissimilarity cut-off
+        in_domain = data_cv['in_domain']
+        self.sigma_cut = plots.pr(
+                                  data_cv['y_std'],
+                                  in_domain,
+                                  choice='rel_f1'
+                                  )
+        self.dist_cut = plots.pr(
+                                 data_cv['dist'],
+                                 in_domain,
+                                 choice='rel_f1'
+                                 )
 
-        in_domain_pred = domain_model.predict(
-                                              data_cv[['dist', 'y_std']]
-                                              )
+        in_domain_pred = domain_pred(
+                                     data_cv['dist'],
+                                     data_cv['y_std'],
+                                     self.dist_cut,
+                                     self.sigma_cut
+                                     )
 
         data_cv['in_domain_pred'] = in_domain_pred
-        self.domain_model = domain_model
+        data_cv['dist_thresh'] = self.dist_cut
+        data_cv['sigma_thresh'] = self.sigma_cut
 
         return data_cv
 
@@ -281,15 +308,20 @@ class build_model:
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X_trans)
 
+        in_domain_pred = domain_pred(
+                                     dist,
+                                     y_std,
+                                     self.dist_cut,
+                                     self.sigma_cut
+                                     )
+
         pred = {
                 'y_pred': y_pred,
                 'y_std': y_std,
                 'dist': dist,
+                'in_domain_pred': in_domain_pred
                 }
         pred = pd.DataFrame(pred)
-
-        in_domain_pred = self.domain_model.predict(pred[['dist', 'y_std']])
-        pred['in_domain_pred'] = in_domain_pred
 
         return pred
 

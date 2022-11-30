@@ -431,20 +431,36 @@ def pr(dist, in_domain, save=False, choice=None):
                           out=np.zeros_like(den), where=(den != 0)
                           )
 
+    # Relative f1
+    precision_rel = precision-baseline
+    num = 2*recall*precision_rel
+    den = recall+precision_rel
+    f1_rel = np.divide(
+                       num,
+                       den,
+                       out=np.zeros_like(den), where=(den != 0)
+                       )
+
+    # Maximum F1 score
+    rel_f1_index = np.argmax(f1_rel)
+    rel_f1_thresh = thresholds[rel_f1_index]
+    rel_f1 = f1_rel[rel_f1_index]
+    rel_f1_relative = (rel_f1-baseline)/relative_base
+
     # Maximum F1 score
     max_f1_index = np.argmax(f1_scores)
     max_f1_thresh = thresholds[max_f1_index]
     max_f1 = f1_scores[max_f1_index]
-    max_f1_relative = max_f1/relative_base
+    max_f1_relative = (max_f1-baseline)/relative_base
 
     # AUC score
     auc_score = auc(recall, precision)
-    auc_relative = auc_score/relative_base
+    auc_relative = (auc_score-baseline)/relative_base
 
     # Maximize recall while keeping precision equal to highest value
     max_auc_index = np.where(precision == max(precision[:-1]))[0][0]
     max_auc = recall[:-1][max_auc_index]
-    max_auc_relative = max_auc/relative_base
+    max_auc_relative = (max_auc-baseline)/relative_base
     max_auc_thresh = thresholds[max_auc_index]
 
     max_f1_thresh = np.log(1/max_f1_thresh-1)
@@ -483,6 +499,12 @@ def pr(dist, in_domain, save=False, choice=None):
                    marker='o',
                    label='Max F1: {:.2f}'.format(max_f1),
                    )
+        ax.scatter(
+                   recall[rel_f1_index],
+                   precision[rel_f1_index],
+                   marker='o',
+                   label='Relative Max F1: {:.2f}'.format(rel_f1),
+                   )
 
         ax.legend()
 
@@ -505,6 +527,9 @@ def pr(dist, in_domain, save=False, choice=None):
         data['max_f1'] = max_f1
         data['max_f1_relative'] = max_f1_relative
         data['max_f1_thresh'] = max_f1_thresh
+        data['rel_f1'] = rel_f1
+        data['rel_f1_relative'] = rel_f1_relative
+        data['rel_f1_thresh'] = rel_f1_thresh
         data['max_auc'] = max_auc
         data['max_auc_relative'] = max_auc_relative
         data['max_auc_thresh'] = max_auc_thresh
@@ -517,6 +542,8 @@ def pr(dist, in_domain, save=False, choice=None):
         return max_auc_thresh
     elif choice == 'max_f1':
         return max_f1_thresh
+    elif choice == 'rel_f1':
+        return rel_f1_thresh
 
 
 def confusion(y_true, y_pred, save='.'):

@@ -16,7 +16,7 @@ def kde(X_train, X_test):
                                              )
 
     dist = model.pdf(X_test)
-    dist = 1/(1+np.exp(dist))   # Lower is supposed to be in domain
+    dist = -dist
 
     return dist
 
