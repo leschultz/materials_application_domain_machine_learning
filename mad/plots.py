@@ -463,6 +463,8 @@ def pr(dist, in_domain, save=False, choice=None):
     max_auc_relative = (max_auc-baseline)/relative_base
     max_auc_thresh = thresholds[max_auc_index]
 
+    # Convert back
+    rel_f1_thresh = np.log(1/rel_f1_thresh-1)
     max_f1_thresh = np.log(1/max_f1_thresh-1)
     max_auc_thresh = np.log(1/max_auc_thresh-1)
 
