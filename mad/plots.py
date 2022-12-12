@@ -377,6 +377,11 @@ def assessment(
         if thresh:
             thresh = -np.log10(1e-8+1-thresh)
 
+    elif transform == 'kde':
+        dist = -np.log10(1e-8-dist)
+        if thresh:
+            thresh = -np.log10(1e-8-thresh)
+
     fig, ax = pl.subplots()
 
     ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
@@ -389,6 +394,8 @@ def assessment(
 
     if transform == 'gpr_std':
         ax.set_xlabel(r'$-log_{10}(1e-8+1-GPR_{\sigma})$')
+    elif transform == 'kde':
+        ax.set_xlabel(r'$-log_{10}(1e-8-KDE)$')
     else:
         ax.set_xlabel('dist')
 

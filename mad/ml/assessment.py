@@ -293,6 +293,8 @@ class build_model:
         data_cv['dist_thresh'] = self.dist_cut
         data_cv['sigma_thresh'] = self.sigma_cut
 
+        self.data_cv = data_cv
+
         return data_cv
 
     def predict(self, X):
