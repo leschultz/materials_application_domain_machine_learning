@@ -1,6 +1,5 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from scipy.spatial.distance import cdist
-from umap import UMAP
 
 import statsmodels.api as sm
 
@@ -53,17 +52,6 @@ class distance_model:
         elif dist_type == 'kde':
 
             dist = kde(X_train, X_test)
-
-        elif dist_type == 'umap':
-
-            model = UMAP(n_components=X_train.shape[1])
-            model.fit(X_train)
-
-            X_train_transform = model.transform(X_train)
-            X_test_transform = model.transform(X_test)
-
-            dist = cdist(X_train_transform, X_test_transform, 'euclidean')
-            dist = np.mean(dist, axis=0)
 
         else:
             dist = cdist(X_train, X_test, dist_type)
