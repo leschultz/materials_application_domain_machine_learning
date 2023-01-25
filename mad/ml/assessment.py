@@ -202,7 +202,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_id = cv(
+        data_cv = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -214,19 +214,19 @@ class build_model:
 
         # Fit on hold out data
         self.uq_model.fit(
-                          data_id['y'],
-                          data_id['y_pred'],
-                          data_id['y_std']
+                          data_cv['y'],
+                          data_cv['y_pred'],
+                          data_cv['y_std']
                           )
 
         # Update with calibrated data
-        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
+        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         # Define ground truth
         cut, kde, in_domain = ground_truth(
-                                           data_id['y'],
-                                           data_id['y_pred'],
-                                           data_id['y_std'],
+                                           data_cv['y'],
+                                           data_cv['y_pred'],
+                                           data_cv['y_std'],
                                            self.percentile,
                                            ground=self.ground
                                            )
@@ -234,51 +234,17 @@ class build_model:
         self.cut = cut
         self.kde = kde
 
-        data_id['in_domain'] = in_domain
-
-        # Do cross validation in nested loop
-        data_od = cv(
-                     self.gs_model,
-                     self.ds_model,
-                     X,
-                     y,
-                     g,
-                     np.arange(y.shape[0]),
-                     splitters.RepeatedClusterSplit(
-                                                    KMeans,
-                                                    n_repeats=2,
-                                                    n_clusters=2
-                                                    )
-                     )
-
-        # Update with calibrated data
-        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
-
-        # Define ground truth
-        _, _, in_domain = ground_truth(
-                                       data_od['y'],
-                                       data_od['y_pred'],
-                                       data_od['y_std'],
-                                       self.percentile,
-                                       cut=self.cut,
-                                       prefit=self.kde,
-                                       ground=self.ground
-                                       )
-
-        data_od['in_domain'] = in_domain
-
-        data_cv = pd.concat([data_id, data_od])
+        data_cv['in_domain'] = in_domain
 
         # Dissimilarity cut-off
-        in_domain = data_cv['in_domain']
         self.sigma_cut = plots.pr(
                                   data_cv['y_std'],
-                                  in_domain,
+                                  data_cv['in_domain'],
                                   choice='rel_f1'
                                   )
         self.dist_cut = plots.pr(
                                  data_cv['dist'],
-                                 in_domain,
+                                 data_cv['in_domain'],
                                  choice='rel_f1'
                                  )
 
@@ -599,6 +565,12 @@ class NestedCV:
                                                  original_loc,
                                                  'g.csv'
                                                  ), index=False)
+
+        if hasattr(model.ds_model, 'bw'):
+            np.savetxt(os.path.join(
+                                    original_loc,
+                                    'bw.csv'
+                                    ), model.ds_model.bw, delimiter=',')
 
         data_cv.to_csv(os.path.join(
                                     original_loc,
