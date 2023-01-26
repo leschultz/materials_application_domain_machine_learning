@@ -1,4 +1,3 @@
-from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -13,7 +12,6 @@ from mad.datasets import load_data
 from mad.ml import splitters
 
 import pandas as pd
-import numpy as np
 
 import dill
 
@@ -28,13 +26,9 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
-    max_features = 20
 
     # The ground truth choice
     ground = 'calibration'
-
-    # The fraction of randomly sampled data to include in test set
-    sub_test = 0.2  # Fraction
 
     # ML Distance model
     ds_model = distance_model(dist='kde')
@@ -46,24 +40,12 @@ def main():
     scale = StandardScaler()
     model = RandomForestRegressor()
 
-    if X.shape[1] < max_features:
-        max_features = X.shape[1]
-    else:
-        max_features = max_features
-
-    selector = SelectFromModel(
-                               estimator=model,
-                               threshold=-np.inf,
-                               max_features=max_features
-                               )
-
     grid = {}
     grid['model__n_estimators'] = [100]
     grid['model__max_features'] = [None]
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
-                           ('selector', selector),
                            ('model', model)
                            ])
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
@@ -92,7 +74,7 @@ def main():
 
         # Assess and build model
         save = '{}/{}'.format(run_name, i[0])
-        spl = NestedCV(X, y, g, i[1], sub_test, ground=ground)
+        spl = NestedCV(X, y, g, i[1], ground=ground)
         spl.assess(gs_model, uq_model, ds_model, save=save)
         spl.save_model(gs_model, uq_model, ds_model, save=save)
 

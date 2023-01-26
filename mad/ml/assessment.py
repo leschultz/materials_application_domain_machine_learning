@@ -557,6 +557,11 @@ class NestedCV:
                                                  original_loc,
                                                  'X.csv'
                                                  ), index=False)
+        X_trans = transforms(model.gs_model, self.X)
+        pd.DataFrame(X_trans).to_csv(os.path.join(
+                                                  original_loc,
+                                                  'X_transformed.csv'
+                                                  ), index=False)
         pd.DataFrame(self.y).to_csv(os.path.join(
                                                  original_loc,
                                                  'y.csv'
@@ -567,10 +572,11 @@ class NestedCV:
                                                  ), index=False)
 
         if hasattr(model.ds_model, 'bw'):
+            bw = model.ds_model.bw
             np.savetxt(os.path.join(
                                     original_loc,
                                     'bw.csv'
-                                    ), model.ds_model.bw, delimiter=',')
+                                    ), bw, delimiter=',')
 
         data_cv.to_csv(os.path.join(
                                     original_loc,
