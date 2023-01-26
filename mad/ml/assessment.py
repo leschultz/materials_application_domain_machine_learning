@@ -294,7 +294,7 @@ class build_model:
         return pred
 
 
-class NestedCV:
+class combine:
 
     '''
     A class to split data into multiple levels.
@@ -317,9 +317,13 @@ class NestedCV:
                  X,
                  y,
                  g=None,
+                 gs_model=None,
+                 uq_model=None,
+                 ds_model=None,
                  splitter=RepeatedKFold(),
                  sub_test=0.0,
-                 ground='calibration'
+                 ground='calibration',
+                 save='.',
                  ):
 
         self.X = X  # Features
@@ -327,6 +331,14 @@ class NestedCV:
         self.splitter = splitter  # Splitter
         self.sub_test = sub_test
         self.ground = ground
+
+        # Models
+        self.gs_model = gs_model  # Regression
+        self.uq_model = uq_model  # UQ
+        self.ds_model = ds_model  # Distance
+
+        # Save location
+        self.save = save
 
         # Grouping
         if g is None:
@@ -365,7 +377,12 @@ class NestedCV:
             count += 1
             yield (train, test, count)
 
-    def fit(self, split, gs_model, uq_model, ds_model):
+    def fit(self, split):
+
+        gs_model = self.gs_model
+        uq_model = self.uq_model
+        ds_model = self.ds_model
+        save = self.save
 
         train, test, count = split  # train/test
 
@@ -513,10 +530,15 @@ class NestedCV:
                      save=job_name
                      )
 
-    def save_model(self, gs_model, uq_model, ds_model, save='.'):
+    def save_model(self):
         '''
         Build one model on all data.
         '''
+
+        gs_model = self.gs_model
+        uq_model = self.uq_model
+        ds_model = self.ds_model
+        save = self.save
 
         # Build the model
         model = build_model(gs_model, ds_model, uq_model)
@@ -583,15 +605,17 @@ class NestedCV:
                                     'train.csv'
                                     ), index=False)
 
-    def assess(self, gs_model, uq_model, ds_model, save='.'):
+    def assess(self):
+
+        gs_model = self.gs_model
+        uq_model = self.uq_model
+        ds_model = self.ds_model
+        save = self.save
 
         print('Assessing splits with ML pipeline: {}'.format(save))
         data = parallel(
                         self.fit,
                         self.splits,
-                        gs_model=gs_model,
-                        uq_model=uq_model,
-                        ds_model=ds_model,
                         )
 
         data = pd.concat(data)
