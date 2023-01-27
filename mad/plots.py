@@ -189,7 +189,7 @@ def cdf(x):
     return y, y_pred, area
 
 
-def cdf_parity(x, in_domain, save):
+def cdf_parity(x, save):
     '''
     Plot the quantile quantile plot for cummulative distributions.
     inputs:
@@ -197,8 +197,6 @@ def cdf_parity(x, in_domain, save):
     '''
 
     os.makedirs(save, exist_ok=True)
-
-    out_domain = ~in_domain
 
     data = {}
     fig, ax = pl.subplots()
@@ -213,30 +211,6 @@ def cdf_parity(x, in_domain, save):
             )
     data['y'] = list(y)
     data['y_pred'] = list(y_pred)
-
-    if x[in_domain].shape[0] > 1:
-        y_id, y_pred_id, in_area = cdf(x[in_domain])
-        ax.plot(
-                y_id,
-                y_pred_id,
-                zorder=0,
-                color='g',
-                label='ID Area: {:.3f}'.format(in_area),
-                )
-        data['y_id'] = list(y_id)
-        data['y_pred_id'] = list(y_pred_id)
-
-    if x[out_domain].shape[0] > 1:
-        y_od, y_pred_od, out_area = cdf(x[out_domain])
-        ax.plot(
-                y_od,
-                y_pred_od,
-                zorder=0,
-                color='r',
-                label='OD Area: {:.3f}'.format(out_area),
-                )
-        data['y_od'] = list(y_od)
-        data['y_pred_od'] = list(y_pred_od)
 
     # Line of best fit
     ax.plot(

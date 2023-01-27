@@ -517,7 +517,6 @@ class combine:
         x = (df['y']-df['y_pred'])/df['y_std']
         plots.cdf_parity(
                          x,
-                         df['in_domain'],
                          save=job_name
                          )
 
