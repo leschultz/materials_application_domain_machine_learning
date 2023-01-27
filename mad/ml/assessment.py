@@ -526,7 +526,6 @@ class combine:
                      mets,
                      df['y'].values,
                      df['y_pred'].values,
-                     df['in_domain_pred'].values,
                      save=job_name
                      )
 

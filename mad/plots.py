@@ -22,7 +22,6 @@ def parity(
            mets,
            y,
            y_pred,
-           in_domain,
            y_pred_sem=None,
            name='',
            units='',
@@ -43,128 +42,75 @@ def parity(
 
     os.makedirs(save, exist_ok=True)
 
-    out_domain = ~in_domain
-
-    labels = {}
-    mets_save = {}
+    m = mets.to_dict(orient='records')[0]
     if y_pred_sem is not None:
 
-        for i in [True, False]:
+        rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
+        rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
 
-            m = mets[mets['in_domain_pred'] == i]
+        rmse = m[r'$RMSE$_mean']
+        rmse_sem = m[r'$RMSE$_sem']
 
-            if m.shape[0] > 0:
+        mae = m[r'$MAE$_mean']
+        mae_sem = m[r'$MAE$_sem']
 
-                m = m.to_dict(orient='records')[0]
+        r2 = m[r'$R^{2}$_mean']
+        r2_sem = m[r'$R^{2}$_sem']
 
-                rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
-                rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
-
-                rmse = m[r'$RMSE$_mean']
-                rmse_sem = m[r'$RMSE$_sem']
-
-                mae = m[r'$MAE$_mean']
-                mae_sem = m[r'$MAE$_sem']
-
-                r2 = m[r'$R^{2}$_mean']
-                r2_sem = m[r'$R^{2}$_sem']
-
-                label = r'$RMSE/\sigma=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(
-                                                     rmse_sigma,
-                                                     rmse_sigma_sem
-                                                     )
-                label += '\n'
-                label += r'$RMSE=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
-                label += '\n'
-                label += r'$MAE=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
-                label += '\n'
-                label += r'$R^{2}=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
-
-                labels[i] = label
-                mets_save[i] = m
-
-            else:
-                labels[i] = 'No out of domain'
-                mets_save[i] = 'No out of domain'
+        label = r'$RMSE/\sigma=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(
+                                             rmse_sigma,
+                                             rmse_sigma_sem
+                                             )
+        label += '\n'
+        label += r'$RMSE=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
+        label += '\n'
+        label += r'$MAE=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
+        label += '\n'
+        label += r'$R^{2}=$'
+        label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
 
     else:
 
-        for i in [True, False]:
+        rmse_sigma = m[r'$RMSE/\sigma$']
+        rmse = m[r'$RMSE$']
+        mae = m[r'$MAE$']
+        r2 = m[r'$R^{2}$']
 
-            m = mets[mets['in_domain_pred'] == i]
-
-            if m.shape[0] > 0:
-
-                m = m.to_dict(orient='records')[0]
-
-                rmse_sigma = m[r'$RMSE/\sigma$']
-                rmse = m[r'$RMSE$']
-                mae = m[r'$MAE$']
-                r2 = m[r'$R^{2}$']
-
-                label = r'$RMSE/\sigma_{y}=$'
-                label += r'{:.2}'.format(rmse_sigma)
-                label += '\n'
-                label += r'$RMSE=$'
-                label += r'{:.2}'.format(rmse)
-                label += '\n'
-                label += r'$MAE=$'
-                label += r'{:.2}'.format(mae)
-                label += '\n'
-                label += r'$R^{2}=$'
-                label += r'{:.2}'.format(r2)
-
-                labels[i] = label
-                mets_save[i] = m
-
-            else:
-                labels[i] = 'No out of domain'
-                mets_save[i] = 'No out of domain'
+        label = r'$RMSE/\sigma_{y}=$'
+        label += r'{:.2}'.format(rmse_sigma)
+        label += '\n'
+        label += r'$RMSE=$'
+        label += r'{:.2}'.format(rmse)
+        label += '\n'
+        label += r'$MAE=$'
+        label += r'{:.2}'.format(mae)
+        label += '\n'
+        label += r'$R^{2}=$'
+        label += r'{:.2}'.format(r2)
 
     fig, ax = pl.subplots()
 
     if y_pred_sem is not None:
         ax.errorbar(
-                    y[in_domain],
-                    y_pred[in_domain],
-                    yerr=y_pred_sem[in_domain],
+                    y,
+                    y_pred,
+                    yerr=y_pred_sem,
                     linestyle='none',
                     marker='.',
                     markerfacecolor='None',
                     zorder=1,
                     color='b',
                     )
-        ax.errorbar(
-                    y[out_domain],
-                    y_pred[out_domain],
-                    yerr=y_pred_sem[out_domain],
-                    linestyle='none',
-                    marker='x',
-                    markerfacecolor='None',
-                    zorder=0,
-                    color='r',
-                    )
-
     ax.scatter(
-               y[in_domain],
-               y_pred[in_domain],
+               y,
+               y_pred,
                marker='.',
                zorder=2,
                color='b',
-               label=labels[True],
-               )
-
-    ax.scatter(
-               y[out_domain],
-               y_pred[out_domain],
-               marker='x',
-               zorder=1,
-               color='r',
-               label=labels[False],
+               label=label,
                )
 
     limits = []
@@ -201,17 +147,12 @@ def parity(
 
     # Repare plot data for saving
     data = {}
-    data['y_pred_id'] = list(y_pred[in_domain])
-    data['y_id'] = list(y[in_domain])
-    data['metrics'] = mets_save[True]
-
-    data['y_pred_od'] = list(y_pred[out_domain])
-    data['y_od'] = list(y[out_domain])
-    data['metrics'] = mets_save[False]
+    data['y_pred_id'] = list(y_pred)
+    data['y_id'] = list(y)
+    data['metrics'] = m
 
     if y_pred_sem is not None:
-        data['y_pred_sem'] = list(y_pred_sem[in_domain])
-        data['y_pred_sem'] = list(y_pred_sem[out_domain])
+        data['y_pred_sem'] = list(y_pred_sem)
 
     jsonfile = os.path.join(save, 'parity.json')
     with open(jsonfile, 'w') as handle:
