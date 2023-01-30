@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 
 from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
-from mad.ml.assessment import NestedCV
+from mad.ml.assessment import combine
 from mad.datasets import load_data
 from mad.ml import splitters
 
@@ -30,6 +30,9 @@ class ml_test(unittest.TestCase):
         X = data['data']
         y = data['target']
         g = data['class_name']
+
+        # The ground truth choice
+        ground = 'calibration'
 
         # ML Distance model
         ds_model = distance_model(dist='gpr_std')
@@ -64,9 +67,21 @@ class ml_test(unittest.TestCase):
 
             # Assess and build model
             save = '{}/{}'.format(run_name, i[0])
-            spl = NestedCV(X, y, g, i[1])
-            spl.assess(gs_model, uq_model, ds_model, save=save)
-            spl.save_model(gs_model, uq_model, ds_model, save=save)
+
+            spl = combine(
+                          X,
+                          y,
+                          g,
+                          gs_model,
+                          uq_model,
+                          ds_model,
+                          i[1],
+                          ground=ground,
+                          save=save,
+                          )
+
+            spl.assess()
+            spl.save_model()
 
             # Load and use model
             with open('{}/model/model.dill'.format(save), 'rb') as in_strm:
