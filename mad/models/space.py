@@ -1,7 +1,7 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.cluster import estimate_bandwidth
+from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
-
-import statsmodels.api as sm
 
 import numpy as np
 
@@ -35,14 +35,9 @@ class distance_model:
 
         elif self.dist == 'kde':
 
-            var_type = 'c'*X_train.shape[1]
-            self.model = sm.nonparametric.KDEMultivariate(
-                                                          X_train,
-                                                          var_type=var_type,
-                                                          bw='normal_reference'
-                                                          )
-
-            self.bw = self.model.bw
+            bw = estimate_bandwidth(X_train)
+            self.model = KernelDensity(bandwidth=bw).fit(X_train)
+            self.bw = self.model.bandwidth_
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
@@ -52,7 +47,7 @@ class distance_model:
         if self.dist == 'gpr_std':
             _, dist = self.model.predict(X, return_std=True)
         elif self.dist == 'kde':
-            dist = -self.model.pdf(X)
+            dist = -np.exp(self.model.score_samples(X))
         else:
             dist = self.model(X, self.dist)
             dist = np.mean(dist, axis=0)

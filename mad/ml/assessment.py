@@ -596,7 +596,7 @@ class combine:
             np.savetxt(os.path.join(
                                     original_loc,
                                     'bw.csv'
-                                    ), bw, delimiter=',')
+                                    ), [bw], delimiter=',')
 
         data_cv.to_csv(os.path.join(
                                     original_loc,
