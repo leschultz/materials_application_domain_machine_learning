@@ -288,14 +288,14 @@ def assessment(
     out_domain = ~in_domain
 
     if transform == 'gpr_std':
-        dist = -np.log10(1e-8+1-dist)
+        dist = -np.log10((1e-20)+1-dist)
         if thresh:
-            thresh = -np.log10(1e-8+1-thresh)
+            thresh = -np.log10((1e-20)+1-thresh)
 
     elif transform == 'kde':
-        dist = -np.log10(1e-8-dist)
+        dist = -np.log10((1e-20)-dist)
         if thresh:
-            thresh = -np.log10(1e-8-thresh)
+            thresh = -np.log10((1e-20)-thresh)
 
     fig, ax = pl.subplots()
 
@@ -308,9 +308,9 @@ def assessment(
     ax.set_ylabel(r'$\sigma/\sigma_{y}$')
 
     if transform == 'gpr_std':
-        ax.set_xlabel(r'$-log_{10}(1e-8+1-GPR_{\sigma})$')
+        ax.set_xlabel(r'$-log_{10}((1e-20)+1-GPR_{\sigma})$')
     elif transform == 'kde':
-        ax.set_xlabel(r'$-log_{10}(1e-8-KDE)$')
+        ax.set_xlabel(r'$-log_{10}((1e-20)-KDE)$')
     else:
         ax.set_xlabel('dist')
 
