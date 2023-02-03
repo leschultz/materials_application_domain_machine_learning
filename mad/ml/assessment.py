@@ -1,10 +1,11 @@
 from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import ShuffleSplit
+from sklearn.cluster import estimate_bandwidth
+from sklearn.neighbors import KernelDensity
 from sklearn.cluster import KMeans
 from sklearn.base import clone
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
 
 from mad.stats.group import stats, group_metrics
 from mad.utils import parallel
@@ -14,7 +15,6 @@ from mad import plots
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn import cluster
 
-import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 
@@ -55,9 +55,10 @@ def ground_truth(
         vals = np.array([y_std, absres]).T
 
         if prefit is None:
-            prefit = sm.nonparametric.KDEMultivariate(vals, var_type='cc')
+            bw = estimate_bandwidth(vals)
+            prefit = KernelDensity(bandwidth=bw).fit(vals)
 
-        pdf = prefit.pdf(vals)
+        pdf = prefit.score_samples(vals)  # In log scale
 
         # Ground truth
         if cut is None:

@@ -37,7 +37,7 @@ class distance_model:
 
             bw = estimate_bandwidth(X_train)
             self.model = KernelDensity(bandwidth=bw).fit(X_train)
-            self.bw = self.model.bandwidth_
+            self.bw = self.model.bandwidth
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
