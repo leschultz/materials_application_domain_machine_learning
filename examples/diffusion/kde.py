@@ -8,7 +8,6 @@ from sklearn.cluster import KMeans
 from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
 from mad.ml.assessment import combine
-from mad.datasets import load_data
 from mad.ml import splitters
 
 import pandas as pd
@@ -21,11 +20,15 @@ def main():
     run_name = 'run_kde'
 
     # Load data
-    data = load_data.diffusion(frac=1)
-    df = data['frame']
-    X = data['data']
-    y = data['target']
-    g = data['class_name']
+    df = 'data_train.csv'
+    target = 'E_regression_shift'
+    extra = ['mat', 'group']
+
+    # Load data
+    df = pd.read_csv(df)
+    y = df[target].values
+    X = df.drop([target]+extra, axis=1).values
+    g = df['group'].values
 
     # The ground truth choice
     ground = 'calibration'
@@ -59,7 +62,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 20]:
+    for i in [2, 8]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
@@ -82,6 +85,7 @@ def main():
                       uq_model,
                       ds_model,
                       i[1],
+                      sub_test=0.2,
                       ground=ground,
                       save=save,
                       )

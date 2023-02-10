@@ -337,7 +337,7 @@ def pr(dist, in_domain, save=False, choice=None):
     baseline = sum(in_domain)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
 
-    score = 1/(1+np.exp(dist))
+    score = -dist
 
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
@@ -386,9 +386,9 @@ def pr(dist, in_domain, save=False, choice=None):
     max_auc_thresh = thresholds[max_auc_index]
 
     # Convert back
-    rel_f1_thresh = np.log(1/rel_f1_thresh-1)
-    max_f1_thresh = np.log(1/max_f1_thresh-1)
-    max_auc_thresh = np.log(1/max_auc_thresh-1)
+    rel_f1_thresh = -rel_f1_thresh
+    max_f1_thresh = -max_f1_thresh
+    max_auc_thresh = -max_auc_thresh
 
     if save is not False:
 

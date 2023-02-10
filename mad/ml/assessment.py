@@ -23,58 +23,19 @@ import dill
 import os
 
 
-def domain_pred(dist, y_std, dist_cut, sigma_cut):
+def domain_pred(dist, dist_cut):
     '''
     Predict the domain based on thresholds.
     '''
 
     in_domain_pred = []
-    for i, j in zip(dist, y_std):
-        if (i < dist_cut) and (j < sigma_cut):
+    for i in dist:
+        if i < dist_cut:
             in_domain_pred.append(True)
         else:
             in_domain_pred.append(False)
 
     return in_domain_pred
-
-
-def ground_truth(
-                 y,
-                 y_pred,
-                 y_std,
-                 percentile=5,
-                 prefit=None,
-                 cut=None,
-                 ground='calibration'
-                 ):
-
-    # Define ground truth
-    absres = abs(y-y_pred)
-
-    if ground == 'calibration':
-        vals = np.array([y_std, absres]).T
-
-        if prefit is None:
-            bw = estimate_bandwidth(vals)
-            prefit = KernelDensity(bandwidth=bw).fit(vals)
-
-        pdf = prefit.score_samples(vals)  # In log scale
-
-        # Ground truth
-        if cut is None:
-            cut = np.percentile(pdf, percentile)
-
-        in_domain_pred = pdf > cut
-
-    elif ground == 'residual':
-        if cut is None:
-            cut = np.percentile(absres, 100-percentile)
-
-        in_domain_pred = absres < cut
-
-    in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
-
-    return cut, prefit, in_domain_pred
 
 
 def transforms(gs_model, X):
@@ -203,7 +164,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_cv = cv(
+        data_id = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -213,52 +174,52 @@ class build_model:
                      self.gs_model.cv
                      )
 
-        # Fit on hold out data
+        # Fit on hold out data ID
         self.uq_model.fit(
-                          data_cv['y'],
-                          data_cv['y_pred'],
-                          data_cv['y_std']
+                          data_id['y'],
+                          data_id['y_pred'],
+                          data_id['y_std']
                           )
+
+        data_id['in_domain'] = True
+
+        # OD split
+        od_split = splitters.RepeatedClusterSplit(
+                                                  KMeans,
+                                                  n_repeats=1,
+                                                  n_clusters=2
+                                                  )
+        data_od = cv(
+                     self.gs_model,
+                     self.ds_model,
+                     X,
+                     y,
+                     g,
+                     np.arange(y.shape[0]),
+                     od_split
+                     )
+
+        data_od['in_domain'] = False
+
+        # Combine OD and ID
+        data_cv = pd.concat([data_id, data_od])
 
         # Update with calibrated data
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
-        # Define ground truth
-        cut, kde, in_domain = ground_truth(
-                                           data_cv['y'],
-                                           data_cv['y_pred'],
-                                           data_cv['y_std'],
-                                           self.percentile,
-                                           ground=self.ground
-                                           )
-
-        self.cut = cut
-        self.kde = kde
-
-        data_cv['in_domain'] = in_domain
-
-        # Dissimilarity cut-off
-        self.sigma_cut = plots.pr(
-                                  data_cv['y_std'],
-                                  data_cv['in_domain'],
-                                  choice='rel_f1'
-                                  )
         self.dist_cut = plots.pr(
                                  data_cv['dist'],
                                  data_cv['in_domain'],
-                                 choice='rel_f1'
+                                 choice='max_f1'
                                  )
 
         in_domain_pred = domain_pred(
                                      data_cv['dist'],
-                                     data_cv['y_std'],
                                      self.dist_cut,
-                                     self.sigma_cut
                                      )
 
         data_cv['in_domain_pred'] = in_domain_pred
         data_cv['dist_thresh'] = self.dist_cut
-        data_cv['sigma_thresh'] = self.sigma_cut
 
         self.data_cv = data_cv
 
@@ -279,9 +240,7 @@ class build_model:
 
         in_domain_pred = domain_pred(
                                      dist,
-                                     y_std,
                                      self.dist_cut,
-                                     self.sigma_cut
                                      )
 
         pred = {
@@ -372,11 +331,12 @@ class combine:
                 train = np.array(train)
                 test = np.array(test)
 
+                d = [False]*test.shape[0]+[True]*train[sub[1]].shape[0]
                 test = np.concatenate([test, train[sub[1]]])
                 train = train[sub[0]]
 
             count += 1
-            yield (train, test, count)
+            yield (train, test, d, count)
 
     def fit(self, split):
 
@@ -385,22 +345,12 @@ class combine:
         ds_model = self.ds_model
         save = self.save
 
-        train, test, count = split  # train/test
+        train, test, in_domain_test, count = split  # train/test
 
         # Fit models
         model = build_model(gs_model, ds_model, uq_model, ground=self.ground)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
-
-        _, _, in_domain_test = ground_truth(
-                                            self.y[test],
-                                            data_test['y_pred'],
-                                            data_test['y_std'],
-                                            model.percentile,
-                                            cut=model.cut,
-                                            prefit=model.kde,
-                                            ground=self.ground,
-                                            )
 
         data_test['y'] = self.y[test]
         data_test['g'] = self.g[test]

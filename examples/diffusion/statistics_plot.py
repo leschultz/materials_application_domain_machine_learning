@@ -29,6 +29,8 @@ def trans(x):
 xname = r'$-log_{10}((1e-20)-KDE)$'
 yname = r'$\sigma_{c}$'
 zname = r'$|y-\hat{y}|/\sigma_{y}$'
+zname = r'$|y-\hat{y}|$'
+zzname = r'$y-\hat{y}$'
 
 paths = find('.', 'assessment.csv')
 
@@ -39,7 +41,7 @@ for i in paths:
     df.append(d)
 
 df = pd.concat(df)
-#df = df[df['split'] == 'test']
+df = df[df['split'] == 'test']
 
 try:
     if len(sys.argv) > 1:
@@ -49,6 +51,7 @@ except Exception:
     df = df[(df['group'] == sys.argv[1]) | (df['group'] == 'original')]
 
 df[zname] = abs(df['y']-df['y_pred'])
+df[zzname] = df['y']-df['y_pred']
 #df = df[['group', 'dist', 'y_std', zname, 'y']]
 df = df.rename({'y_std': yname}, axis='columns')
 df[xname] = df['dist'].apply(trans)
@@ -59,7 +62,7 @@ fig_std, ax_std = pl.subplots()
 fig, ax = pl.subplots()
 for i, j in df[df['split'] == 'test'].groupby(['group']):
     stdy = j[zname].std()
-    absres = j[zname].values/stdy
+    absres = j[zname].values
     dist = j[xname].values
     std = j[yname].values/stdy
 
@@ -76,8 +79,8 @@ ax_std.set_xlabel(xname)
 ax.set_xlabel(zname)
 
 ax_absres.set_ylabel(zname)
-ax_std.set_ylabel(yname)
-ax.set_ylabel(yname)
+ax_std.set_ylabel(yname+r'$/\sigma_{y}$')
+ax.set_ylabel(yname+r'$/\sigma_{y}$')
 
 #pl.show()
 print(df)
@@ -87,9 +90,11 @@ groups = dfte.groupby('group')
 median = groups.median()
 dist = median[xname].sort_values(ascending=False)
 std = median[yname].sort_values(ascending=False)
+res = median[zname].sort_values(ascending=False)
 
 dist = dist.to_frame().reset_index()['group'].values
 std = std.to_frame().reset_index()['group'].values
+res = res.to_frame().reset_index()['group'].values
 
 dfte['group'] = pd.Categorical(dfte['group'], dist)
 fig, ax = pl.subplots()
@@ -100,6 +105,11 @@ dfte['group'] = pd.Categorical(dfte['group'], std)
 fig, ax = pl.subplots()
 sns.boxplot(data=dfte, x=yname, y='group', ax=ax, palette='Spectral')
 fig.savefig('std_box_test.png')
+
+dfte['group'] = pd.Categorical(dfte['group'], res)
+fig, ax = pl.subplots()
+sns.boxplot(data=dfte, x=zname, y='group', ax=ax, palette='Spectral')
+fig.savefig('res_box_test.png')
 
 dfte['group'] = pd.Categorical(dfte['group'], dist)
 fig, ax = pl.subplots()
@@ -128,3 +138,18 @@ sns.violinplot(
                inner='quartile'
                )
 fig.savefig('std_violin_test.png')
+
+dfte['group'] = pd.Categorical(dfte['group'], res)
+fig, ax = pl.subplots()
+sns.violinplot(
+               data=dfte,
+               x=zname,
+               y='group',
+               ax=ax,
+               palette='Spectral',
+               cut=0,
+               scale='width',
+               inner='quartile'
+               )
+fig.savefig('res_violin_test.png')
+
