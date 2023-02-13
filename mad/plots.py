@@ -367,7 +367,6 @@ def assessment(
                dist,
                in_domain,
                save,
-               transform=False,
                thresh=None
                ):
 
@@ -375,16 +374,6 @@ def assessment(
     os.makedirs(save, exist_ok=True)
 
     out_domain = ~in_domain
-
-    if transform == 'gpr_std':
-        dist = -np.log10((1e-20)+1-dist)
-        if thresh:
-            thresh = -np.log10((1e-20)+1-thresh)
-
-    elif transform == 'kde':
-        dist = -np.log10((1e-20)-dist)
-        if thresh:
-            thresh = -np.log10((1e-20)-thresh)
 
     fig, ax = pl.subplots()
 
@@ -394,14 +383,8 @@ def assessment(
     if thresh:
         ax.axvline(thresh, color='k')
 
+    ax.set_xlabel('dissimilarity')
     ax.set_ylabel(r'$\sigma/\sigma_{y}$')
-
-    if transform == 'gpr_std':
-        ax.set_xlabel(r'$-log_{10}((1e-20)+1-GPR_{\sigma})$')
-    elif transform == 'kde':
-        ax.set_xlabel(r'$-log_{10}((1e-20)-KDE)$')
-    else:
-        ax.set_xlabel('dist')
 
     fig.savefig(os.path.join(save, 'assessment.png'))
     pl.close(fig)

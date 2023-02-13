@@ -368,7 +368,7 @@ class combine:
 
         return data
 
-    def plot(self, df, mets, save, trans_condition=False):
+    def plot(self, df, mets, save):
 
         i, df = df
         mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
@@ -422,7 +422,6 @@ class combine:
                          df['dist'],
                          df['in_domain'],
                          dist_name,
-                         trans_condition,
                          )
 
         # Marginal Plots
@@ -456,7 +455,6 @@ class combine:
                              df['dist'][marginal_indx],
                              df['in_domain'][marginal_indx],
                              marginal_dist_name,
-                             trans_condition,
                              )
 
         # Total
@@ -510,18 +508,11 @@ class combine:
 
         # Plot assessment
         print('Plotting results for CV splits: {}'.format(save))
-        if model.ds_model.dist == 'gpr_std':
-            trans_condition = 'gpr_std'
-        elif model.ds_model.dist == 'kde':
-            trans_condition = 'kde'
-        else:
-            trans_condition = False
         parallel(
                  self.plot,
                  data_cv.groupby(['split', 'fold']),
                  mets=mets,
                  save=original_loc,
-                 trans_condition=trans_condition
                  )
 
         # Save the model
@@ -583,18 +574,11 @@ class combine:
 
         # Plot assessment
         print('Plotting results for test and CV splits: {}'.format(save))
-        if ds_model.dist == 'gpr_std':
-            trans_condition = 'gpr_std'
-        elif ds_model.dist == 'kde':
-            trans_condition = 'kde'
-        else:
-            trans_condition = False
         parallel(
                  self.plot,
                  data.groupby(['split', 'fold']),
                  mets=mets,
                  save=assessment_loc,
-                 trans_condition=trans_condition
                  )
 
         # Save csv

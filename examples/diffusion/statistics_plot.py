@@ -22,11 +22,7 @@ def find(where, match):
     return paths
 
 
-def trans(x):
-    return -np.log10((1e-20)-x)
-
-
-xname = r'$-log_{10}((1e-20)-KDE)$'
+xname = 'dist'
 yname = r'$\sigma_{c}$'
 zname = r'$|y-\hat{y}|/\sigma_{y}$'
 zname = r'$|y-\hat{y}|$'
@@ -52,38 +48,9 @@ except Exception:
 
 df[zname] = abs(df['y']-df['y_pred'])
 df[zzname] = df['y']-df['y_pred']
-#df = df[['group', 'dist', 'y_std', zname, 'y']]
 df = df.rename({'y_std': yname}, axis='columns')
-df[xname] = df['dist'].apply(trans)
 df['group'] = df['group'].apply(lambda x: x.replace('_', '\n'))
 
-fig_absres, ax_absres = pl.subplots()
-fig_std, ax_std = pl.subplots()
-fig, ax = pl.subplots()
-for i, j in df[df['split'] == 'test'].groupby(['group']):
-    stdy = j[zname].std()
-    absres = j[zname].values
-    dist = j[xname].values
-    std = j[yname].values/stdy
-
-    ax_absres.scatter(dist, absres, marker='.', label=i)
-    ax_std.scatter(dist, std, marker='.', label=i)
-    ax.scatter(absres, std, marker='.', label=i)
-
-ax_absres.legend()
-ax_std.legend()
-ax.legend()
-
-ax_absres.set_xlabel(xname)
-ax_std.set_xlabel(xname)
-ax.set_xlabel(zname)
-
-ax_absres.set_ylabel(zname)
-ax_std.set_ylabel(yname+r'$/\sigma_{y}$')
-ax.set_ylabel(yname+r'$/\sigma_{y}$')
-
-#pl.show()
-print(df)
 dfte = df[df['split'] == 'test']
 
 groups = dfte.groupby('group')
@@ -152,4 +119,3 @@ sns.violinplot(
                inner='quartile'
                )
 fig.savefig('res_violin_test.png')
-

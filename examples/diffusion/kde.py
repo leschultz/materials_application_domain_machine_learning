@@ -23,6 +23,7 @@ def main():
     df = 'data_train.csv'
     target = 'E_regression_shift'
     extra = ['mat', 'group']
+    sub_test = 0.2  # Fraction of each outer split to be randomly sampled
 
     # Load data
     df = pd.read_csv(df)
@@ -62,7 +63,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 8]:
+    for i in [2, 4, 8, 12]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
@@ -85,7 +86,7 @@ def main():
                       uq_model,
                       ds_model,
                       i[1],
-                      sub_test=0.2,
+                      sub_test=sub_test,
                       ground=ground,
                       save=save,
                       )
