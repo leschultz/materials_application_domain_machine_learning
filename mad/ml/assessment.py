@@ -186,6 +186,7 @@ class build_model:
         # OD split
         od_split = splitters.RepeatedClusterSplit(
                                                   KMeans,
+                                                  n_init='auto',
                                                   n_repeats=1,
                                                   n_clusters=2
                                                   )

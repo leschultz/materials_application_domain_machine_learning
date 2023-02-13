@@ -63,11 +63,12 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 4, 8, 12]:
+    for i in [2, 4]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
                                                    KMeans,
+                                                   n_init='auto',
                                                    n_repeats=1,
                                                    n_clusters=i
                                                    )
