@@ -334,6 +334,8 @@ class combine:
                 d = [False]*test.shape[0]+[True]*train[sub[1]].shape[0]
                 test = np.concatenate([test, train[sub[1]]])
                 train = train[sub[0]]
+            else:
+                d = [False]*test.shape[0]
 
             count += 1
             yield (train, test, d, count)
@@ -468,6 +470,7 @@ class combine:
         x = (df['y']-df['y_pred'])/df['y_std']
         plots.cdf_parity(
                          x,
+                         df['in_domain'],
                          save=job_name
                          )
 
@@ -476,6 +479,7 @@ class combine:
                      mets,
                      df['y'].values,
                      df['y_pred'].values,
+                     df['in_domain'].values,
                      save=job_name
                      )
 
@@ -498,7 +502,7 @@ class combine:
 
         # Statistics
         print('Assessing CV statistics from data used for fitting')
-        mets = group_metrics(data_cv, ['split', 'fold', 'in_domain_pred'])
+        mets = group_metrics(data_cv, ['split', 'fold', 'in_domain'])
 
         # Save location
         original_loc = os.path.join(save, 'model')
@@ -571,7 +575,7 @@ class combine:
 
         # Statistics
         print('Assessing test and CV statistics from data used for fitting')
-        mets = group_metrics(data, ['split', 'fold', 'in_domain_pred'])
+        mets = group_metrics(data, ['split', 'fold', 'in_domain'])
 
         # Save locations
         assessment_loc = os.path.join(save, 'assessment')
