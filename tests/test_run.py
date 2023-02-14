@@ -35,7 +35,7 @@ class ml_test(unittest.TestCase):
         ground = 'calibration'
 
         # ML Distance model
-        ds_model = distance_model(dist='gpr_std')
+        ds_model = distance_model(dist='gpr')
 
         # ML UQ function
         uq_model = ensemble_model()

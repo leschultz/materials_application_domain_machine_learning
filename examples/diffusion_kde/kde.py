@@ -8,6 +8,7 @@ from sklearn.cluster import KMeans
 from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
 from mad.ml.assessment import combine
+from mad.datasets import load_data
 from mad.ml import splitters
 
 import pandas as pd
@@ -20,19 +21,16 @@ def main():
     run_name = 'run_kde'
 
     # Load data
-    df = 'data_train.csv'
-    target = 'E_regression_shift'
-    extra = ['mat', 'group']
+    data = load_data.diffusion()
+    df = data['frame']
+    X = data['data']
+    y = data['target']
+    g = data['class_name']
+
     sub_test = 0.2  # Fraction of each outer split to be randomly sampled
 
-    # Load data
-    df = pd.read_csv(df)
-    y = df[target].values
-    X = df.drop([target]+extra, axis=1).values
-    g = df['group'].values
-
     # The ground truth choice
-    ground = 'residual'
+    ground = 'calibration'
 
     # ML Distance model
     ds_model = distance_model(dist='kde')

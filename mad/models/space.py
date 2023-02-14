@@ -7,23 +7,6 @@ from scipy.spatial.distance import cdist
 import numpy as np
 
 
-class shifted_kde:
-
-    def fit(self, X_train):
-        bw = estimate_bandwidth(X_train)
-        model = KernelDensity(bandwidth=bw).fit(X_train)
-
-        self.model = model
-        self.bw = bw
-
-        return model, bw
-
-    def predict(self, X):
-        dist = -self.model.score_samples(X)
-
-        return dist
-
-
 class distance_model:
 
     def __init__(self, dist='gpr_std'):
@@ -46,29 +29,33 @@ class distance_model:
         '''
 
         self.scaler = MinMaxScaler()
-        if self.dist == 'gpr_std':
+        if self.dist == 'gpr':
             self.model = GaussianProcessRegressor()
             self.model.fit(X_train, y_train)
             _, dist = self.model.predict(X_train, return_std=True)
 
         elif self.dist == 'kde':
-            self.model = shifted_kde()
-            self.model.fit(X_train)
-            self.bw = self.model.bw
-            dist = self.model.predict(X_train)
+            bw = estimate_bandwidth(X_train)
+            model = KernelDensity(bandwidth=bw).fit(X_train)
+
+            self.model = model
+            self.bw = bw
+
+            dist = -self.model.score_samples(X_train)
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
-            dist = self.model.predict(X_train)
+            dist = self.model(X_train, self.dist)
+            dist = np.mean(dist, axis=0)
 
         self.scaler.fit(dist.reshape(-1, 1))
 
     def predict(self, X):
 
-        if self.dist == 'gpr_std':
+        if self.dist == 'gpr':
             _, dist = self.model.predict(X, return_std=True)
         elif self.dist == 'kde':
-            dist = self.model.predict(X)
+            dist = -self.model.score_samples(X)
         else:
             dist = self.model(X, self.dist)
             dist = np.mean(dist, axis=0)
