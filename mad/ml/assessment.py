@@ -38,6 +38,45 @@ def domain_pred(dist, dist_cut):
     return in_domain_pred
 
 
+def ground_truth(
+                 y,
+                 y_pred,
+                 y_std,
+                 percentile=5,
+                 prefit=None,
+                 cut=None,
+                 ground='calibration'
+                 ):
+
+    # Define ground truth
+    absres = abs(y-y_pred)
+
+    if ground == 'calibration':
+        vals = np.array([y_std, absres]).T
+
+        if prefit is None:
+            bw = estimate_bandwidth(vals)
+            prefit = KernelDensity(bandwidth=bw).fit(vals)
+
+        pdf = prefit.score_samples(vals)  # In log scale
+
+        # Ground truth
+        if cut is None:
+            cut = np.percentile(pdf, percentile)
+
+        in_domain_pred = pdf > cut
+
+    elif ground == 'residual':
+        if cut is None:
+            cut = np.percentile(absres, 100-percentile)
+
+        in_domain_pred = absres < cut
+
+    in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
+
+    return cut, prefit, in_domain_pred
+
+
 def transforms(gs_model, X):
 
     for step in list(gs_model.best_estimator_.named_steps)[:-1]:
@@ -181,7 +220,19 @@ class build_model:
                           data_id['y_std']
                           )
 
-        data_id['in_domain'] = True
+        # Define ground truth
+        cut, kde, in_domain = ground_truth(
+                                           data_id['y'],
+                                           data_id['y_pred'],
+                                           data_id['y_std'],
+                                           self.percentile,
+                                           ground=self.ground
+                                           )
+
+        self.cut = cut
+        self.kde = kde
+
+        data_id['in_domain'] = in_domain
 
         # OD split
         od_split = splitters.RepeatedClusterSplit(
@@ -200,13 +251,22 @@ class build_model:
                      od_split
                      )
 
-        data_od['in_domain'] = False
+        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
+
+        _, _, in_domain = ground_truth(
+                                       data_od['y'],
+                                       data_od['y_pred'],
+                                       data_od['y_std'],
+                                       self.percentile,
+                                       cut=cut,
+                                       prefit=kde,
+                                       ground=self.ground,
+                                       )
+
+        data_od['in_domain'] = in_domain
 
         # Combine OD and ID
         data_cv = pd.concat([data_id, data_od])
-
-        # Update with calibrated data
-        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         self.dist_cut = plots.pr(
                                  data_cv['dist'],
@@ -332,14 +392,11 @@ class combine:
                 train = np.array(train)
                 test = np.array(test)
 
-                d = [False]*test.shape[0]+[True]*train[sub[1]].shape[0]
                 test = np.concatenate([test, train[sub[1]]])
                 train = train[sub[0]]
-            else:
-                d = [False]*test.shape[0]
 
             count += 1
-            yield (train, test, d, count)
+            yield (train, test, count)
 
     def fit(self, split):
 
@@ -348,12 +405,22 @@ class combine:
         ds_model = self.ds_model
         save = self.save
 
-        train, test, in_domain_test, count = split  # train/test
+        train, test, count = split  # train/test
 
         # Fit models
         model = build_model(gs_model, ds_model, uq_model, ground=self.ground)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
+
+        _, _, in_domain_test = ground_truth(
+                                            self.y[test],
+                                            data_test['y_pred'],
+                                            data_test['y_std'],
+                                            model.percentile,
+                                            cut=model.cut,
+                                            prefit=model.kde,
+                                            ground=self.ground,
+                                            )
 
         data_test['y'] = self.y[test]
         data_test['g'] = self.g[test]

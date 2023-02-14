@@ -32,7 +32,7 @@ def main():
     g = df['group'].values
 
     # The ground truth choice
-    ground = 'calibration'
+    ground = 'residual'
 
     # ML Distance model
     ds_model = distance_model(dist='kde')
@@ -63,7 +63,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 4]:
+    for i in [2]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(

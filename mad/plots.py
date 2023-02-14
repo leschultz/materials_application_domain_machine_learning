@@ -410,7 +410,6 @@ def pr(dist, in_domain, save=False, choice=None):
     relative_base = 1-baseline  # The amount of area to gain in PR
 
     score = -dist
-
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
