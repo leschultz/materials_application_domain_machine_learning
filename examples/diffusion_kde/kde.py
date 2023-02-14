@@ -61,7 +61,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2]:
+    for i in [2, 20]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(

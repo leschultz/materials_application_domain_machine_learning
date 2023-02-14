@@ -87,7 +87,7 @@ def diffusion(**kwargs):
     '''
 
     # Dataset information
-    df = 'Diffusion_Data.csv'
+    df = 'diffusion.csv'
     target = 'E_regression_shift'
     class_name = 'group'
     drop_cols = [
@@ -199,10 +199,27 @@ def piezoelectric_tensor(**kwargs):
 
 def steel_yield_strength(**kwargs):
     '''
-    Load the steel yield strenght dataset.
+    Load the steel yield strength dataset.
     '''
 
-    df = 'steel_strength_simplified.xlsx'
-    target = 'yield strength'
+    df = 'steel_strength.csv'
+    target = 'yield_strength'
+    drop_cols = [
+                 'mat',
+                 'group'
+                 ]
 
-    return load(df, target, **kwargs)
+    return load(df, target, drop_cols, **kwargs)
+
+def fluence(**kwargs):
+    '''
+    Load the steel fluence dataset.
+    '''
+
+    df = 'fluence.csv'
+    target = 'Measured_DT41J_[C]'
+    drop_cols = [
+                 'group'
+                 ]
+
+    return load(df, target, drop_cols, **kwargs)

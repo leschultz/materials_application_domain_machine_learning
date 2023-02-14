@@ -10,6 +10,7 @@ class ml_test(unittest.TestCase):
         '''
 
         load_data.friedman()
+        load_data.fluence()
         load_data.diffusion()
         load_data.super_cond()
         load_data.perovskite_stability()
