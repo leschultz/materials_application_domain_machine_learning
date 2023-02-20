@@ -22,7 +22,7 @@ class ml_test(unittest.TestCase):
 
     def test_ml(self):
 
-        run_name = 'run_gpr'
+        run_name = 'run_kde'
 
         # Load data
         data = load_data.diffusion()
@@ -35,7 +35,7 @@ class ml_test(unittest.TestCase):
         ground = 'calibration'
 
         # ML Distance model
-        ds_model = distance_model(dist='gpr')
+        ds_model = distance_model(dist='kde')
 
         # ML UQ function
         uq_model = ensemble_model()

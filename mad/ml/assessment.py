@@ -271,7 +271,7 @@ class build_model:
         self.dist_cut = plots.pr(
                                  data_cv['dist'],
                                  data_cv['in_domain'],
-                                 choice='max_f1'
+                                 choice='rel_f1'
                                  )
 
         in_domain_pred = domain_pred(
