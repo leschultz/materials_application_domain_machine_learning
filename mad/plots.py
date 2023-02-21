@@ -7,6 +7,8 @@ from sklearn.metrics import (
 
 from matplotlib import pyplot as pl
 
+import seaborn as sns
+import pandas as pd
 import numpy as np
 
 import matplotlib
@@ -357,6 +359,46 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
     data['y_red'] = list(y_std[out_domain])
 
     jsonfile = os.path.join(save, 'ground_truth.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
+def violin(dist, in_domain, save):
+    '''
+    Plot the violin plot.
+    '''
+
+    df = {'dist': dist, 'in_domain': in_domain}
+    df = pd.DataFrame(df)
+
+    groups = df.groupby('in_domain')
+    median = groups.median()
+    dist = median['dist'].sort_values(ascending=False)
+    dist = dist.to_frame().reset_index()['in_domain'].values
+
+    df['in_domain'] = pd.Categorical(df['in_domain'], dist)
+
+    fig, ax = pl.subplots()
+    sns.violinplot(
+                   data=df,
+                   x='dist',
+                   y='in_domain',
+                   ax=ax,
+                   palette='Spectral',
+                   cut=0,
+                   scale='width',
+                   inner='quartile'
+                   )
+
+    fig.savefig(os.path.join(save, 'violin.png'))
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['x'] = list(df['dist'].values)
+    data['y'] = list(df['in_domain'].values)
+
+    jsonfile = os.path.join(save, 'violin.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 

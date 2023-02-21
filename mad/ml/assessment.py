@@ -492,6 +492,9 @@ class combine:
                          dist_name,
                          )
 
+        plots.violin(df['dist'], df['in_domain'], dist_name)
+        plots.violin(df['dist'], df['in_domain'], sigma_name)
+
         # Marginal Plots
         marginal_indx = df['dist'] < dist_thresh
         if len(df['in_domain'][marginal_indx]) > 0:
@@ -508,6 +511,12 @@ class combine:
                              df['in_domain'][marginal_indx],
                              marginal_sigma_name,
                              )
+
+            plots.violin(
+                         df['y_std'][marginal_indx],
+                         df['in_domain'][marginal_indx],
+                         marginal_sigma_name
+                         )
 
         marginal_indx = df['y_std'] < sigma_thresh
         if len(df['in_domain'][marginal_indx]) > 0:
