@@ -542,7 +542,9 @@ class combine:
                         )
 
         # Plot CDF comparison
-        x = (df['y']-df['y_pred'])/df['y_std']
+        res = df['y']-df['y_pred']
+        absres = abs(res)
+        x = (res)/df['y_std']
         plots.cdf_parity(
                          x,
                          df['in_domain'],
@@ -557,6 +559,8 @@ class combine:
                      df['in_domain'].values,
                      save=job_name
                      )
+
+        plots.violin(absres, df['in_domain'], save=job_name)
 
     def save_model(self):
         '''
