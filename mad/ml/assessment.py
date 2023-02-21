@@ -543,7 +543,7 @@ class combine:
 
         # Plot CDF comparison
         res = df['y']-df['y_pred']
-        absres = abs(res)
+        absres = abs(res)/df['y_std']
         x = (res)/df['y_std']
         plots.cdf_parity(
                          x,

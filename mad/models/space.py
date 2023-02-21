@@ -9,7 +9,7 @@ import numpy as np
 
 class distance_model:
 
-    def __init__(self, dist='gpr_std'):
+    def __init__(self, dist='kde'):
         self.dist = dist
 
     def fit(
