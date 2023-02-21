@@ -25,7 +25,8 @@ install_requires = [
                     'pytest',
                     'openpyxl',
                     'umap-learn',
-                    'gpytorch'
+                    'gpytorch',
+                    'seaborn',
                     ]
 long_description = open('README.md').read()
 
