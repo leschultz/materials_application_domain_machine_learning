@@ -464,14 +464,14 @@ class combine:
                                 df['y_std'],
                                 df['in_domain'],
                                 sigma_name,
-                                choice='max_f1',
+                                choice='rel_f1',
                                 )
 
         dist_thresh = plots.pr(
                                df['dist'],
                                df['in_domain'],
                                dist_name,
-                               choice='max_f1',
+                               choice='rel_f1',
                                )
 
         # Plot prediction time
@@ -502,7 +502,7 @@ class combine:
                      df['y_std'][marginal_indx],
                      df['in_domain'][marginal_indx],
                      marginal_sigma_name,
-                     choice='max_f1',
+                     choice='rel_f1',
                      )
             plots.assessment(
                              df['y_std'][marginal_indx],
@@ -524,7 +524,7 @@ class combine:
                      df['dist'][marginal_indx],
                      df['in_domain'][marginal_indx],
                      marginal_dist_name,
-                     choice='max_f1',
+                     choice='rel_f1',
                      )
             plots.assessment(
                              df['y_std'][marginal_indx],
