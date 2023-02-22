@@ -446,16 +446,16 @@ def assessment(
         json.dump(data, handle)
 
 
-def pr(dist, in_domain, save=False, choice=None):
+def pr(score, in_domain, pos_label=False, save=False, choice=None):
 
-    baseline = sum(in_domain)/len(in_domain)
+    baseline = [1 if i == pos_label else 0 for i in in_domain]
+    baseline = sum(baseline)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
 
-    score = -dist
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
-                                                           pos_label=True,
+                                                           pos_label=pos_label,
                                                            )
 
     num = 2*recall*precision
@@ -497,11 +497,6 @@ def pr(dist, in_domain, save=False, choice=None):
     max_auc = recall[:-1][max_auc_index]
     max_auc_relative = (max_auc-baseline)/relative_base
     max_auc_thresh = thresholds[max_auc_index]
-
-    # Convert back
-    rel_f1_thresh = -rel_f1_thresh
-    max_f1_thresh = -max_f1_thresh
-    max_auc_thresh = -max_auc_thresh
 
     if save is not False:
 

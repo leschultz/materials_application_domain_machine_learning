@@ -1,4 +1,4 @@
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, mean_squared_error
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import ShuffleSplit
 from sklearn.cluster import estimate_bandwidth
@@ -41,40 +41,20 @@ def domain_pred(dist, dist_cut):
 def ground_truth(
                  y,
                  y_pred,
-                 y_std,
-                 percentile=5,
-                 prefit=None,
+                 sigma,
                  cut=None,
-                 ground='calibration'
                  ):
 
     # Define ground truth
-    absres = abs(y-y_pred)
+    absres = abs(y-y_pred)/sigma
 
-    if ground == 'calibration':
-        vals = np.array([y_std, absres]).T
+    if cut is None:
+        cut = (mean_squared_error(y, y_pred)**(0.5))/sigma
 
-        if prefit is None:
-            bw = estimate_bandwidth(vals)
-            prefit = KernelDensity(bandwidth=bw).fit(vals)
-
-        pdf = prefit.score_samples(vals)  # In log scale
-
-        # Ground truth
-        if cut is None:
-            cut = np.percentile(pdf, percentile)
-
-        in_domain_pred = pdf > cut
-
-    elif ground == 'residual':
-        if cut is None:
-            cut = np.percentile(absres, 100-percentile)
-
-        in_domain_pred = absres < cut
-
+    in_domain_pred = absres < cut
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
 
-    return cut, prefit, in_domain_pred
+    return cut, in_domain_pred
 
 
 def transforms(gs_model, X):
@@ -181,17 +161,16 @@ class build_model:
                  gs_model,
                  ds_model,
                  uq_model,
-                 percentile=5,
-                 ground='calibration',
                  ):
 
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
-        self.percentile = percentile
-        self.ground = ground
 
     def fit(self, X, y, g):
+
+        # Get some data statistics
+        self.ystd = np.std(y)
 
         # Build the model
         self.gs_model.fit(X, y)
@@ -221,16 +200,13 @@ class build_model:
                           )
 
         # Define ground truth
-        cut, kde, in_domain = ground_truth(
-                                           data_id['y'],
-                                           data_id['y_pred'],
-                                           data_id['y_std'],
-                                           self.percentile,
-                                           ground=self.ground
-                                           )
+        cut, in_domain = ground_truth(
+                                      data_id['y'],
+                                      data_id['y_pred'],
+                                      self.ystd,
+                                      )
 
         self.cut = cut
-        self.kde = kde
 
         data_id['in_domain'] = in_domain
 
@@ -253,15 +229,12 @@ class build_model:
 
         data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
 
-        _, _, in_domain = ground_truth(
-                                       data_od['y'],
-                                       data_od['y_pred'],
-                                       data_od['y_std'],
-                                       self.percentile,
-                                       cut=cut,
-                                       prefit=kde,
-                                       ground=self.ground,
-                                       )
+        _, in_domain = ground_truth(
+                                    data_od['y'],
+                                    data_od['y_pred'],
+                                    self.ystd,
+                                    cut=cut,
+                                    )
 
         data_od['in_domain'] = in_domain
 
@@ -408,19 +381,15 @@ class combine:
         train, test, count = split  # train/test
 
         # Fit models
-        model = build_model(gs_model, ds_model, uq_model, ground=self.ground)
+        model = build_model(gs_model, ds_model, uq_model)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        _, _, in_domain_test = ground_truth(
-                                            self.y[test],
-                                            data_test['y_pred'],
-                                            data_test['y_std'],
-                                            model.percentile,
-                                            cut=model.cut,
-                                            prefit=model.kde,
-                                            ground=self.ground,
-                                            )
+        _, in_domain_test = ground_truth(
+                                         self.y[test],
+                                         data_test['y_pred'],
+                                         model.ystd,
+                                         )
 
         data_test['y'] = self.y[test]
         data_test['g'] = self.g[test]
