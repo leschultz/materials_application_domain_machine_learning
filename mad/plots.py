@@ -446,8 +446,9 @@ def assessment(
         json.dump(data, handle)
 
 
-def pr(score, in_domain, pos_label=False, save=False, choice=None):
+def pr(score, in_domain, save=False, choice=None):
 
+    pos_label = False
     baseline = [1 if i == pos_label else 0 for i in in_domain]
     baseline = sum(baseline)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
