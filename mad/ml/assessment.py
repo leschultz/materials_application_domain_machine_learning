@@ -199,6 +199,8 @@ class build_model:
                           data_id['y_std']
                           )
 
+        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
+
         # Define ground truth
         cut, in_domain = ground_truth(
                                       data_id['y'],
@@ -389,6 +391,7 @@ class combine:
                                          self.y[test],
                                          data_test['y_pred'],
                                          model.ystd,
+                                         model.cut,
                                          )
 
         data_test['y'] = self.y[test]

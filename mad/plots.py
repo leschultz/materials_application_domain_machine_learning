@@ -448,7 +448,8 @@ def assessment(
 
 def pr(score, in_domain, save=False, choice=None):
 
-    pos_label = False
+    score = -score
+    pos_label = True
     baseline = [1 if i == pos_label else 0 for i in in_domain]
     baseline = sum(baseline)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
@@ -498,6 +499,11 @@ def pr(score, in_domain, save=False, choice=None):
     max_auc = recall[:-1][max_auc_index]
     max_auc_relative = (max_auc-baseline)/relative_base
     max_auc_thresh = thresholds[max_auc_index]
+
+    # Convert back
+    rel_f1_thresh = -rel_f1_thresh
+    max_f1_thresh = -max_f1_thresh
+    max_auc_thresh = -max_auc_thresh
 
     if save is not False:
 
