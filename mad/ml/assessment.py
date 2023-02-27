@@ -41,15 +41,14 @@ def domain_pred(dist, dist_cut):
 def ground_truth(
                  y,
                  y_pred,
-                 sigma,
                  cut=None,
                  ):
 
     # Define ground truth
-    absres = abs(y-y_pred)/sigma
+    absres = abs(y-y_pred)
 
     if cut is None:
-        cut = (mean_squared_error(y, y_pred)**(0.5))/sigma
+        cut = np.percentile(absres, 99)
 
     in_domain_pred = absres < cut
     in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
@@ -205,7 +204,6 @@ class build_model:
         cut, in_domain = ground_truth(
                                       data_id['y'],
                                       data_id['y_pred'],
-                                      self.ystd,
                                       )
 
         self.cut = cut
@@ -234,7 +232,6 @@ class build_model:
         _, in_domain = ground_truth(
                                     data_od['y'],
                                     data_od['y_pred'],
-                                    self.ystd,
                                     cut=cut,
                                     )
 
@@ -390,7 +387,6 @@ class combine:
         _, in_domain_test = ground_truth(
                                          self.y[test],
                                          data_test['y_pred'],
-                                         model.ystd,
                                          model.cut,
                                          )
 
