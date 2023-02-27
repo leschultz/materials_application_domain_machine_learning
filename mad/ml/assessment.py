@@ -246,26 +246,28 @@ class build_model:
         # Combine OD and ID
         data_cv = pd.concat([data_id, data_od])
 
-        self.dist_cut = {}
+        self.domain_cut = {'dist': {}, 'y_std': {}}
         for i in [True, False]:
 
-            self.dist_cut[i] = plots.pr(
-                                        data_cv['dist'],
-                                        data_cv['in_domain'],
-                                        pos_label=i,
-                                        choice='rel_f1'
-                                        )
+            for j in ['dist', 'y_std']:
 
-            in_domain_pred = domain_pred(
-                                         data_cv['dist'],
-                                         self.dist_cut[i],
-                                         i,
-                                         )
+                self.domain_cut[j][i] = plots.pr(
+                                                 data_cv[j],
+                                                 data_cv['in_domain'],
+                                                 pos_label=i,
+                                                 choice='rel_f1'
+                                                 )
 
-            if i is True:
-                data_cv['in_domain_pred'] = in_domain_pred
-            elif i is False:
-                data_cv['out_domain_pred'] = in_domain_pred
+                do_pred = domain_pred(
+                                      data_cv[j],
+                                      self.domain_cut[j][i],
+                                      i,
+                                      )
+
+                if i is True:
+                    data_cv['{}_in_domain_pred'.format(j)] = do_pred
+                else:
+                    data_cv['{}_out_domain_pred'.format(j)] = do_pred
 
         self.data_cv = data_cv
 
@@ -291,16 +293,17 @@ class build_model:
                 }
 
         for i in [True, False]:
-            do_pred = domain_pred(
-                                  dist,
-                                  self.dist_cut[i],
-                                  domain=i,
-                                  )
+            for j in ['dist', 'y_std']:
+                do_pred = domain_pred(
+                                      dist,
+                                      self.domain_cut[j][i],
+                                      domain=i,
+                                      )
 
-            if i is True:
-                pred['in_domain_pred'] = do_pred
-            elif i is False:
-                pred['out_domain_pred'] = do_pred
+                if i is True:
+                    pred['{}_in_domain_pred'.format(j)] = do_pred
+                else:
+                    pred['{}_out_domain_pred'.format(j)] = do_pred
 
         pred = pd.DataFrame(pred)
 
@@ -447,11 +450,15 @@ class combine:
 
         # Precision recall for in domain
         for i in [True, False]:
+            if i is True:
+                j = 'id'
+            else:
+                j = 'od'
             sigma_thresh = plots.pr(
                                     df['y_std'],
                                     df['in_domain'],
                                     i,
-                                    '{}/id_{}'.format(sigma_name, i),
+                                    os.path.join(sigma_name, j),
                                     choice='rel_f1',
                                     )
 
@@ -459,7 +466,7 @@ class combine:
                                    df['dist'],
                                    df['in_domain'],
                                    i,
-                                   '{}/id_{}'.format(dist_name, i),
+                                   os.path.join(dist_name, j),
                                    choice='rel_f1',
                                    )
 
@@ -485,12 +492,18 @@ class combine:
         plots.violin(df['dist'], df['in_domain'], sigma_name)
 
         # Total
-        for i, j in zip(['in_domain_pred', 'out_domain_pred'], [True, False]):
-            plots.confusion(
-                            df['in_domain'],
-                            y_pred=df[i],
-                            save='{}/id_{}'.format(dist_name, j)
-                            )
+        for i, j in zip(
+                        ['in_domain_pred', 'out_domain_pred'],
+                        ['id', 'od'],
+                        ):
+
+            for k in ['dist', 'y_std']:
+                for w in [dist_name, sigma_name]:
+                    plots.confusion(
+                                    df['in_domain'],
+                                    y_pred=df[k+'_'+i],
+                                    save=os.path.join(w, j)
+                                    )
 
         # Plot CDF comparison
         res = df['y']-df['y_pred']
