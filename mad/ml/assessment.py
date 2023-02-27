@@ -23,19 +23,25 @@ import dill
 import os
 
 
-def domain_pred(dist, dist_cut):
+def domain_pred(dist, dist_cut, domain):
     '''
     Predict the domain based on thresholds.
     '''
 
-    in_domain_pred = []
+    do_pred = []
     for i in dist:
-        if i < dist_cut:
-            in_domain_pred.append(True)
-        else:
-            in_domain_pred.append(False)
+        if domain is True:
+            if i < dist_cut:
+                do_pred.append(True)
+            else:
+                do_pred.append(False)
+        elif domain is False:
+            if i >= dist_cut:
+                do_pred.append(True)
+            else:
+                do_pred.append(False)
 
-    return in_domain_pred
+    return do_pred
 
 
 def ground_truth(
@@ -253,6 +259,7 @@ class build_model:
             in_domain_pred = domain_pred(
                                          data_cv['dist'],
                                          self.dist_cut[i],
+                                         i,
                                          )
 
             if i is True:
@@ -287,6 +294,7 @@ class build_model:
             do_pred = domain_pred(
                                   dist,
                                   self.dist_cut[i],
+                                  domain=i,
                                   )
 
             if i is True:
@@ -477,11 +485,12 @@ class combine:
         plots.violin(df['dist'], df['in_domain'], sigma_name)
 
         # Total
-        plots.confusion(
-                        df['in_domain'],
-                        y_pred=df['in_domain_pred'],
-                        save=job_name
-                        )
+        for i, j in zip(['in_domain_pred', 'out_domain_pred'], [True, False]):
+            plots.confusion(
+                            df['in_domain'],
+                            y_pred=df[i],
+                            save='{}/id_{}'.format(dist_name, j)
+                            )
 
         # Plot CDF comparison
         res = df['y']-df['y_pred']
