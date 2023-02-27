@@ -446,10 +446,11 @@ def assessment(
         json.dump(data, handle)
 
 
-def pr(score, in_domain, save=False, choice=None):
+def pr(score, in_domain, pos_label, save=False, choice=None):
 
-    score = -score
-    pos_label = True
+    if pos_label is True:
+        score = -score
+
     baseline = [1 if i == pos_label else 0 for i in in_domain]
     baseline = sum(baseline)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
@@ -501,9 +502,10 @@ def pr(score, in_domain, save=False, choice=None):
     max_auc_thresh = thresholds[max_auc_index]
 
     # Convert back
-    rel_f1_thresh = -rel_f1_thresh
-    max_f1_thresh = -max_f1_thresh
-    max_auc_thresh = -max_auc_thresh
+    if pos_label is True:
+        rel_f1_thresh = -rel_f1_thresh
+        max_f1_thresh = -max_f1_thresh
+        max_auc_thresh = -max_auc_thresh
 
     if save is not False:
 

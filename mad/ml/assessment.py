@@ -240,19 +240,25 @@ class build_model:
         # Combine OD and ID
         data_cv = pd.concat([data_id, data_od])
 
-        self.dist_cut = plots.pr(
-                                 data_cv['dist'],
-                                 data_cv['in_domain'],
-                                 choice='rel_f1'
-                                 )
+        self.dist_cut = {}
+        for i in [True, False]:
 
-        in_domain_pred = domain_pred(
-                                     data_cv['dist'],
-                                     self.dist_cut,
-                                     )
+            self.dist_cut[i] = plots.pr(
+                                        data_cv['dist'],
+                                        data_cv['in_domain'],
+                                        pos_label=i,
+                                        choice='rel_f1'
+                                        )
 
-        data_cv['in_domain_pred'] = in_domain_pred
-        data_cv['dist_thresh'] = self.dist_cut
+            in_domain_pred = domain_pred(
+                                         data_cv['dist'],
+                                         self.dist_cut[i],
+                                         )
+
+            if i is True:
+                data_cv['in_domain_pred'] = in_domain_pred
+            elif i is False:
+                data_cv['out_domain_pred'] = in_domain_pred
 
         self.data_cv = data_cv
 
@@ -271,17 +277,23 @@ class build_model:
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
         dist = self.ds_model.predict(X_trans)
 
-        in_domain_pred = domain_pred(
-                                     dist,
-                                     self.dist_cut,
-                                     )
-
         pred = {
                 'y_pred': y_pred,
                 'y_std': y_std,
                 'dist': dist,
-                'in_domain_pred': in_domain_pred
                 }
+
+        for i in [True, False]:
+            do_pred = domain_pred(
+                                  dist,
+                                  self.dist_cut[i],
+                                  )
+
+            if i is True:
+                pred['in_domain_pred'] = do_pred
+            elif i is False:
+                pred['out_domain_pred'] = do_pred
+
         pred = pd.DataFrame(pred)
 
         return pred
@@ -416,8 +428,6 @@ class combine:
         # Save locations
         sigma_name = os.path.join(job_name, 'sigma')
         dist_name = os.path.join(job_name, 'dissimilarity')
-        marginal_dist_name = os.path.join(job_name, 'marginal_dissimilarity')
-        marginal_sigma_name = os.path.join(job_name, 'marginal_sigma')
 
         plots.ground_truth(
                            df['y'],
@@ -428,19 +438,22 @@ class combine:
                            )
 
         # Precision recall for in domain
-        sigma_thresh = plots.pr(
-                                df['y_std'],
-                                df['in_domain'],
-                                sigma_name,
-                                choice='rel_f1',
-                                )
+        for i in [True, False]:
+            sigma_thresh = plots.pr(
+                                    df['y_std'],
+                                    df['in_domain'],
+                                    i,
+                                    '{}/id_{}'.format(sigma_name, i),
+                                    choice='rel_f1',
+                                    )
 
-        dist_thresh = plots.pr(
-                               df['dist'],
-                               df['in_domain'],
-                               dist_name,
-                               choice='rel_f1',
-                               )
+            dist_thresh = plots.pr(
+                                   df['dist'],
+                                   df['in_domain'],
+                                   i,
+                                   '{}/id_{}'.format(dist_name, i),
+                                   choice='rel_f1',
+                                   )
 
         # Plot prediction time
         std = df['y'].std()
@@ -462,45 +475,6 @@ class combine:
 
         plots.violin(df['dist'], df['in_domain'], dist_name)
         plots.violin(df['dist'], df['in_domain'], sigma_name)
-
-        # Marginal Plots
-        marginal_indx = df['dist'] < dist_thresh
-        if len(df['in_domain'][marginal_indx]) > 0:
-            plots.pr(
-                     df['y_std'][marginal_indx],
-                     df['in_domain'][marginal_indx],
-                     marginal_sigma_name,
-                     choice='rel_f1',
-                     )
-            plots.assessment(
-                             df['y_std'][marginal_indx],
-                             std,
-                             df['y_std'][marginal_indx]/std,
-                             df['in_domain'][marginal_indx],
-                             marginal_sigma_name,
-                             )
-
-            plots.violin(
-                         df['y_std'][marginal_indx],
-                         df['in_domain'][marginal_indx],
-                         marginal_sigma_name
-                         )
-
-        marginal_indx = df['y_std'] < sigma_thresh
-        if len(df['in_domain'][marginal_indx]) > 0:
-            plots.pr(
-                     df['dist'][marginal_indx],
-                     df['in_domain'][marginal_indx],
-                     marginal_dist_name,
-                     choice='rel_f1',
-                     )
-            plots.assessment(
-                             df['y_std'][marginal_indx],
-                             std,
-                             df['dist'][marginal_indx],
-                             df['in_domain'][marginal_indx],
-                             marginal_dist_name,
-                             )
 
         # Total
         plots.confusion(
