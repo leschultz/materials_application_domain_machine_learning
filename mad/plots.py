@@ -537,13 +537,13 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         ax.scatter(
                    recall[max_f1_index],
                    precision[max_f1_index],
-                   marker='o',
+                   marker='X',
                    label='Max F1: {:.2f}'.format(max_f1),
                    )
         ax.scatter(
                    recall[rel_f1_index],
                    precision[rel_f1_index],
-                   marker='o',
+                   marker='D',
                    label='Relative Max F1: {:.2f}'.format(rel_f1),
                    )
 
@@ -589,6 +589,12 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
 
 def confusion(y_true, y_pred, pos_label, save='.'):
 
+    if pos_label == 'id':
+        labels = ['OD', 'ID']
+    else:
+        labels = ['ID', 'OD']
+        y_true = ~y_true
+
     conf = confusion_matrix(y_true, y_pred)
 
     # In case only one class exists
@@ -603,11 +609,6 @@ def confusion(y_true, y_pred, pos_label, save='.'):
             conf = np.array([[0, 0], [0, conf[0, 0]]])
         else:
             raise 'You done fucked up'
-
-    if pos_label == 'id':
-        labels = ['OD', 'ID']
-    else:
-        labels = ['ID', 'OD']
 
     fig, ax = pl.subplots()
     disp = ConfusionMatrixDisplay(conf, display_labels=labels)
