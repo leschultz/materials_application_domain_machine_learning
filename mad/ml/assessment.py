@@ -56,10 +56,10 @@ def ground_truth(
     if cut is None:
         cut = np.percentile(absres, 99)
 
-    in_domain_pred = absres < cut
-    in_domain_pred = [True if i == 1 else False for i in in_domain_pred]
+    do_pred = absres < cut
+    do_pred = [True if i == 1 else False for i in do_pred]
 
-    return cut, in_domain_pred
+    return cut, do_pred
 
 
 def transforms(gs_model, X):
@@ -502,6 +502,7 @@ class combine:
                     plots.confusion(
                                     df['in_domain'],
                                     y_pred=df[k+'_'+i],
+                                    pos_label=j,
                                     save=os.path.join(w, j)
                                     )
 

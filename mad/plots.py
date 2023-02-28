@@ -479,7 +479,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                        out=np.zeros_like(den), where=(den != 0)
                        )
 
-    # Maximum F1 score
+    # Maximum Relative F1 score
     rel_f1_index = np.argmax(f1_rel)
     rel_f1_thresh = thresholds[rel_f1_index]
     rel_f1 = f1_rel[rel_f1_index]
@@ -587,7 +587,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         return rel_f1_thresh
 
 
-def confusion(y_true, y_pred, save='.'):
+def confusion(y_true, y_pred, pos_label, save='.'):
 
     conf = confusion_matrix(y_true, y_pred)
 
@@ -604,8 +604,13 @@ def confusion(y_true, y_pred, save='.'):
         else:
             raise 'You done fucked up'
 
+    if pos_label == 'id':
+        labels = ['OD', 'ID']
+    else:
+        labels = ['ID', 'OD']
+
     fig, ax = pl.subplots()
-    disp = ConfusionMatrixDisplay(conf, display_labels=['OD', 'ID'])
+    disp = ConfusionMatrixDisplay(conf, display_labels=labels)
     disp.plot(ax=ax)
     fig_data = conf.tolist()
 

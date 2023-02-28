@@ -21,7 +21,7 @@ def main():
     run_name = 'run_kde'
 
     # Load data
-    data = load_data.diffusion()
+    data = load_data.fluence()
     df = data['frame']
     X = data['data']
     y = data['target']
