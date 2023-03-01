@@ -506,6 +506,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         rel_f1_thresh = -rel_f1_thresh
         max_f1_thresh = -max_f1_thresh
         max_auc_thresh = -max_auc_thresh
+        thresholds = -thresholds
 
     if save is not False:
 
@@ -591,7 +592,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         ax.plot(
                 thresholds,
                 precision[:-1],
-                color='r',
+                color='k',
                 label='Precision'
                 )
 
@@ -603,10 +604,10 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                 )
 
         ax.vlines(
-                  -max_f1_thresh if pos_label is True else max_f1_thresh,
+                  max_f1_thresh,
                   color='r',
                   linestyle=':',
-                  label='Max F1: {:.2f}'.format(baseline),
+                  label='Max F1',
                   ymin=0.0,
                   ymax=1.0,
                   )
