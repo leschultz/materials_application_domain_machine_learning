@@ -54,7 +54,7 @@ def ground_truth(
     absres = abs(y-y_pred)
 
     if cut is None:
-        cut = np.percentile(absres, 99)
+        cut = np.percentile(absres, 95)
 
     do_pred = absres < cut
     do_pred = [True if i == 1 else False for i in do_pred]
@@ -187,7 +187,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_id = cv(
+        data_cv = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -199,52 +199,22 @@ class build_model:
 
         # Fit on hold out data ID
         self.uq_model.fit(
-                          data_id['y'],
-                          data_id['y_pred'],
-                          data_id['y_std']
+                          data_cv['y'],
+                          data_cv['y_pred'],
+                          data_cv['y_std']
                           )
 
-        data_id['y_std'] = self.uq_model.predict(data_id['y_std'])
+        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         # Define ground truth
         cut, in_domain = ground_truth(
-                                      data_id['y'],
-                                      data_id['y_pred'],
+                                      data_cv['y'],
+                                      data_cv['y_pred'],
                                       )
 
         self.cut = cut
 
-        data_id['in_domain'] = in_domain
-
-        # OD split
-        od_split = splitters.RepeatedClusterSplit(
-                                                  KMeans,
-                                                  n_init='auto',
-                                                  n_repeats=1,
-                                                  n_clusters=2
-                                                  )
-        data_od = cv(
-                     self.gs_model,
-                     self.ds_model,
-                     X,
-                     y,
-                     g,
-                     np.arange(y.shape[0]),
-                     od_split
-                     )
-
-        data_od['y_std'] = self.uq_model.predict(data_od['y_std'])
-
-        _, in_domain = ground_truth(
-                                    data_od['y'],
-                                    data_od['y_pred'],
-                                    cut=cut,
-                                    )
-
-        data_od['in_domain'] = in_domain
-
-        # Combine OD and ID
-        data_cv = pd.concat([data_id, data_od])
+        data_cv['in_domain'] = in_domain
 
         self.domain_cut = {'dist': {}, 'y_std': {}}
         for i in [True, False]:

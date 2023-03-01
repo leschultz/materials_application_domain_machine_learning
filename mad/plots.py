@@ -579,6 +579,58 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
+        fig, ax = pl.subplots()
+
+        ax.plot(
+                thresholds,
+                recall[:-1],
+                color='b',
+                label='Recall'
+                )
+
+        ax.plot(
+                thresholds,
+                precision[:-1],
+                color='r',
+                label='Precision'
+                )
+
+        ax.plot(
+                thresholds,
+                f1_scores[:-1],
+                color='g',
+                label='F1'
+                )
+
+        ax.vlines(
+                  -max_f1_thresh if pos_label is True else max_f1_thresh,
+                  color='r',
+                  linestyle=':',
+                  label='Max F1: {:.2f}'.format(baseline),
+                  ymin=0.0,
+                  ymax=1.0,
+                  )
+
+        ax.legend()
+
+        ax.set_ylim(0.0, 1.05)
+
+        ax.set_xlabel('Thresholds')
+        ax.set_ylabel('Recall, Precision, or F1')
+
+        fig.savefig(os.path.join(save, 'thresholds.png'))
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['recall'] = list(recall[:-1])
+        data['precision'] = list(precision[:-1])
+        data['thresholds'] = list(thresholds)
+
+        jsonfile = os.path.join(save, 'thresholds.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
     if choice == 'max_auc':
         return max_auc_thresh
     elif choice == 'max_f1':
