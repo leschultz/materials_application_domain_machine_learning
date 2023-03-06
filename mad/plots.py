@@ -425,8 +425,8 @@ def assessment(
     if thresh:
         ax.axvline(thresh, color='k')
 
-    ax.set_xlabel('dissimilarity')
-    ax.set_ylabel(r'$\sigma/\sigma_{y}$')
+    ax.set_xlabel('Dissimilarity')
+    ax.set_ylabel(r'$|y-\hat{y}|/\sigma$')
 
     fig.savefig(os.path.join(save, 'assessment.png'))
     pl.close(fig)

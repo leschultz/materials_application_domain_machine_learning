@@ -442,8 +442,9 @@ class combine:
 
         # Plot prediction time
         std = df['y'].std()
+        res = abs(df['y']-df['y_pred'])
         plots.assessment(
-                         df['y_std'],
+                         res,
                          std,
                          df['y_std']/std,
                          df['in_domain'],
@@ -451,7 +452,7 @@ class combine:
                          )
 
         plots.assessment(
-                         df['y_std'],
+                         res,
                          std,
                          df['dist'],
                          df['in_domain'],
