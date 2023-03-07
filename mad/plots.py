@@ -659,15 +659,6 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                 label='F1'
                 )
 
-        ax.vlines(
-                  max_f1_thresh,
-                  color='r',
-                  linestyle=':',
-                  label='Max F1',
-                  ymin=0.0,
-                  ymax=1.0,
-                  )
-
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         ax.set_ylim(0.0, 1.05)

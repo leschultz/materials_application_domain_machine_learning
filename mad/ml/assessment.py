@@ -308,7 +308,6 @@ class combine:
                  ds_model=None,
                  splitter=RepeatedKFold(),
                  sub_test=0.0,
-                 ground='calibration',
                  save='.',
                  ):
 
@@ -316,7 +315,6 @@ class combine:
         self.y = y  # Target
         self.splitter = splitter  # Splitter
         self.sub_test = sub_test
-        self.ground = ground
 
         # Models
         self.gs_model = gs_model  # Regression
