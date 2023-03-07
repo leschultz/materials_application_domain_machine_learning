@@ -502,9 +502,9 @@ def assessment(
 
 
 
-def pr(score, in_domain, pos_label, save=False, choice=None):
+def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
 
-    if pos_label is True:
+    if all([pos_label is False, dist_type in ['kde', 'gpr']]):
         score = -score
 
     baseline = [1 if i == pos_label else 0 for i in in_domain]
@@ -558,7 +558,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
     max_auc_thresh = thresholds[max_auc_index]
 
     # Convert back
-    if pos_label is True:
+    if all([pos_label is False, dist_type in ['kde', 'gpr']]):
         rel_f1_thresh = -rel_f1_thresh
         max_f1_thresh = -max_f1_thresh
         max_auc_thresh = -max_auc_thresh
@@ -574,7 +574,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                 recall,
                 precision,
                 color='b',
-                label='AUC: {:.2f}'.format(auc_score),
+                label='AUC: {:.2f}\nRelative AUC: {:.2f}'.format(auc_score, auc_relative),
                 )
         ax.hlines(
                   baseline,
@@ -586,22 +586,16 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                   )
 
         ax.scatter(
-                   max_auc,
-                   precision[:-1][max_auc_index],
-                   marker='o',
-                   label='Max Recall: {:.2f}'.format(max_auc),
-                   )
-        ax.scatter(
                    recall[max_f1_index],
                    precision[max_f1_index],
                    marker='X',
-                   label='Max F1: {:.2f}'.format(max_f1),
+                   label='Max F1: {:.2f}\nThreshold: {:.2f}'.format(max_f1, max_f1_thresh),
                    )
         ax.scatter(
                    recall[rel_f1_index],
                    precision[rel_f1_index],
                    marker='D',
-                   label='Relative Max F1: {:.2f}'.format(rel_f1),
+                   label='Max Relative F1: {:.2f}\nThreshold: {:.2f}'.format(max_f1_relative, rel_f1_thresh),
                    )
 
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))

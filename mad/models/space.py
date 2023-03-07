@@ -1,6 +1,5 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.cluster import estimate_bandwidth
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
@@ -28,7 +27,6 @@ class distance_model:
             dists = A dictionary of distances.
         '''
 
-        self.scaler = MinMaxScaler()
         if self.dist == 'gpr':
             self.model = GaussianProcessRegressor()
             self.model.fit(X_train, y_train)
@@ -41,26 +39,24 @@ class distance_model:
             self.model = model
             self.bw = bw
 
-            dist = -self.model.score_samples(X_train)
+            dist = self.model.score_samples(X_train)
+            self.scaler = lambda x: np.exp(x-max(dist))
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
             dist = self.model(X_train, self.dist)
             dist = np.mean(dist, axis=0)
 
-        self.scaler.fit(dist.reshape(-1, 1))
-
     def predict(self, X):
 
         if self.dist == 'gpr':
             _, dist = self.model.predict(X, return_std=True)
         elif self.dist == 'kde':
-            dist = -self.model.score_samples(X)
+            dist = self.model.score_samples(X)
+            dist = self.scaler(dist)
+
         else:
             dist = self.model(X, self.dist)
             dist = np.mean(dist, axis=0)
-
-        dist = self.scaler.transform(dist.reshape(-1, 1))
-        dist = dist[:, 0]
 
         return dist

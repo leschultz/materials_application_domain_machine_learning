@@ -225,7 +225,8 @@ class build_model:
                                                  data_cv[j],
                                                  data_cv['in_domain'],
                                                  pos_label=i,
-                                                 choice='rel_f1'
+                                                 dist_type=self.ds_model.dist,
+                                                 choice='max_f1'
                                                  )
 
                 do_pred = domain_pred(
@@ -426,16 +427,18 @@ class combine:
                                     df['y_std'],
                                     df['in_domain'],
                                     i,
+                                    self.ds_model.dist,
                                     os.path.join(sigma_name, j),
-                                    choice='rel_f1',
+                                    choice='max_f1',
                                     )
 
             dist_thresh = plots.pr(
                                    df['dist'],
                                    df['in_domain'],
                                    i,
+                                   self.ds_model.dist,
                                    os.path.join(dist_name, j),
-                                   choice='rel_f1',
+                                   choice='max_f1',
                                    )
 
         # Plot prediction time
