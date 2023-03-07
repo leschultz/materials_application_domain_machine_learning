@@ -6,6 +6,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from scipy import stats
 
 import seaborn as sns
 import pandas as pd
@@ -193,7 +194,8 @@ def parity(
     ax.set_aspect('equal')
     ax.set_xlim(limits)
     ax.set_ylim(limits)
-    ax.legend(loc='upper left')
+
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     ax.set_ylabel('Predicted {} {}'.format(name, units))
     ax.set_xlabel('Actual {} {}'.format(name, units))
@@ -202,7 +204,7 @@ def parity(
     w = 8
 
     fig.set_size_inches(h, w, forward=True)
-    fig.savefig(os.path.join(save, 'parity.png'))
+    fig.savefig(os.path.join(save, 'parity.png'), bbox_inches='tight')
     pl.close(fig)
 
     # Repare plot data for saving
@@ -312,7 +314,8 @@ def cdf_parity(x, in_domain, save):
             zorder=1,
             )
 
-    ax.legend()
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
     ax.set_ylabel('Predicted CDF')
     ax.set_xlabel('Standard Normal CDF')
 
@@ -321,7 +324,7 @@ def cdf_parity(x, in_domain, save):
 
     fig.set_size_inches(h, w, forward=True)
     ax.set_aspect('equal')
-    fig.savefig(os.path.join(save, 'cdf_parity.png'))
+    fig.savefig(os.path.join(save, 'cdf_parity.png'), bbox_inches='tight')
 
     pl.close(fig)
 
@@ -348,7 +351,7 @@ def ground_truth(y, y_pred, y_std, in_domain, save):
     ax.set_xlabel(r'$|y-\hat{y}|/\sigma_{y}$')
     ax.set_ylabel(r'$\sigma_{c}/\sigma_{y}$')
 
-    fig.savefig(os.path.join(save, 'ground_truth.png'))
+    fig.savefig(os.path.join(save, 'ground_truth.png'), bbox_inches='tight')
     pl.close(fig)
 
     # Repare plot data for saving
@@ -390,7 +393,7 @@ def violin(dist, in_domain, save):
                    inner='quartile'
                    )
 
-    fig.savefig(os.path.join(save, 'violin.png'))
+    fig.savefig(os.path.join(save, 'violin.png'), bbox_inches='tight')
     pl.close(fig)
 
     # Repare plot data for saving
@@ -412,23 +415,32 @@ def assessment(
                thresh=None
                ):
 
-    y_std = y_std/std
+    y_std_norm = y_std/std
     os.makedirs(save, exist_ok=True)
 
     out_domain = ~in_domain
 
+    slope, intercept, r, p, se = stats.linregress(dist, y_std_norm)
+
     fig, ax = pl.subplots()
 
-    ax.scatter(dist[in_domain], y_std[in_domain], color='g', marker='.')
-    ax.scatter(dist[out_domain], y_std[out_domain], color='r', marker='x')
+    ax.scatter(dist[in_domain], y_std_norm[in_domain], color='g', marker='.')
+    ax.scatter(dist[out_domain], y_std_norm[out_domain], color='r', marker='x')
+
+    xfit = np.linspace(min(dist), max(dist))
+    yfit = slope*xfit+intercept
+
+    ax.plot(xfit, yfit, color='k', label='(m, b)=({:.2f}, {:.2f})'.format(slope, intercept))
 
     if thresh:
         ax.axvline(thresh, color='k')
 
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
     ax.set_xlabel('Dissimilarity')
     ax.set_ylabel(r'$|y-\hat{y}|/\sigma$')
 
-    fig.savefig(os.path.join(save, 'assessment.png'))
+    fig.savefig(os.path.join(save, 'assessment.png'), bbox_inches='tight')
     pl.close(fig)
 
     # Repare plot data for saving
@@ -444,6 +456,50 @@ def assessment(
     jsonfile = os.path.join(save, 'assessment.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
+
+    # Now for groupped stats
+    df = pd.DataFrame()
+    df['absres'] = y_std
+    df['dist'] = dist
+
+    df = df.sort_values(by=['dist', 'absres'])
+
+    n = 5
+    group = stats.binned_statistic(df['dist'], df['absres'], bins=n)
+    group = group[-1]
+    df = df.assign(
+                   bin=group,
+                   )
+
+    rmses = []
+    dists = []
+    for group, values in df.groupby('bin'):
+
+        rmses.append(((sum(values['absres']**2)/values.shape[0])**0.5)/std)
+        dists.append(values['dist'].mean())
+
+    fig, ax = pl.subplots()
+
+    ax.scatter(dists, rmses, marker='.')
+
+    ax.set_xlabel('Dissimilarity')
+    ax.set_ylabel(r'$RMSE/\sigma$')
+
+    fig.savefig(os.path.join(save, 'grouped_assessment.png'), bbox_inches='tight')
+    pl.close(fig)
+
+    # Repare plot data for saving
+    data = {}
+    data['x'] = dists
+    data['y'] = rmses
+
+    if thresh:
+        data['vertical'] = thresh
+
+    jsonfile = os.path.join(save, 'grouped_assessment.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
 
 
 def pr(score, in_domain, pos_label, save=False, choice=None):
@@ -548,7 +604,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                    label='Relative Max F1: {:.2f}'.format(rel_f1),
                    )
 
-        ax.legend()
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         ax.set_xlim(0.0, 1.05)
         ax.set_ylim(0.0, 1.05)
@@ -556,7 +612,7 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
         ax.set_xlabel('Recall')
         ax.set_ylabel('Precision')
 
-        fig.savefig(os.path.join(save, 'pr.png'))
+        fig.savefig(os.path.join(save, 'pr.png'), bbox_inches='tight')
         pl.close(fig)
 
         # Repare plot data for saving
@@ -612,14 +668,14 @@ def pr(score, in_domain, pos_label, save=False, choice=None):
                   ymax=1.0,
                   )
 
-        ax.legend()
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         ax.set_ylim(0.0, 1.05)
 
         ax.set_xlabel('Thresholds')
         ax.set_ylabel('Recall, Precision, or F1')
 
-        fig.savefig(os.path.join(save, 'thresholds.png'))
+        fig.savefig(os.path.join(save, 'thresholds.png'), bbox_inches='tight')
         pl.close(fig)
 
         # Repare plot data for saving
@@ -668,7 +724,7 @@ def confusion(y_true, y_pred, pos_label, save='.'):
     disp.plot(ax=ax)
     fig_data = conf.tolist()
 
-    disp.figure_.savefig(os.path.join(save, 'confusion.png'))
+    disp.figure_.savefig(os.path.join(save, 'confusion.png'), bbox_inches='tight')
     pl.close(fig)
 
     jsonfile = os.path.join(save, 'confusion.json')
