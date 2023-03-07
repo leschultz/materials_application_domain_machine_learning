@@ -29,9 +29,6 @@ def main():
 
     sub_test = 0.2  # Fraction of each outer split to be randomly sampled
 
-    # The ground truth choice
-    ground = 'calibration'
-
     # ML Distance model
     ds_model = distance_model(dist='kde')
 
@@ -50,7 +47,7 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
     # Types of sampling to test
     splits = [('random', RepeatedKFold(n_repeats=1))]
@@ -61,7 +58,7 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2, 4, 6, 8, 10]:
+    for i in [2]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
@@ -86,7 +83,6 @@ def main():
                       ds_model,
                       i[1],
                       sub_test=sub_test,
-                      ground=ground,
                       save=save,
                       )
 

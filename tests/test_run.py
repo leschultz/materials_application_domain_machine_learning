@@ -31,9 +31,6 @@ class ml_test(unittest.TestCase):
         y = data['target']
         g = data['class_name']
 
-        # The ground truth choice
-        ground = 'calibration'
-
         # ML Distance model
         ds_model = distance_model(dist='kde')
 
@@ -76,7 +73,6 @@ class ml_test(unittest.TestCase):
                           uq_model,
                           ds_model,
                           i[1],
-                          ground=ground,
                           save=save,
                           )
 
