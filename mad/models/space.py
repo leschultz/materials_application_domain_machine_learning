@@ -31,6 +31,7 @@ class distance_model:
             self.model = GaussianProcessRegressor()
             self.model.fit(X_train, y_train)
             _, dist = self.model.predict(X_train, return_std=True)
+            self.scaler = lambda x: -x
 
         elif self.dist == 'kde':
             bw = estimate_bandwidth(X_train)
@@ -40,7 +41,7 @@ class distance_model:
             self.bw = bw
 
             dist = self.model.score_samples(X_train)
-            self.scaler = lambda x: np.exp(x-max(dist))
+            self.scaler = lambda x: 1-np.exp(x-max(dist))
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
@@ -51,6 +52,8 @@ class distance_model:
 
         if self.dist == 'gpr':
             _, dist = self.model.predict(X, return_std=True)
+            dist = self.scaler(dist)
+
         elif self.dist == 'kde':
             dist = self.model.score_samples(X)
             dist = self.scaler(dist)

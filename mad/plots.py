@@ -430,7 +430,12 @@ def assessment(
     xfit = np.linspace(min(dist), max(dist))
     yfit = slope*xfit+intercept
 
-    ax.plot(xfit, yfit, color='k', label='(m, b)=({:.2f}, {:.2f})'.format(slope, intercept))
+    ax.plot(
+            xfit,
+            yfit,
+            color='k',
+            label='Slope: {:.2f}\nIntercept: {:.2f}'.format(slope, intercept)
+            )
 
     if thresh:
         ax.axvline(thresh, color='k')
@@ -457,57 +462,10 @@ def assessment(
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 
-    # Now for groupped stats
-    df = pd.DataFrame()
-    df['absres'] = y_std
-    df['dist'] = dist
 
-    df = df.sort_values(by=['dist', 'absres'])
+def pr(score, in_domain, pos_label, save=False):
 
-    n = 5
-    group = stats.binned_statistic(df['dist'], df['absres'], bins=n)
-    group = group[-1]
-    df = df.assign(
-                   bin=group,
-                   )
-
-    rmses = []
-    dists = []
-    for group, values in df.groupby('bin'):
-
-        rmses.append(((sum(values['absres']**2)/values.shape[0])**0.5)/std)
-        dists.append(values['dist'].mean())
-
-    fig, ax = pl.subplots()
-
-    ax.scatter(dists, rmses, marker='.')
-
-    ax.set_xlabel('Dissimilarity')
-    ax.set_ylabel(r'$RMSE/\sigma$')
-
-    fig.savefig(os.path.join(save, 'grouped_assessment.png'), bbox_inches='tight')
-    pl.close(fig)
-
-    # Repare plot data for saving
-    data = {}
-    data['x'] = dists
-    data['y'] = rmses
-
-    if thresh:
-        data['vertical'] = thresh
-
-    jsonfile = os.path.join(save, 'grouped_assessment.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
-
-
-
-def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
-
-    if all([pos_label is False, dist_type in ['kde', 'gpr']]):
-        score = -score
-
-    elif all([pos_label is True, dist_type in ['sigma']]):
+    if pos_label is True:
         score = -score
 
     baseline = [1 if i == pos_label else 0 for i in in_domain]
@@ -528,6 +486,15 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
                           out=np.zeros_like(den), where=(den != 0)
                           )
 
+    # Maximum F1 score
+    max_f1_index = np.argmax(f1_scores)
+    max_f1_thresh = thresholds[max_f1_index]
+    max_f1 = f1_scores[max_f1_index]
+
+    # AUC score
+    auc_score = auc(recall, precision)
+    auc_relative = (auc_score-baseline)/relative_base
+
     # Relative f1
     precision_rel = precision-baseline
     num = 2*recall*precision_rel
@@ -542,35 +509,11 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
     rel_f1_index = np.argmax(f1_rel)
     rel_f1_thresh = thresholds[rel_f1_index]
     rel_f1 = f1_rel[rel_f1_index]
-    rel_f1_relative = (rel_f1-baseline)/relative_base
-
-    # Maximum F1 score
-    max_f1_index = np.argmax(f1_scores)
-    max_f1_thresh = thresholds[max_f1_index]
-    max_f1 = f1_scores[max_f1_index]
-    max_f1_relative = (max_f1-baseline)/relative_base
-
-    # AUC score
-    auc_score = auc(recall, precision)
-    auc_relative = (auc_score-baseline)/relative_base
-
-    # Maximize recall while keeping precision equal to highest value
-    max_auc_index = np.where(precision == max(precision[:-1]))[0][0]
-    max_auc = recall[:-1][max_auc_index]
-    max_auc_relative = (max_auc-baseline)/relative_base
-    max_auc_thresh = thresholds[max_auc_index]
 
     # Convert back
-    if all([pos_label is False, dist_type in ['kde', 'gpr']]):
-        rel_f1_thresh = -rel_f1_thresh
+    if pos_label is True:
         max_f1_thresh = -max_f1_thresh
-        max_auc_thresh = -max_auc_thresh
-        thresholds = -thresholds
-
-    elif all([pos_label is True, dist_type in ['sigma']]):
         rel_f1_thresh = -rel_f1_thresh
-        max_f1_thresh = -max_f1_thresh
-        max_auc_thresh = -max_auc_thresh
         thresholds = -thresholds
 
     if save is not False:
@@ -583,7 +526,10 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
                 recall,
                 precision,
                 color='b',
-                label='AUC: {:.2f}\nRelative AUC: {:.2f}'.format(auc_score, auc_relative),
+                label='AUC: {:.2f}\nRelative AUC: {:.2f}'.format(
+                                                                 auc_score,
+                                                                 auc_relative
+                                                                 ),
                 )
         ax.hlines(
                   baseline,
@@ -594,17 +540,24 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
                   xmax=1.0,
                   )
 
+        label = 'Max F1: {:.2f}\nThreshold: {:.2f}'.format(
+                                                           max_f1,
+                                                           max_f1_thresh
+                                                           )
         ax.scatter(
                    recall[max_f1_index],
                    precision[max_f1_index],
                    marker='X',
-                   label='Max F1: {:.2f}\nThreshold: {:.2f}'.format(max_f1, max_f1_thresh),
+                   label=label
                    )
+
+        label = 'Max Relative F1: {:.2f}'.format(rel_f1)
+        label += '\nThreshold: {:.2f}'.format(rel_f1_thresh)
         ax.scatter(
                    recall[rel_f1_index],
                    precision[rel_f1_index],
                    marker='D',
-                   label='Max Relative F1: {:.2f}\nThreshold: {:.2f}'.format(max_f1_relative, rel_f1_thresh),
+                   label=label
                    )
 
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -626,14 +579,9 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
         data['auc'] = auc_score
         data['auc_relative'] = auc_relative
         data['max_f1'] = max_f1
-        data['max_f1_relative'] = max_f1_relative
         data['max_f1_thresh'] = max_f1_thresh
-        data['rel_f1'] = rel_f1
-        data['rel_f1_relative'] = rel_f1_relative
-        data['rel_f1_thresh'] = rel_f1_thresh
-        data['max_auc'] = max_auc
-        data['max_auc_relative'] = max_auc_relative
-        data['max_auc_thresh'] = max_auc_thresh
+        data['rel_f1'] = max_f1
+        data['rel_f1_thresh'] = max_f1_thresh
 
         jsonfile = os.path.join(save, 'pr.json')
         with open(jsonfile, 'w') as handle:
@@ -682,12 +630,7 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-    if choice == 'max_auc':
-        return max_auc_thresh
-    elif choice == 'max_f1':
-        return max_f1_thresh
-    elif choice == 'rel_f1':
-        return rel_f1_thresh
+    return max_f1_thresh
 
 
 def confusion(y_true, y_pred, pos_label, save='.'):
@@ -718,7 +661,10 @@ def confusion(y_true, y_pred, pos_label, save='.'):
     disp.plot(ax=ax)
     fig_data = conf.tolist()
 
-    disp.figure_.savefig(os.path.join(save, 'confusion.png'), bbox_inches='tight')
+    disp.figure_.savefig(
+                         os.path.join(save, 'confusion.png'),
+                         bbox_inches='tight'
+                         )
     pl.close(fig)
 
     jsonfile = os.path.join(save, 'confusion.json')

@@ -47,14 +47,12 @@ def domain_pred(dist, dist_cut, domain):
 def ground_truth(
                  y,
                  y_pred,
-                 cut=None,
+                 sigma,
+                 cut=0.75,
                  ):
 
     # Define ground truth
-    absres = abs(y-y_pred)
-
-    if cut is None:
-        cut = np.percentile(absres, 95)
+    absres = abs(y-y_pred)/sigma
 
     do_pred = absres < cut
     do_pred = [True if i == 1 else False for i in do_pred]
@@ -210,6 +208,7 @@ class build_model:
         cut, in_domain = ground_truth(
                                       data_cv['y'],
                                       data_cv['y_pred'],
+                                      self.ystd,
                                       )
 
         self.cut = cut
@@ -225,8 +224,6 @@ class build_model:
                                                  data_cv[j],
                                                  data_cv['in_domain'],
                                                  pos_label=i,
-                                                 dist_type=self.ds_model.dist,
-                                                 choice='max_f1'
                                                  )
 
                 do_pred = domain_pred(
@@ -379,7 +376,7 @@ class combine:
         _, in_domain_test = ground_truth(
                                          self.y[test],
                                          data_test['y_pred'],
-                                         model.cut,
+                                         np.std(self.y[test]),
                                          )
 
         data_test['y'] = self.y[test]
@@ -427,18 +424,14 @@ class combine:
                                     df['y_std'],
                                     df['in_domain'],
                                     i,
-                                    'sigma',
                                     os.path.join(sigma_name, j),
-                                    choice='max_f1',
                                     )
 
             dist_thresh = plots.pr(
                                    df['dist'],
                                    df['in_domain'],
                                    i,
-                                   self.ds_model.dist,
                                    os.path.join(dist_name, j),
-                                   choice='max_f1',
                                    )
 
         # Plot prediction time
