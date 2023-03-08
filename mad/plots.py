@@ -507,6 +507,9 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
     if all([pos_label is False, dist_type in ['kde', 'gpr']]):
         score = -score
 
+    elif all([pos_label is True, dist_type in ['sigma']]):
+        score = -score
+
     baseline = [1 if i == pos_label else 0 for i in in_domain]
     baseline = sum(baseline)/len(in_domain)
     relative_base = 1-baseline  # The amount of area to gain in PR
@@ -559,6 +562,12 @@ def pr(score, in_domain, pos_label, dist_type, save=False, choice=None):
 
     # Convert back
     if all([pos_label is False, dist_type in ['kde', 'gpr']]):
+        rel_f1_thresh = -rel_f1_thresh
+        max_f1_thresh = -max_f1_thresh
+        max_auc_thresh = -max_auc_thresh
+        thresholds = -thresholds
+
+    elif all([pos_label is True, dist_type in ['sigma']]):
         rel_f1_thresh = -rel_f1_thresh
         max_f1_thresh = -max_f1_thresh
         max_auc_thresh = -max_auc_thresh

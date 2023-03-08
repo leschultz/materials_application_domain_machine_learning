@@ -427,7 +427,7 @@ class combine:
                                     df['y_std'],
                                     df['in_domain'],
                                     i,
-                                    self.ds_model.dist,
+                                    'sigma',
                                     os.path.join(sigma_name, j),
                                     choice='max_f1',
                                     )
