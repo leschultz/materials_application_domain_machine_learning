@@ -463,7 +463,7 @@ def assessment(
         json.dump(data, handle)
 
 
-def pr(score, in_domain, pos_label, save=False):
+def pr(score, in_domain, pos_label, choice='max_f1', save=False):
 
     if pos_label is True:
         score = -score
@@ -551,7 +551,6 @@ def pr(score, in_domain, pos_label, save=False):
                    label=label
                    )
 
-        '''
         label = 'Max Relative F1: {:.2f}'.format(rel_f1)
         label += '\nThreshold: {:.2f}'.format(rel_f1_thresh)
         ax.scatter(
@@ -560,7 +559,6 @@ def pr(score, in_domain, pos_label, save=False):
                    marker='D',
                    label=label
                    )
-        '''
 
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
@@ -632,7 +630,10 @@ def pr(score, in_domain, pos_label, save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-    return max_f1_thresh
+    if choice == 'max_f1':
+        return max_f1_thresh
+    elif choice == 'rel_f1':
+        return rel_f1_thresh
 
 
 def confusion(y_true, y_pred, pos_label, save='.'):
