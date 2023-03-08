@@ -1,9 +1,9 @@
 from sklearn.metrics import precision_recall_curve, mean_squared_error
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import ShuffleSplit
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
-from sklearn.cluster import KMeans
 from sklearn.base import clone
 from sklearn.svm import SVC
 
@@ -185,7 +185,7 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_cv = cv(
+        data_id = cv(
                      self.gs_model,
                      self.ds_model,
                      X,
@@ -197,23 +197,78 @@ class build_model:
 
         # Fit on hold out data ID
         self.uq_model.fit(
-                          data_cv['y'],
-                          data_cv['y_pred'],
-                          data_cv['y_std']
+                          data_id['y'],
+                          data_id['y_pred'],
+                          data_id['y_std']
                           )
-
-        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         # Define ground truth
         cut, in_domain = ground_truth(
-                                      data_cv['y'],
-                                      data_cv['y_pred'],
+                                      data_id['y'],
+                                      data_id['y_pred'],
                                       self.ystd,
                                       )
 
         self.cut = cut
 
-        data_cv['in_domain'] = in_domain
+        data_id['in_domain'] = in_domain
+
+        # Leave out 2 clusters
+        od2_split = splitters.RepeatedClusterSplit(
+                                                   AgglomerativeClustering,
+                                                   n_repeats=1,
+                                                   n_clusters=2
+                                                   )
+
+        data_od2 = cv(
+                      self.gs_model,
+                      self.ds_model,
+                      X,
+                      y,
+                      g,
+                      np.arange(y.shape[0]),
+                      od2_split
+                      )
+
+        # Define ground truth
+        cut, in_domain = ground_truth(
+                                      data_od2['y'],
+                                      data_od2['y_pred'],
+                                      self.ystd,
+                                      )
+
+        data_od2['in_domain'] = in_domain
+
+        # Leave out 2 clusters
+        od3_split = splitters.RepeatedClusterSplit(
+                                                   AgglomerativeClustering,
+                                                   n_repeats=1,
+                                                   n_clusters=3
+                                                   )
+
+        data_od3 = cv(
+                      self.gs_model,
+                      self.ds_model,
+                      X,
+                      y,
+                      g,
+                      np.arange(y.shape[0]),
+                      od3_split
+                      )
+
+        # Define ground truth
+        cut, in_domain = ground_truth(
+                                      data_od3['y'],
+                                      data_od3['y_pred'],
+                                      self.ystd,
+                                      )
+
+        data_od3['in_domain'] = in_domain
+
+        data_cv = pd.concat([data_id, data_od2, data_od3])
+
+        # Calibrate uncertainties
+        data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
         self.domain_cut = {'dist': {}, 'y_std': {}}
         for i in [True, False]:
