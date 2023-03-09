@@ -1,9 +1,9 @@
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.cluster import KMeans
 
 from mad.models.space import distance_model
 from mad.models.uq import ensemble_model
@@ -58,17 +58,16 @@ def main():
         chem_split = ('chemical', splitters.LeaveOneGroupOut())
         splits.append(chem_split)
 
-    for i in [2]:
+    for i in [2, 3]:
 
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
-                                                   KMeans,
-                                                   n_init='auto',
+                                                   AgglomerativeClustering,
                                                    n_repeats=1,
                                                    n_clusters=i
                                                    )
 
-        splits.append(('kmeans_{}'.format(i), top_split))
+        splits.append(('agglo_{}'.format(i), top_split))
 
     for i in splits:
 
