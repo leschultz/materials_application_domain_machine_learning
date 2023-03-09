@@ -239,7 +239,7 @@ class build_model:
 
         data_od2['in_domain'] = in_domain
 
-        # Leave out 2 clusters
+        # Leave out 3 clusters
         od3_split = splitters.RepeatedClusterSplit(
                                                    AgglomerativeClustering,
                                                    n_repeats=1,

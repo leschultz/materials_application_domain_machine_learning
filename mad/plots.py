@@ -580,8 +580,8 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
         data['auc_relative'] = auc_relative
         data['max_f1'] = max_f1
         data['max_f1_thresh'] = max_f1_thresh
-        data['rel_f1'] = max_f1
-        data['rel_f1_thresh'] = max_f1_thresh
+        data['rel_f1'] = rel_f1
+        data['rel_f1_thresh'] = rel_f1_thresh
 
         jsonfile = os.path.join(save, 'pr.json')
         with open(jsonfile, 'w') as handle:
