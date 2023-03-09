@@ -73,7 +73,7 @@ def parity(
                 r2 = m[r'$R^{2}$_mean']
                 r2_sem = m[r'$R^{2}$_sem']
 
-                label = r'$RMSE/\sigma=$'
+                label = r'$RMSE/\sigma_{y}=$'
                 label += r'{:.2} $\pm$ {:.2}'.format(
                                                      rmse_sigma,
                                                      rmse_sigma_sem
@@ -105,7 +105,7 @@ def parity(
 
                 m = m.to_dict(orient='records')[0]
 
-                rmse_sigma = m[r'$RMSE/\sigma$']
+                rmse_sigma = m[r'$RMSE/\sigma_{y}$']
                 rmse = m[r'$RMSE$']
                 mae = m[r'$MAE$']
                 r2 = m[r'$R^{2}$']
@@ -443,7 +443,7 @@ def assessment(
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     ax.set_xlabel('Dissimilarity')
-    ax.set_ylabel(r'$|y-\hat{y}|/\sigma$')
+    ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
 
     fig.savefig(os.path.join(save, 'assessment.png'), bbox_inches='tight')
     pl.close(fig)

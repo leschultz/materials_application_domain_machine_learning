@@ -27,7 +27,7 @@ def eval_reg_metrics(groups, cols):
 
     results = {}
     results[r'$RMSE$'] = rmse
-    results[r'$RMSE/\sigma$'] = rmse_sig
+    results[r'$RMSE/\sigma_{y}$'] = rmse_sig
     results[r'$MAE$'] = mae
     results[r'$R^{2}$'] = r2
 

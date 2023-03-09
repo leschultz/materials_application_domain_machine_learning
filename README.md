@@ -6,16 +6,20 @@ Research with respect to application domain with a materials science emphasis is
 The structure of the code packages is as follows:
 
 ```
-├── LICENSE
-├── README.md
 ├── examples
+│   ├── diffusion_kde
+│   ├── fluence_kde
+│   ├── friedman_kde
+│   ├── steel_kde
+│   └── supercond_kde
+├── LICENSE
 ├── mad
 │   ├── datasets
 │   │   ├── data
 │   ├── ml
-│   ├── plots 
-│   └── functions.py
-├── setup.py
+│   ├── models
+│   ├── stats
+├── README.md
 └── tests
 ```
 
