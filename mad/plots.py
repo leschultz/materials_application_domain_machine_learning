@@ -407,7 +407,7 @@ def violin(dist, in_domain, save):
 
 
 def assessment(
-               y_std,
+               y_res,
                std,
                dist,
                in_domain,
@@ -415,17 +415,17 @@ def assessment(
                thresh=None
                ):
 
-    y_std_norm = y_std/std
+    y_res_norm = y_res/std
     os.makedirs(save, exist_ok=True)
 
     out_domain = ~in_domain
 
-    slope, intercept, r, p, se = stats.linregress(dist, y_std_norm)
+    slope, intercept, r, p, se = stats.linregress(dist, y_res_norm)
 
     fig, ax = pl.subplots()
 
-    ax.scatter(dist[in_domain], y_std_norm[in_domain], color='g', marker='.')
-    ax.scatter(dist[out_domain], y_std_norm[out_domain], color='r', marker='x')
+    ax.scatter(dist[in_domain], y_res_norm[in_domain], color='g', marker='.')
+    ax.scatter(dist[out_domain], y_res_norm[out_domain], color='r', marker='x')
 
     xfit = np.linspace(min(dist), max(dist))
     yfit = slope*xfit+intercept
@@ -451,9 +451,9 @@ def assessment(
     # Repare plot data for saving
     data = {}
     data['x_green'] = list(dist[in_domain])
-    data['y_green'] = list(y_std[in_domain])
+    data['y_green'] = list(y_res_norm[in_domain])
     data['x_red'] = list(dist[out_domain])
-    data['y_red'] = list(y_std[out_domain])
+    data['y_red'] = list(y_res_norm[out_domain])
 
     if thresh:
         data['vertical'] = thresh
