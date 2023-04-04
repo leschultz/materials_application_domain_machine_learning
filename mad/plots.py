@@ -497,6 +497,7 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
 
     # Relative f1
     precision_rel = precision-baseline
+    precision_rel = precision_rel.clip(min=0.0)
     num = 2*recall*precision_rel
     den = recall+precision_rel
     f1_rel = np.divide(

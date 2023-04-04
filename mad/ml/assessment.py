@@ -318,6 +318,7 @@ class build_model:
 
         for i in [True, False]:
             for j in ['dist', 'y_std']:
+
                 do_pred = domain_pred(
                                       dist,
                                       self.domain_cut[j][i],
@@ -520,14 +521,13 @@ class combine:
                         ['id', 'od'],
                         ):
 
-            for k in ['dist', 'y_std']:
-                for w in [dist_name, sigma_name]:
-                    plots.confusion(
-                                    df['in_domain'],
-                                    y_pred=df[k+'_'+i],
-                                    pos_label=j,
-                                    save=os.path.join(w, j)
-                                    )
+            for k, w in zip(['dist', 'y_std'], [dist_name, sigma_name]):
+                plots.confusion(
+                                df['in_domain'],
+                                y_pred=df[k+'_'+i],
+                                pos_label=j,
+                                save=os.path.join(w, j)
+                                )
 
         # Plot CDF comparison
         res = df['y']-df['y_pred']
