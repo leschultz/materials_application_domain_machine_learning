@@ -512,9 +512,9 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
     rel_f1 = f1_rel[rel_f1_index]
 
     custom = {
-              'precision': [],
-              'recall': [],
-              'threshold': []
+              'custom_precision': [],
+              'custom_recall': [],
+              'custom_threshold': []
               }
     loop = range(len(precision)-1, 0, -1)
     for cut in [0.95, 0.75, 0.5, 0.25]:
@@ -526,9 +526,9 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                 index += 1
                 break
 
-        custom['precision'].append(precision[index])
-        custom['recall'].append(recall[index])
-        custom['threshold'].append(thresholds[index-1])
+        custom['custom_precision'].append(precision[index])
+        custom['custom_recall'].append(recall[index])
+        custom['custom_threshold'].append(thresholds[index-1])
 
     # Convert back
     if pos_label is True:
@@ -536,8 +536,8 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
         rel_f1_thresh = -rel_f1_thresh
         thresholds = -thresholds
 
-        for i in range(len(custom['threshold'])):
-            custom['threshold'][i] *= -1
+        for i in range(len(custom['custom_threshold'])):
+            custom['custom_threshold'][i] *= -1
 
     if save is not False:
 
@@ -563,10 +563,11 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                   xmax=1.0,
                   )
 
-        label = 'Max F1: {:.2f}\nThreshold: {:.2f}'.format(
-                                                           max_f1,
-                                                           max_f1_thresh
-                                                           )
+        label = 'Max F1: {:.2f}'.format(max_f1)
+        label += '\nPrecision: {:.2f}'.format(precision[max_f1_index])
+        label += '\nRecall: {:.2f}'.format(recall[max_f1_index])
+        label += '\nThreshold: {:.2f}'.format(max_f1_thresh)
+
         ax.scatter(
                    recall[max_f1_index],
                    precision[max_f1_index],
@@ -575,6 +576,8 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                    )
 
         label = 'Max Relative F1: {:.2f}'.format(rel_f1)
+        label += '\nPrecision: {:.2f}'.format(precision[rel_f1_index])
+        label += '\nRecall: {:.2f}'.format(recall[rel_f1_index])
         label += '\nThreshold: {:.2f}'.format(rel_f1_thresh)
         ax.scatter(
                    recall[rel_f1_index],
@@ -583,10 +586,10 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                    label=label
                    )
 
-        for i in range(len(custom['precision'])):
-            p = custom['precision'][i]
-            r = custom['recall'][i]
-            t = custom['threshold'][i]
+        for i in range(len(custom['custom_precision'])):
+            p = custom['custom_precision'][i]
+            r = custom['custom_recall'][i]
+            t = custom['custom_threshold'][i]
 
             label = 'Precision: {:.2f}'.format(p)
             label += '\nRecall: {:.2f}'.format(r)
@@ -615,6 +618,7 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
         data['max_f1_thresh'] = max_f1_thresh
         data['rel_f1'] = rel_f1
         data['rel_f1_thresh'] = rel_f1_thresh
+        data.update(custom)
 
         jsonfile = os.path.join(save, 'pr.json')
         with open(jsonfile, 'w') as handle:
