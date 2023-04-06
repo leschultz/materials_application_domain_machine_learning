@@ -48,7 +48,7 @@ def ground_truth(
                  y,
                  y_pred,
                  sigma,
-                 cut=0.75,
+                 cut=1.0,
                  ):
 
     # Define ground truth

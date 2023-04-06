@@ -511,11 +511,33 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
     rel_f1_thresh = thresholds[rel_f1_index]
     rel_f1 = f1_rel[rel_f1_index]
 
+    custom = {
+              'precision': [],
+              'recall': [],
+              'threshold': []
+              }
+    loop = range(len(precision)-1, 0, -1)
+    for cut in [0.95, 0.75, 0.5, 0.25]:
+
+        p = 1.0
+        for index in loop:
+            p = precision[index]
+            if p < cut:
+                index += 1
+                break
+
+        custom['precision'].append(precision[index])
+        custom['recall'].append(recall[index])
+        custom['threshold'].append(thresholds[index-1])
+
     # Convert back
     if pos_label is True:
         max_f1_thresh = -max_f1_thresh
         rel_f1_thresh = -rel_f1_thresh
         thresholds = -thresholds
+
+        for i in range(len(custom['threshold'])):
+            custom['threshold'][i] *= -1
 
     if save is not False:
 
@@ -560,6 +582,16 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                    marker='D',
                    label=label
                    )
+
+        for i in range(len(custom['precision'])):
+            p = custom['precision'][i]
+            r = custom['recall'][i]
+            t = custom['threshold'][i]
+
+            label = 'Precision: {:.2f}'.format(p)
+            label += '\nRecall: {:.2f}'.format(r)
+            label += '\nThreshold: {:.2f}'.format(t)
+            ax.scatter(r, p, marker='o', label=label)
 
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
