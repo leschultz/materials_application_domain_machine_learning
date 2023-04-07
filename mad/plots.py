@@ -347,11 +347,15 @@ def confidence(df, metric, save):
         elif kind == 'oracle':
             df = df.sort_values(by=['res'])
 
+        elif kind == 'random':
+            df = df.sample(frac=1)
+
         res = df['res'].values
         dist = df[metric].values
 
         N = len(res)
         rmse_total = (sum(res**2.0)/N)**0.5
+        rmse_total = df['y'].std()
         rmses = []
         dists = []
         for i in range(1, len(res)+1):
@@ -375,12 +379,12 @@ def confidence(df, metric, save):
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.set_xlabel('Lowest Dissimilarity Kept')
-    ax.set_ylabel(r'$RMSE/RMSE_{total}$')
+    ax.set_xlabel('Maximum Dissimilarity Kept')
+    ax.set_ylabel(r'$RMSE/\sigma_{y}$')
 
     fig.savefig(os.path.join(
                              save,
-                             'confidence_{}.png'.format(metric)
+                             'confidence.png'
                              ), bbox_inches='tight')
 
     pl.close(fig)
