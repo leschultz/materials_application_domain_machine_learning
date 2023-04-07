@@ -439,7 +439,7 @@ class combine:
                                          np.std(self.y[test]),
                                          )
 
-        z = (data_test['y']-data_test['y_pred'])/data_test['y_std']
+        z = (self.y[test]-data_test['y_pred'])/data_test['y_std']
 
         data_test['y'] = self.y[test]
         data_test['z'] = z
@@ -543,17 +543,17 @@ class combine:
                          )
 
         # Plot the confidence curve
-        plots.confidence(
-                         df[['y', 'y_pred', 'dist']].copy(),
-                         'dist',
-                         save=dist_name
-                         )
+        plots.intervals(
+                        df[['z', 'dist']].copy(),
+                        'dist',
+                        save=dist_name
+                        )
 
-        plots.confidence(
-                         df[['y', 'y_pred', 'y_std']].copy(),
-                         'y_std',
-                         save=sigma_name
-                         )
+        plots.intervals(
+                        df[['z', 'y_std']].copy(),
+                        'y_std',
+                        save=sigma_name
+                        )
 
         # Plot parity
         plots.parity(

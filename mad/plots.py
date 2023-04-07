@@ -333,54 +333,38 @@ def cdf_parity(x, in_domain, save):
         json.dump(data, handle)
 
 
-def confidence(df, metric, save):
+def intervals(df, metric, save):
     '''
     Plot the confidence curve:
     '''
 
-    def conf(df, kind):
-        df['res'] = abs(df['y']-df['y_pred'])
-
-        if kind == 'conditional':
-            df = df.sort_values(by=[metric, 'res'])
-
-        elif kind == 'oracle':
-            df = df.sort_values(by=['res'])
-
-        elif kind == 'random':
-            df = df.sample(frac=1)
-
-        res = df['res'].values
-        dist = df[metric].values
-
-        N = len(res)
-        rmse_total = (sum(res**2.0)/N)**0.5
-        rmse_total = df['y'].std()
-        rmses = []
-        dists = []
-        for i in range(1, len(res)+1):
-            n = len(res[:i])
-            r = (sum(res[:i]**2.0)/n)**0.5
-            r /= rmse_total
-
-            rmses.append(r)
-            dists.append(dist[i-1])
-
-        return dists, rmses
-
     os.makedirs(save, exist_ok=True)
 
-    dists, rmses = conf(df, 'conditional')
+    df['bin'] = pd.qcut(df[metric], q=10)
+    groups = df.groupby('bin')
+
+    zvars = []
+    mdists = []
+    for group, values in groups:
+
+        zvars.append(values['z'].var())
+        mdists.append(values[metric].mean())
+
+    zvartot = df['z'].var()
 
     data = {}
     fig, ax = pl.subplots()
     
-    ax.scatter(dists, rmses, marker='.', label='Observed')
+    ax.scatter(mdists, zvars, marker='.', label='Observed')
+    ax.axhline(1.0, color='r', label='Ideal VAR(Z) = 1.0')
+    ax.axhline(zvartot, label='Total VAR(Z) = {:.2f}'.format(zvartot))
+
+    ax.set_ylim(0.0, None)
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.set_xlabel('Maximum Dissimilarity Kept')
-    ax.set_ylabel(r'$RMSE/\sigma_{y}$')
+    ax.set_xlabel('Mean Dissimilarity')
+    ax.set_ylabel(r'VAR(Z)')
 
     fig.savefig(os.path.join(
                              save,
@@ -389,8 +373,8 @@ def confidence(df, metric, save):
 
     pl.close(fig)
 
-    data['y'] = rmses
-    data['y_pred'] = dists
+    data['x'] = mdists
+    data['y'] = zvars
 
     jsonfile = os.path.join(save, 'confidence.json')
     with open(jsonfile, 'w') as handle:
