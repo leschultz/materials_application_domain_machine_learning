@@ -1,7 +1,7 @@
 from sklearn.metrics import (
                              precision_recall_curve,
-                             confusion_matrix,
                              ConfusionMatrixDisplay,
+                             confusion_matrix,
                              auc
                              )
 
@@ -329,6 +329,66 @@ def cdf_parity(x, in_domain, save):
     pl.close(fig)
 
     jsonfile = os.path.join(save, 'cdf_parity.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
+def confidence(df, metric, save):
+    '''
+    Plot the confidence curve:
+    '''
+
+    def conf(df, kind):
+        df['res'] = abs(df['y']-df['y_pred'])
+
+        if kind == 'conditional':
+            df = df.sort_values(by=[metric, 'res'])
+
+        elif kind == 'oracle':
+            df = df.sort_values(by=['res'])
+
+        res = df['res'].values
+        dist = df[metric].values
+
+        N = len(res)
+        rmse_total = (sum(res**2.0)/N)**0.5
+        rmses = []
+        dists = []
+        for i in range(1, len(res)+1):
+            n = len(res[:i])
+            r = (sum(res[:i]**2.0)/n)**0.5
+            r /= rmse_total
+
+            rmses.append(r)
+            dists.append(dist[i-1])
+
+        return dists, rmses
+
+    os.makedirs(save, exist_ok=True)
+
+    dists, rmses = conf(df, 'conditional')
+
+    data = {}
+    fig, ax = pl.subplots()
+    
+    ax.scatter(dists, rmses, marker='.', label='Observed')
+
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    ax.set_xlabel('Lowest Dissimilarity Kept')
+    ax.set_ylabel(r'$RMSE/RMSE_{total}$')
+
+    fig.savefig(os.path.join(
+                             save,
+                             'confidence_{}.png'.format(metric)
+                             ), bbox_inches='tight')
+
+    pl.close(fig)
+
+    data['y'] = rmses
+    data['y_pred'] = dists
+
+    jsonfile = os.path.join(save, 'confidence.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 

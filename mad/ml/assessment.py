@@ -270,6 +270,9 @@ class build_model:
         # Calibrate uncertainties
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
 
+        # Z scores
+        data_cv['z'] = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
+
         self.domain_cut = {'dist': {}, 'y_std': {}}
         for i in [True, False]:
 
@@ -436,7 +439,10 @@ class combine:
                                          np.std(self.y[test]),
                                          )
 
+        z = (data_test['y']-data_test['y_pred'])/data_test['y_std']
+
         data_test['y'] = self.y[test]
+        data_test['z'] = z
         data_test['g'] = self.g[test]
         data_test['index'] = test
         data_test['fold'] = count
@@ -530,13 +536,23 @@ class combine:
                                 )
 
         # Plot CDF comparison
-        res = df['y']-df['y_pred']
-        absres = abs(res)/df['y_std']
-        x = (res)/df['y_std']
         plots.cdf_parity(
-                         x,
+                         df['z'],
                          df['in_domain'],
                          save=job_name
+                         )
+
+        # Plot the confidence curve
+        plots.confidence(
+                         df[['y', 'y_pred', 'dist']].copy(),
+                         'dist',
+                         save=dist_name
+                         )
+
+        plots.confidence(
+                         df[['y', 'y_pred', 'y_std']].copy(),
+                         'y_std',
+                         save=sigma_name
                          )
 
         # Plot parity
@@ -548,6 +564,8 @@ class combine:
                      save=job_name
                      )
 
+        res = df['y']-df['y_pred']
+        absres = abs(res)/df['y_std']
         plots.violin(absres, df['in_domain'], save=job_name)
 
     def save_model(self):
