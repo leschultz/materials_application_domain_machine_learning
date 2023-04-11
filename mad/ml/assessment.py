@@ -460,11 +460,17 @@ class combine:
     def plot(self, df, mets, save):
 
         i, df = df
-        mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
+
+        if isinstance(i, tuple):
+            mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
+            i = list(i)
+        else:
+            i = [i]
+            mets = mets[(mets['split'] == i[0])]
 
         # Plot ground truth
         job_name = list(map(str, i))
-        job_name = os.path.join(*[save, job_name[0], job_name[1]])
+        job_name = os.path.join(*[save, *job_name])
 
         # Save locations
         sigma_name = os.path.join(job_name, 'sigma')
@@ -674,3 +680,11 @@ class combine:
                                  assessment_loc,
                                  'assessment.csv'
                                  ), index=False)
+
+        # Now for aggregate assessment
+        parallel(
+                 self.plot,
+                 data.groupby('split'),
+                 mets=mets,
+                 save=assessment_loc,
+                 )
