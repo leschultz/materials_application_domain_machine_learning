@@ -266,6 +266,7 @@ class build_model:
         data_od3['in_domain'] = in_domain
 
         data_cv = pd.concat([data_id, data_od2, data_od3])
+        data_cv = data_id
 
         # Calibrate uncertainties
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
@@ -544,13 +545,13 @@ class combine:
 
         # Plot the confidence curve
         plots.intervals(
-                        df[['z', 'dist']].copy(),
+                        df[['z', 'dist', 'y', 'y_pred', 'y_std']].copy(),
                         'dist',
                         save=dist_name
                         )
 
         plots.intervals(
-                        df[['z', 'y_std']].copy(),
+                        df[['z', 'y_std', 'y', 'y_pred']].copy(),
                         'y_std',
                         save=sigma_name
                         )

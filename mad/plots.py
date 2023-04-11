@@ -343,28 +343,42 @@ def intervals(df, metric, save):
     df['bin'] = pd.qcut(df[metric], q=10)
     groups = df.groupby('bin')
 
+    sigmay = df['y'].std()
+
     zvars = []
     mdists = []
+    rmses = []
+    stds = []
     for group, values in groups:
+
+        rmse = values['y'].values-values['y_pred'].values
+        rmse = rmse**2
+        rmse = sum(rmse)/len(rmse)
+        rmse = rmse**0.5
+        rmse = rmse/sigmay
+
+        std = values['y_std'].mean()/sigmay
 
         zvars.append(values['z'].var())
         mdists.append(values[metric].mean())
+        rmses.append(rmse)
+        stds.append(std)
 
     zvartot = df['z'].var()
 
     data = {}
     fig, ax = pl.subplots()
-    
+
     ax.scatter(mdists, zvars, marker='.', label='Observed')
-    ax.axhline(1.0, color='r', label='Ideal VAR(Z) = 1.0')
-    ax.axhline(zvartot, label='Total VAR(Z) = {:.2f}'.format(zvartot))
+    ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')
+    ax.axhline(zvartot, label='Total VAR(z) = {:.2f}'.format(zvartot))
 
     ax.set_ylim(0.0, None)
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.set_xlabel('Mean Dissimilarity')
-    ax.set_ylabel(r'VAR(Z)')
+    ax.set_xlabel('Mean {}'.format(metric))
+    ax.set_ylabel(r'VAR(z)')
 
     fig.savefig(os.path.join(
                              save,
@@ -377,6 +391,31 @@ def intervals(df, metric, save):
     data['y'] = zvars
 
     jsonfile = os.path.join(save, 'confidence.json')
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+    fig, ax = pl.subplots()
+
+    ax.scatter(stds, rmses, marker='.', label='Data')
+    x = np.linspace(*ax.get_xlim())
+    ax.plot(x, x, linestyle=':', color='k', label='Ideal')
+
+    ax.set_xlabel('Mean $\sigma_{c}/\sigma_{y}$')
+    ax.set_ylabel('$RMSE/\sigma_{y}$')
+
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    fig.savefig(os.path.join(
+                             save,
+                             'rmse_vs_uq.png'
+                             ), bbox_inches='tight')
+
+    pl.close(fig)
+
+    data['x'] = stds
+    data['y'] = rmses
+
+    jsonfile = os.path.join(save, 'rmse_vs_uq.json')
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 
