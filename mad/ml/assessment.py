@@ -266,7 +266,6 @@ class build_model:
         data_od3['in_domain'] = in_domain
 
         data_cv = pd.concat([data_id, data_od2, data_od3])
-        data_cv = data_id
 
         # Calibrate uncertainties
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
@@ -465,7 +464,7 @@ class combine:
             mets = mets[(mets['split'] == i[0]) & (mets['fold'] == i[1])]
             i = list(i)
         else:
-            i = [i]
+            i = [i, 'aggregate']
             mets = mets[(mets['split'] == i[0])]
 
         # Plot ground truth
