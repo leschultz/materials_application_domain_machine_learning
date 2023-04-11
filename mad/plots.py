@@ -359,14 +359,21 @@ def intervals(df, metric, save):
         rmse = rmse**0.5
         rmse /= sigmay
 
-        std = values['y_std'].mean()/sigmay
+        m = values[metric].mean()
+
+        if metric == 'y_std':
+            m /= sigmay
 
         zvars.append(values['z'].var())
-        mdists.append(values[metric].mean())
+        mdists.append(m)
         rmses.append(rmse)
-        stds.append(std)
 
     zvartot = df['z'].var()
+
+    if metric == 'y_std':
+        xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
+    else:
+        xlabel = 'Mean Dissimilarity'
 
     data = {}
     fig, ax = pl.subplots()
@@ -379,7 +386,7 @@ def intervals(df, metric, save):
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.set_xlabel('Mean {}'.format(metric))
+    ax.set_xlabel(xlabel)
     ax.set_ylabel(r'VAR(z)')
 
     fig.savefig(os.path.join(
@@ -398,11 +405,11 @@ def intervals(df, metric, save):
 
     fig, ax = pl.subplots()
 
-    ax.scatter(stds, rmses, marker='.', label='Data')
+    ax.scatter(mdists, rmses, marker='.', label='Data')
     x = np.linspace(*ax.get_xlim())
     ax.plot(x, x, linestyle=':', color='k', label='Ideal')
 
-    ax.set_xlabel('Mean $\sigma_{c}/\sigma_{y}$')
+    ax.set_xlabel(xlabel)
     ax.set_ylabel('$RMSE/\sigma_{y}$')
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -414,7 +421,7 @@ def intervals(df, metric, save):
 
     pl.close(fig)
 
-    data['x'] = stds
+    data['x'] = mdists
     data['y'] = rmses
 
     jsonfile = os.path.join(save, 'rmse_vs_uq.json')
