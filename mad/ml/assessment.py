@@ -119,7 +119,7 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
 
         ds_model_cv.fit(X_trans_tr, y[train][tr])
 
-        std = std_pred(gs_model, X_trans_te)
+        std = std_pred(gs_model_cv, X_trans_te)
 
         y_cv_pred = np.append(
                               y_cv_pred,

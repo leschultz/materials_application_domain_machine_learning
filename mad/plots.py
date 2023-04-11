@@ -340,10 +340,12 @@ def intervals(df, metric, save):
 
     os.makedirs(save, exist_ok=True)
 
-    df['bin'] = pd.qcut(df[metric], q=10)
-    groups = df.groupby('bin')
-
     sigmay = df['y'].std()
+    df['absres'] = abs(df['y'].values-df['y_pred'].values)
+
+    df = df.sort_values(by=[metric, 'absres'])
+    df['bin'] = pd.qcut(df[metric], q=10)
+    groups = df.groupby('bin', sort=False)
 
     zvars = []
     mdists = []
@@ -351,11 +353,11 @@ def intervals(df, metric, save):
     stds = []
     for group, values in groups:
 
-        rmse = values['y'].values-values['y_pred'].values
+        rmse = values['absres'].values
         rmse = rmse**2
         rmse = sum(rmse)/len(rmse)
         rmse = rmse**0.5
-        rmse = rmse/sigmay
+        rmse /= sigmay
 
         std = values['y_std'].mean()/sigmay
 
