@@ -612,19 +612,27 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
               'custom_recall': [],
               'custom_threshold': []
               }
-    loop = range(len(precision)-1, 0, -1)
+
+    # Loop for lowest to highest to get better thresholds than the other way
+    nprec = len(precision)
+    nthresh = nprec-1  # sklearn convention
+    nthreshindex = nthresh-1  # Foor loop index comparison
+    loop = range(nprec)
     for cut in [0.95, 0.75, 0.5, 0.25]:
 
-        p = 1.0
         for index in loop:
             p = precision[index]
-            if p < cut:
-                index += 1
+            if p >= cut:
                 break
 
         custom['custom_precision'].append(precision[index])
         custom['custom_recall'].append(recall[index])
-        custom['custom_threshold'].append(thresholds[index-1])
+
+        # IF precision is set at arbitrary 1 from sklearn convetion
+        if index > nthreshindex:
+            custom['custom_threshold'].append(max(thresholds))
+        else:
+            custom['custom_threshold'].append(thresholds[index])
 
     # Convert back
     if pos_label is True:
