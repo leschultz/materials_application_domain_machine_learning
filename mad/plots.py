@@ -344,7 +344,7 @@ def intervals(df, metric, save):
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
 
     df = df.sort_values(by=[metric, 'absres'])
-    df['bin'] = pd.qcut(df[metric], q=10)
+    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=10)
     groups = df.groupby('bin', sort=False)
 
     zvars = []
