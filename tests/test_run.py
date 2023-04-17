@@ -86,6 +86,8 @@ class ml_test(unittest.TestCase):
             print('Loaded model predictions')
             print(pd.DataFrame(model.predict(X)))
 
+        spl.aggregate(run_name)
+
         # Clean directory
         shutil.rmtree(run_name)
 

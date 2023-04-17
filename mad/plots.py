@@ -333,7 +333,7 @@ def cdf_parity(x, in_domain, save):
         json.dump(data, handle)
 
 
-def intervals(df, sigmay, metric, save):
+def intervals(df, metric, save):
     '''
     Plot the confidence curve:
     '''
@@ -341,6 +341,7 @@ def intervals(df, sigmay, metric, save):
     os.makedirs(save, exist_ok=True)
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
+    df['absres'] = df['absres']/df['sigma_y']
 
     df = df.sort_values(by=[metric, 'absres'])
     df['bin'] = pd.qcut(df[metric].rank(method='first'), q=10)
@@ -356,12 +357,12 @@ def intervals(df, sigmay, metric, save):
         rmse = rmse**2
         rmse = sum(rmse)/len(rmse)
         rmse = rmse**0.5
-        rmse /= sigmay
-
-        m = values[metric].mean()
 
         if metric == 'y_std':
-            m /= sigmay
+            m = values[metric]/values['sigma_y']
+            m = m.mean()
+        else:
+            m = values[metric].mean()
 
         zvars.append(values['z'].var())
         mdists.append(m)
