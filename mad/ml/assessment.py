@@ -8,7 +8,7 @@ from sklearn.base import clone
 from sklearn.svm import SVC
 
 from mad.stats.group import stats, group_metrics
-from mad.utils import parallel
+from mad.utils import parallel, find
 from mad.ml import splitters
 from mad import plots
 
@@ -681,9 +681,35 @@ class combine:
                                  ), index=False)
 
         # Now for aggregate assessment
+        mets = group_metrics(data, ['split', 'in_domain'])
         parallel(
                  self.plot,
                  data.groupby('split'),
                  mets=mets,
                  save=assessment_loc,
+                 )
+
+    def aggregate(self, parent='.'):
+        '''
+        If other independend runs were ran, then aggreagate those
+        results and make overall statistic.
+        '''
+
+        paths = find(parent, 'assessment.csv')
+
+        data = []
+        for i in paths:
+            run = i.split('/')[1]
+            i = pd.read_csv(i)
+            i['run'] = run
+            data.append(i)
+
+        data = pd.concat(data)
+
+        mets = group_metrics(data, ['split', 'in_domain'])
+        parallel(
+                 self.plot,
+                 data.groupby('split'),
+                 mets=mets,
+                 save=os.path.join(parent, 'aggregate'),
                  )
