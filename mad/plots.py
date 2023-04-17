@@ -333,14 +333,13 @@ def cdf_parity(x, in_domain, save):
         json.dump(data, handle)
 
 
-def intervals(df, metric, save):
+def intervals(df, sigmay, metric, save):
     '''
     Plot the confidence curve:
     '''
 
     os.makedirs(save, exist_ok=True)
 
-    sigmay = df['y'].std()
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
 
     df = df.sort_values(by=[metric, 'absres'])
