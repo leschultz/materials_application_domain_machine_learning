@@ -429,11 +429,10 @@ def intervals(df, metric, save):
         json.dump(data, handle)
 
 
-def ground_truth(y, y_pred, y_std, in_domain, save):
+def ground_truth(y, y_pred, y_std, std, in_domain, save):
 
     os.makedirs(save, exist_ok=True)
 
-    std = np.std(y)
     absres = abs(y-y_pred)/std
     y_std = y_std/std
 

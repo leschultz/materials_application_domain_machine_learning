@@ -296,6 +296,8 @@ class build_model:
                 else:
                     data_cv['{}_out_domain_pred'.format(j)] = do_pred
 
+        data_cv['sigma_y'] = self.ystd
+
         self.data_cv = data_cv
 
         return data_cv
@@ -433,10 +435,11 @@ class combine:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
+        sigma_y = np.std(self.y[test])
         _, in_domain_test = ground_truth(
                                          self.y[test],
                                          data_test['y_pred'],
-                                         np.std(self.y[test]),
+                                         sigma_y,
                                          )
 
         z = (self.y[test]-data_test['y_pred'])/data_test['y_std']
@@ -444,6 +447,7 @@ class combine:
         data_test['y'] = self.y[test]
         data_test['z'] = z
         data_test['g'] = self.g[test]
+        data_test['sigma_y'] = sigma_y
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
@@ -479,6 +483,7 @@ class combine:
                            df['y'],
                            df['y_pred'],
                            df['y_std'],
+                           df['sigma_y'],
                            df['in_domain'],
                            job_name
                            )
@@ -506,19 +511,18 @@ class combine:
                                    )
 
         # Plot prediction time
-        std = df['y'].std()
         res = abs(df['y']-df['y_pred'])
         plots.assessment(
                          res,
-                         std,
-                         df['y_std']/std,
+                         df['sigma_y'],
+                         df['y_std']/df['sigma_y'],
                          df['in_domain'],
                          sigma_name,
                          )
 
         plots.assessment(
                          res,
-                         std,
+                         df['sigma_y'],
                          df['dist'],
                          df['in_domain'],
                          dist_name,
@@ -570,9 +574,7 @@ class combine:
                      save=job_name
                      )
 
-        res = df['y']-df['y_pred']
-        absres = abs(res)/df['y_std']
-        plots.violin(absres, df['in_domain'], save=job_name)
+        plots.violin(res, df['in_domain'], save=job_name)
 
     def save_model(self):
         '''
@@ -706,10 +708,14 @@ class combine:
 
         data = pd.concat(data)
 
+        save = os.path.join(parent, 'aggregate')
+        os.makedirs(save, exist_ok=True)
+        data.to_csv(os.path.join(save, 'aggregate.csv'))
+
         mets = group_metrics(data, ['split', 'in_domain'])
         parallel(
                  self.plot,
                  data.groupby('split'),
                  mets=mets,
-                 save=os.path.join(parent, 'aggregate'),
+                 save=save,
                  )
