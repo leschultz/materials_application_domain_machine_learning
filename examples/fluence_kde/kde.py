@@ -95,6 +95,8 @@ def main():
         print('Loaded model predictions')
         print(pd.DataFrame(model.predict(X)))
 
+    spl.aggregate(run_name)
+
 
 if __name__ == '__main__':
     main()
