@@ -435,11 +435,10 @@ class combine:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        sigma_y = np.std(self.y[test])
         _, in_domain_test = ground_truth(
                                          self.y[test],
                                          data_test['y_pred'],
-                                         sigma_y,
+                                         model.ystd,
                                          )
 
         z = (self.y[test]-data_test['y_pred'])/data_test['y_std']
@@ -447,7 +446,7 @@ class combine:
         data_test['y'] = self.y[test]
         data_test['z'] = z
         data_test['g'] = self.g[test]
-        data_test['sigma_y'] = sigma_y
+        data_test['sigma_y'] = model.ystd
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
