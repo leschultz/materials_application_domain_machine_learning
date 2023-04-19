@@ -289,16 +289,18 @@ class build_model:
                                                  choice='rel_f1',
                                                  )
 
-                do_pred = domain_pred(
-                                      data_cv[j],
-                                      self.domain_cut[j][i],
-                                      i,
-                                      )
+                for key, value in self.domain_cut[j][i].items():
+                    thr = self.domain_cut[j][i][key]['Threshold']
+                    do_pred = domain_pred(
+                                          data_cv[j],
+                                          thr,
+                                          i,
+                                          )
 
-                if i is True:
-                    data_cv['{}_in_domain_pred'.format(j)] = do_pred
-                else:
-                    data_cv['{}_out_domain_pred'.format(j)] = do_pred
+                    if i is True:
+                        data_cv['ID by {} for {}'.format(j, key)] = do_pred
+                    else:
+                        data_cv['OD by {} for {}'.format(j, key)] = do_pred
 
         self.data_cv = data_cv
 
@@ -326,16 +328,18 @@ class build_model:
         for i in [True, False]:
             for j in ['dist', 'y_std']:
 
-                do_pred = domain_pred(
-                                      dist,
-                                      self.domain_cut[j][i],
-                                      domain=i,
-                                      )
+                for key, value in self.domain_cut[j][i].items():
+                    thr = self.domain_cut[j][i][key]['Threshold']
+                    do_pred = domain_pred(
+                                          pred[j],
+                                          thr,
+                                          i,
+                                          )
 
-                if i is True:
-                    pred['{}_in_domain_pred'.format(j)] = do_pred
-                else:
-                    pred['{}_out_domain_pred'.format(j)] = do_pred
+                    if i is True:
+                        pred['ID by {} for {}'.format(j, key)] = do_pred
+                    else:
+                        pred['OD by {} for {}'.format(j, key)] = do_pred
 
         pred = pd.DataFrame(pred)
 
@@ -533,18 +537,26 @@ class combine:
         plots.violin(df['dist'], df['in_domain'], sigma_name)
 
         # Total
-        for i, j in zip(
-                        ['in_domain_pred', 'out_domain_pred'],
-                        ['id', 'od'],
-                        ):
+        names = df.columns
+        names = [i for i in names if ('ID' in i) or ('OD' in i)]
+        for name in names:
 
-            for k, w in zip(['dist', 'y_std'], [dist_name, sigma_name]):
-                plots.confusion(
-                                df['in_domain'],
-                                y_pred=df[k+'_'+i],
-                                pos_label=j,
-                                save=os.path.join(w, j)
-                                )
+            if 'ID' in name:
+                pos_label = 'id'
+            elif 'OD' in name:
+                pos_label = 'od'
+
+            if 'y_std' in name:
+                w = sigma_name
+            elif 'dist' in name:
+                w = dist_name
+
+            plots.confusion(
+                            df['in_domain'],
+                            y_pred=df[name].values,
+                            pos_label=pos_label,
+                            save=os.path.join(*[w, pos_label, name])
+                            )
 
         # Plot CDF comparison
         plots.cdf_parity(

@@ -583,8 +583,6 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
 
     # Maximum F1 score
     max_f1_index = np.argmax(f1_scores)
-    max_f1_thresh = thresholds[max_f1_index]
-    max_f1 = f1_scores[max_f1_index]
 
     # AUC score
     auc_score = auc(recall, precision)
@@ -603,14 +601,21 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
 
     # Maximum Relative F1 score
     rel_f1_index = np.argmax(f1_rel)
-    rel_f1_thresh = thresholds[rel_f1_index]
-    rel_f1 = f1_rel[rel_f1_index]
 
-    custom = {
-              'custom_precision': [],
-              'custom_recall': [],
-              'custom_threshold': []
-              }
+    custom = {}
+    custom['Max F1'] = {
+                        'Precision': precision[max_f1_index],
+                        'Recall': recall[max_f1_index],
+                        'Threshold': thresholds[max_f1_index],
+                        'F1': f1_scores[max_f1_index],
+                        }
+
+    custom['Max Relative F1'] = {
+                                 'Precision': precision[rel_f1_index],
+                                 'Recall': recall[rel_f1_index],
+                                 'Threshold': thresholds[rel_f1_index],
+                                 'F1': f1_scores[rel_f1_index],
+                                 }
 
     # Loop for lowest to highest to get better thresholds than the other way
     nprec = len(precision)
@@ -624,23 +629,24 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
             if p >= cut:
                 break
 
-        custom['custom_precision'].append(precision[index])
-        custom['custom_recall'].append(recall[index])
+        name = 'Minimum Precision: {}'.format(cut)
+        custom[name] = {
+                        'Precision': precision[index],
+                        'Recall': recall[index],
+                        'F1': f1_scores[index],
+                        }
 
-        # IF precision is set at arbitrary 1 from sklearn convetion
+        # If precision is set at arbitrary 1 from sklearn convetion
         if index > nthreshindex:
-            custom['custom_threshold'].append(max(thresholds))
+            custom[name]['Threshold'] = max(thresholds)
         else:
-            custom['custom_threshold'].append(thresholds[index])
+            custom[name]['Threshold'] = thresholds[index]
 
     # Convert back
     if pos_label is True:
-        max_f1_thresh = -max_f1_thresh
-        rel_f1_thresh = -rel_f1_thresh
         thresholds = -thresholds
-
-        for i in range(len(custom['custom_threshold'])):
-            custom['custom_threshold'][i] *= -1
+        for key, value in custom.items():
+            custom[key]['Threshold'] *= -1
 
     if save is not False:
 
@@ -666,35 +672,13 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
                   xmax=1.0,
                   )
 
-        label = 'Max F1: {:.2f}'.format(max_f1)
-        label += '\nPrecision: {:.2f}'.format(precision[max_f1_index])
-        label += '\nRecall: {:.2f}'.format(recall[max_f1_index])
-        label += '\nThreshold: {:.2f}'.format(max_f1_thresh)
+        for key, values in custom.items():
+            p = custom[key]['Precision']
+            r = custom[key]['Recall']
+            t = custom[key]['Threshold']
 
-        ax.scatter(
-                   recall[max_f1_index],
-                   precision[max_f1_index],
-                   marker='X',
-                   label=label
-                   )
-
-        label = 'Max Relative F1: {:.2f}'.format(rel_f1)
-        label += '\nPrecision: {:.2f}'.format(precision[rel_f1_index])
-        label += '\nRecall: {:.2f}'.format(recall[rel_f1_index])
-        label += '\nThreshold: {:.2f}'.format(rel_f1_thresh)
-        ax.scatter(
-                   recall[rel_f1_index],
-                   precision[rel_f1_index],
-                   marker='D',
-                   label=label
-                   )
-
-        for i in range(len(custom['custom_precision'])):
-            p = custom['custom_precision'][i]
-            r = custom['custom_recall'][i]
-            t = custom['custom_threshold'][i]
-
-            label = 'Precision: {:.2f}'.format(p)
+            label = key
+            label += '\nPrecision: {:.2f}'.format(p)
             label += '\nRecall: {:.2f}'.format(r)
             label += '\nThreshold: {:.2f}'.format(t)
             ax.scatter(r, p, marker='o', label=label)
@@ -717,14 +701,6 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
         data['baseline'] = baseline
         data['auc'] = auc_score
         data['auc_relative'] = auc_relative
-        data['max_f1'] = max_f1
-        data['max_f1_thresh'] = max_f1_thresh
-        data['max_f1_precision'] = precision[max_f1_index]
-        data['max_f1_recall'] = recall[max_f1_index]
-        data['rel_f1'] = rel_f1
-        data['rel_f1_thresh'] = rel_f1_thresh
-        data['rel_f1_precision'] = precision[rel_f1_index]
-        data['rel_f1_recall'] = recall[rel_f1_index]
         data.update(custom)
 
         jsonfile = os.path.join(save, 'pr.json')
@@ -774,10 +750,7 @@ def pr(score, in_domain, pos_label, choice='max_f1', save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-    if choice == 'max_f1':
-        return max_f1_thresh
-    elif choice == 'rel_f1':
-        return rel_f1_thresh
+    return custom
 
 
 def confusion(y_true, y_pred, pos_label, save='.'):
@@ -809,11 +782,11 @@ def confusion(y_true, y_pred, pos_label, save='.'):
     fig_data = conf.tolist()
 
     disp.figure_.savefig(
-                         os.path.join(save, 'confusion.png'),
+                         save+'_confusion.png',
                          bbox_inches='tight'
                          )
     pl.close(fig)
 
-    jsonfile = os.path.join(save, 'confusion.json')
+    jsonfile = save+'_confusion.json'
     with open(jsonfile, 'w') as handle:
         json.dump(fig_data, handle)
