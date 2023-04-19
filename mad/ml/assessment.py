@@ -96,6 +96,7 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
     y_cv_std = []
     index_cv = []
     dist_cv = []
+    sigma_y = []
     for tr, te in cv.split(
                            X[train],
                            y[train],
@@ -145,6 +146,8 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
                             ds_model_cv.predict(X_trans_te)
                             )
 
+        sigma_y += [np.std(y[train][tr])]*len(y[train][te])
+
     data = pd.DataFrame()
     data['g'] = g_cv
     data['y'] = y_cv
@@ -153,6 +156,7 @@ def cv(gs_model, ds_model, X, y, g, train, cv):
     data['dist'] = dist_cv
     data['index'] = index_cv
     data['split'] = 'cv'
+    data['sigma_y'] = sigma_y  # Of the data trained on
 
     return data
 
@@ -206,7 +210,7 @@ class build_model:
         cut, in_domain = ground_truth(
                                       data_id['y'],
                                       data_id['y_pred'],
-                                      self.ystd,
+                                      data_id['sigma_y'],
                                       )
 
         self.cut = cut
@@ -234,7 +238,7 @@ class build_model:
         cut, in_domain = ground_truth(
                                       data_od2['y'],
                                       data_od2['y_pred'],
-                                      self.ystd,
+                                      data_od2['sigma_y'],
                                       )
 
         data_od2['in_domain'] = in_domain
@@ -260,7 +264,7 @@ class build_model:
         cut, in_domain = ground_truth(
                                       data_od3['y'],
                                       data_od3['y_pred'],
-                                      self.ystd,
+                                      data_od3['sigma_y'],
                                       )
 
         data_od3['in_domain'] = in_domain
@@ -295,8 +299,6 @@ class build_model:
                     data_cv['{}_in_domain_pred'.format(j)] = do_pred
                 else:
                     data_cv['{}_out_domain_pred'.format(j)] = do_pred
-
-        data_cv['sigma_y'] = self.ystd
 
         self.data_cv = data_cv
 
