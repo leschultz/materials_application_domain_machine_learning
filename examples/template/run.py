@@ -18,10 +18,10 @@ import dill
 
 def main():
 
-    run_name = 'run_kde'
+    run_name = 'run'
 
     # Load data
-    data = load_data.fluence()
+    data = load_data.replace_data()
     df = data['frame']
     X = data['data']
     y = data['target']
