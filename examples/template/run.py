@@ -22,7 +22,6 @@ def main():
 
     # Load data
     data = load_data.replace_data()
-    df = data['frame']
     X = data['data']
     y = data['target']
     g = data['class_name']

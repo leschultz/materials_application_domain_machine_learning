@@ -66,6 +66,7 @@ def friedman1(*args, **kwargs):
     data = {}
     data['data'] = X
     data['target'] = y
+    data['class_name'] = np.array(['no-groups']*y.shape[0])
 
     return data
 

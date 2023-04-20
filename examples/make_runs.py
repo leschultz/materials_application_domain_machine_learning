@@ -1,19 +1,19 @@
 #!/bin/bash
 
 sets=(
-      friedman
-      fluence
-      diffusion
-      super_cond
-      perovskite_stability
-      electromigration
-      thermal_conductivity
-      dielectric_constant
-      double_perovskites_gap
-      elastic_tensor
-      heusler_magnetic
-      piezoelectric_tensor
-      steel_yield_strength
+      "friedman1"
+      "fluence"
+      "diffusion"
+      "super_cond"
+      "perovskite_stability"
+      "electromigration"
+      "thermal_conductivity"
+      "dielectric_constant"
+      "double_perovskites_gap"
+      "elastic_tensor"
+      "heusler_magnetic"
+      "piezoelectric_tensor"
+      "steel_yield_strength"
       )
 
 mkdir -p runs
