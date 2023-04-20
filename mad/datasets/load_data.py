@@ -1,3 +1,4 @@
+from sklearn import datasets 
 import pandas as pd
 import numpy as np
 
@@ -51,7 +52,7 @@ def load(df, target, drop_cols=None, class_name=None, n=None, frac=None):
     return data
 
 
-def friedman(**kwargs):
+def friedman1(*args, **kwargs):
     '''
     Load the Friedman dataset.
     '''
@@ -60,7 +61,13 @@ def friedman(**kwargs):
     df = 'friedman_data.csv'
     target = 'y'
 
-    return load(df, target, **kwargs)
+    X, y = datasets.make_friedman1(*args, **kwargs)
+
+    data = {}
+    data['data'] = X
+    data['target'] = y
+
+    return data
 
 
 def super_cond(**kwargs):
