@@ -1,3 +1,4 @@
+from sklearn.feature_selection import SelectFromModel
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
@@ -43,7 +44,8 @@ def main():
     grid['model__max_depth'] = [None]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
-                           ('model', model)
+                           ('select', SelectFromModel(model)),
+                           ('model', model),
                            ])
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
