@@ -25,6 +25,7 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
+    n_repeats = 2
 
     # ML Distance model
     ds_model = distance_model(dist='kde')
@@ -44,10 +45,10 @@ def main():
                            ('scaler', scale),
                            ('model', model)
                            ])
-    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
+    gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
     # Types of sampling to test
-    splits = [('calibration', RepeatedKFold(n_repeats=1))]
+    splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
 
     # Chemical splits
     n_groups = len(set(g))
@@ -60,7 +61,7 @@ def main():
         # Cluster Splits
         top_split = splitters.RepeatedClusterSplit(
                                                    AgglomerativeClustering,
-                                                   n_repeats=1,
+                                                   n_repeats=n_repeats,
                                                    n_clusters=i
                                                    )
 
