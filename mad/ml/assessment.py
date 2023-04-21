@@ -168,11 +168,13 @@ class build_model:
                  gs_model,
                  ds_model,
                  uq_model,
+                 splits,
                  ):
 
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
+        self.splits = splits
 
     def fit(self, X, y, g):
 
@@ -189,87 +191,40 @@ class build_model:
         self.ds_model.fit(X_trans, y)
 
         # Do cross validation in nested loop
-        data_id = cv(
-                     self.gs_model,
-                     self.ds_model,
-                     X,
-                     y,
-                     g,
-                     np.arange(y.shape[0]),
-                     self.gs_model.cv
-                     )
+        data_cv = []
+        for split in self.splits:
+            data_id = cv(
+                         self.gs_model,
+                         self.ds_model,
+                         X,
+                         y,
+                         g,
+                         np.arange(y.shape[0]),
+                         split[1],
+                         )
 
-        # Fit on hold out data ID
-        self.uq_model.fit(
-                          data_id['y'],
-                          data_id['y_pred'],
-                          data_id['y_std']
-                          )
+            # Define ground truth
+            cut, in_domain = ground_truth(
+                                          data_id['y'],
+                                          data_id['y_pred'],
+                                          data_id['sigma_y'],
+                                          )
 
-        # Define ground truth
-        cut, in_domain = ground_truth(
-                                      data_id['y'],
-                                      data_id['y_pred'],
-                                      data_id['sigma_y'],
-                                      )
+            if 'calibration' == split[0]:
 
-        self.cut = cut
+                # Fit on hold out data ID
+                self.uq_model.fit(
+                                  data_id['y'],
+                                  data_id['y_pred'],
+                                  data_id['y_std']
+                                  )
 
-        data_id['in_domain'] = in_domain
+                self.cut = cut
 
-        # Leave out 2 clusters
-        od2_split = splitters.RepeatedClusterSplit(
-                                                   AgglomerativeClustering,
-                                                   n_repeats=1,
-                                                   n_clusters=2
-                                                   )
+            data_id['in_domain'] = in_domain
+            data_cv.append(data_id)
 
-        data_od2 = cv(
-                      self.gs_model,
-                      self.ds_model,
-                      X,
-                      y,
-                      g,
-                      np.arange(y.shape[0]),
-                      od2_split
-                      )
-
-        # Define ground truth
-        cut, in_domain = ground_truth(
-                                      data_od2['y'],
-                                      data_od2['y_pred'],
-                                      data_od2['sigma_y'],
-                                      )
-
-        data_od2['in_domain'] = in_domain
-
-        # Leave out 3 clusters
-        od3_split = splitters.RepeatedClusterSplit(
-                                                   AgglomerativeClustering,
-                                                   n_repeats=1,
-                                                   n_clusters=3
-                                                   )
-
-        data_od3 = cv(
-                      self.gs_model,
-                      self.ds_model,
-                      X,
-                      y,
-                      g,
-                      np.arange(y.shape[0]),
-                      od3_split
-                      )
-
-        # Define ground truth
-        cut, in_domain = ground_truth(
-                                      data_od3['y'],
-                                      data_od3['y_pred'],
-                                      data_od3['sigma_y'],
-                                      )
-
-        data_od3['in_domain'] = in_domain
-
-        data_cv = pd.concat([data_id, data_od2, data_od3])
+        data_cv = pd.concat(data_cv)
 
         # Calibrate uncertainties
         data_cv['y_std'] = self.uq_model.predict(data_cv['y_std'])
@@ -372,6 +327,7 @@ class combine:
                  gs_model=None,
                  uq_model=None,
                  ds_model=None,
+                 insplits=None,
                  splitter=RepeatedKFold(),
                  sub_test=0.0,
                  save='.',
@@ -380,6 +336,7 @@ class combine:
         self.X = X  # Features
         self.y = y  # Target
         self.splitter = splitter  # Splitter
+        self.insplits = insplits  # Inner splitters
         self.sub_test = sub_test
 
         # Models
@@ -432,12 +389,13 @@ class combine:
         gs_model = self.gs_model
         uq_model = self.uq_model
         ds_model = self.ds_model
+        insplits = self.insplits
         save = self.save
 
         train, test, count = split  # train/test
 
         # Fit models
-        model = build_model(gs_model, ds_model, uq_model)
+        model = build_model(gs_model, ds_model, uq_model, insplits)
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
@@ -610,10 +568,11 @@ class combine:
         gs_model = self.gs_model
         uq_model = self.uq_model
         ds_model = self.ds_model
+        insplits = self.insplits
         save = self.save
 
         # Build the model
-        model = build_model(gs_model, ds_model, uq_model)
+        model = build_model(gs_model, ds_model, uq_model, insplits)
         data_cv = model.fit(self.X, self.y, self.g)
         data_cv['fold'] = 0
         data_cv['split'] = 'cv'

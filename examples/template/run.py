@@ -47,7 +47,7 @@ def main():
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=2))
 
     # Types of sampling to test
-    splits = [('random', RepeatedKFold(n_repeats=1))]
+    splits = [('calibration', RepeatedKFold(n_repeats=1))]
 
     # Chemical splits
     n_groups = len(set(g))
@@ -77,7 +77,8 @@ def main():
                       gs_model,
                       uq_model,
                       ds_model,
-                      i[1],
+                      splits,  # Inner loop
+                      i[1],  # Outer loop
                       save=save,
                       )
 
