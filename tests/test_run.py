@@ -22,7 +22,7 @@ class ml_test(unittest.TestCase):
 
     def test_ml(self):
 
-        run_name = 'run_kde'
+        run_name = 'run'
 
         # Load data
         data = load_data.diffusion()
@@ -54,12 +54,6 @@ class ml_test(unittest.TestCase):
         # Types of sampling to test
         splits = [('random', RepeatedKFold(n_repeats=1))]
 
-        # Chemical splits
-        n_groups = len(set(g))
-        if n_groups > 1:
-            chem_split = ('chemical', splitters.LeaveOneGroupOut())
-            splits.append(chem_split)
-
         for i in splits:
 
             # Assess and build model
@@ -72,7 +66,8 @@ class ml_test(unittest.TestCase):
                           gs_model,
                           uq_model,
                           ds_model,
-                          i[1],
+                          splits,  # Inner loop
+                          i[1],  # Outer loop
                           save=save,
                           )
 
