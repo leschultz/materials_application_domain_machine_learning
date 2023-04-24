@@ -338,9 +338,10 @@ def intervals(df, metric, save):
     os.makedirs(save, exist_ok=True)
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
+    sorting = [i for i in ['absres', 'y_std', metric] if metric != 'y_std']
+    df = df.sort_values(by=sorting)
     df['absres'] = df['absres']/df['sigma_y']
 
-    df = df.sort_values(by=[metric, 'absres'])
     q = 10
     df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
     groups = df.groupby('bin', sort=False)
