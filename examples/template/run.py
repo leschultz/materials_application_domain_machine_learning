@@ -26,7 +26,7 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
-    n_repeats = 2
+    n_repeats = 1
 
     # ML Distance model
     ds_model = distance_model(dist='kde')
@@ -39,9 +39,8 @@ def main():
     model = RandomForestRegressor()
 
     grid = {}
-    grid['model__n_estimators'] = [200]
-    grid['model__max_features'] = [None]
-    grid['model__max_depth'] = [None]
+    grid['model__n_estimators'] = [500]
+    grid['model__max_depth'] = [30]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('model', model),
@@ -50,12 +49,6 @@ def main():
 
     # Types of sampling to test
     splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
-
-    # Chemical splits
-    n_groups = len(set(g))
-    if n_groups > 1:
-        chem_split = ('chemical', splitters.LeaveOneGroupOut())
-        splits.append(chem_split)
 
     for i in [2, 3]:
 

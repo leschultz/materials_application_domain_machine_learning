@@ -341,8 +341,11 @@ def intervals(df, metric, save):
     df['absres'] = df['absres']/df['sigma_y']
 
     df = df.sort_values(by=[metric, 'absres'])
-    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=10)
+    q = 10
+    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
     groups = df.groupby('bin', sort=False)
+
+    avg_points = df.shape[0]/q
 
     zvars = []
     mdists = []
@@ -375,7 +378,13 @@ def intervals(df, metric, save):
     data = {}
     fig, ax = pl.subplots()
 
-    ax.scatter(mdists, zvars, marker='.', label='Observed')
+    pointlabel = 'PPB = {:.2f}'.format(avg_points)
+    ax.scatter(
+               mdists,
+               zvars,
+               marker='.',
+               label=pointlabel,
+               )
     ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')
     ax.axhline(zvartot, label='Total VAR(z) = {:.2f}'.format(zvartot))
 
@@ -402,7 +411,12 @@ def intervals(df, metric, save):
 
     fig, ax = pl.subplots()
 
-    ax.scatter(mdists, rmses, marker='.', label='Data')
+    ax.scatter(
+               mdists,
+               rmses,
+               marker='.',
+               label=pointlabel,
+               )
     x = np.linspace(*ax.get_xlim())
     ax.plot(x, x, linestyle=':', color='k', label='Ideal')
 
