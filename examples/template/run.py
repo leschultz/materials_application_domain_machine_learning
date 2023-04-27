@@ -39,8 +39,7 @@ def main():
     model = RandomForestRegressor()
 
     grid = {}
-    grid['model__n_estimators'] = [500]
-    grid['model__max_depth'] = [30]
+    grid['model__n_estimators'] = [100]
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('model', model),

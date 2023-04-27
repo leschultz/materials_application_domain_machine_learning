@@ -1,7 +1,7 @@
 #PBS -S /bin/bash
 #PBS -m be
-#PBS -q bardeen
-#PBS -l select=1:ncpus=16:mpiprocs=16
+#PBS -q izabela
+#PBS -l select=1:ncpus=12:mpiprocs=12
 #PBS -l walltime=72:00:00
 #PBS -N job
 
