@@ -22,7 +22,7 @@ def main():
     run_name = 'run'
 
     # Load data
-    data = load_data.replace_data()
+    data = load_data.replace_data
     X = data['data']
     y = data['target']
     g = data['class_name']
