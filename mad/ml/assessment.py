@@ -241,8 +241,19 @@ class build_model:
                                                  data_cv[j],
                                                  data_cv['in_domain'],
                                                  pos_label=i,
-                                                 choice='rel_f1',
                                                  )
+
+                plots.intervals(
+                                data_cv[[
+                                         'z',
+                                         'dist',
+                                         'y',
+                                         'y_pred',
+                                         'y_std',
+                                         'sigma_y',
+                                         ]].copy(),
+                                'dist',
+                                )
 
                 for key, value in self.domain_cut[j][i].items():
                     thr = self.domain_cut[j][i][key]['Threshold']
@@ -461,7 +472,6 @@ class combine:
                                     df['y_std'],
                                     df['in_domain'],
                                     i,
-                                    'rel_f1',
                                     os.path.join(sigma_name, j),
                                     )
 
@@ -469,7 +479,6 @@ class combine:
                                    df['dist'],
                                    df['in_domain'],
                                    i,
-                                   'rel_f1',
                                    os.path.join(dist_name, j),
                                    )
 

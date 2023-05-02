@@ -330,26 +330,25 @@ def cdf_parity(x, in_domain, save):
         json.dump(data, handle)
 
 
-def intervals(df, metric, save):
+def intervals(df, metric, save=False):
     '''
     Plot the confidence curve:
     '''
-
-    os.makedirs(save, exist_ok=True)
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
     sorting = [i for i in ['absres', 'y_std', metric] if metric != 'y_std']
     df = df.sort_values(by=sorting)
     df['absres'] = df['absres']/df['sigma_y']
 
+    gt = 2
     q = 10
     df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
     groups = df.groupby('bin', sort=False)
 
-    avg_points = df.shape[0]/q
-
     zvars = []
     mdists = []
+    mdists_mins = []
+    mdists_maxs = []
     rmses = []
     stds = []
     for group, values in groups:
@@ -361,84 +360,130 @@ def intervals(df, metric, save):
 
         if metric == 'y_std':
             m = values[metric]/values['sigma_y']
-            m = m.mean()
+            mins = m.min()
+            maxs = m.max()
         else:
-            m = values[metric].mean()
+            m = values[metric]
+            mins = m.min()
+            maxs = m.max()
+
+        m = m.mean()
 
         zvars.append(values['z'].var())
         mdists.append(m)
+        mdists_mins.append(mins)
+        mdists_maxs.append(maxs)
         rmses.append(rmse)
 
-    zvartot = df['z'].var()
+    if save is not False:
 
-    if metric == 'y_std':
-        xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
-    else:
-        xlabel = 'Mean Dissimilarity'
+        os.makedirs(save, exist_ok=True)
 
-    data = {}
-    fig, ax = pl.subplots()
+        avg_points = df.shape[0]/q
+        zvartot = df['z'].var()
 
-    pointlabel = 'PPB = {:.2f}'.format(avg_points)
-    ax.scatter(
-               mdists,
-               zvars,
-               marker='.',
-               label=pointlabel,
-               )
-    ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')
-    ax.axhline(zvartot, label='Total VAR(z) = {:.2f}'.format(zvartot))
+        if metric == 'y_std':
+            xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
+        else:
+            xlabel = 'Mean Dissimilarity'
 
-    ax.set_ylim(0.0, None)
+        fig, ax = pl.subplots()
 
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        pointlabel = 'PPB = {:.2f}'.format(avg_points)
+        ax.scatter(
+                   mdists,
+                   zvars,
+                   marker='.',
+                   color='b',
+                   label=pointlabel,
+                   )
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(r'VAR(z)')
+        ax.scatter(
+                   mdists_mins,
+                   zvars,
+                   marker='|',
+                   color='r',
+                   label='Bin Start',
+                   )
 
-    fig.savefig(os.path.join(
-                             save,
-                             'confidence.png'
-                             ), bbox_inches='tight')
+        ax.scatter(
+                   mdists_maxs,
+                   zvars,
+                   marker='|',
+                   color='k',
+                   label='Bin End',
+                   )
 
-    pl.close(fig)
+        ax.axhline(
+                   gt,
+                   color='g',
+                   linestyle=':',
+                   label='Ground Truth = {:.1f}'.format(gt)
+                   )
 
-    data['x'] = mdists
-    data['y'] = zvars
+        ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')
+        ax.axhline(zvartot, label='Total VAR(z) = {:.1f}'.format(zvartot))
 
-    jsonfile = os.path.join(save, 'confidence.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        ax.set_ylim(0.0, None)
 
-    fig, ax = pl.subplots()
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.scatter(
-               mdists,
-               rmses,
-               marker='.',
-               label=pointlabel,
-               )
-    x = np.linspace(*ax.get_xlim())
-    ax.plot(x, x, linestyle=':', color='k', label='Ideal')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(r'VAR(z)')
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel('$RMSE/\sigma_{y}$')
+        fig.savefig(os.path.join(
+                                 save,
+                                 'confidence.png'
+                                 ), bbox_inches='tight')
 
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        pl.close(fig)
 
-    fig.savefig(os.path.join(
-                             save,
-                             'rmse_vs_uq.png'
-                             ), bbox_inches='tight')
+        data = {}
+        data['x'] = mdists
+        data['y'] = zvars
 
-    pl.close(fig)
+        jsonfile = os.path.join(save, 'confidence.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
 
-    data['x'] = mdists
-    data['y'] = rmses
+        fig, ax = pl.subplots()
 
-    jsonfile = os.path.join(save, 'rmse_vs_uq.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        ax.scatter(
+                   mdists,
+                   rmses,
+                   marker='.',
+                   label=pointlabel,
+                   )
+        x = np.linspace(*ax.get_xlim())
+        ax.plot(x, x, linestyle=':', color='k', label='Ideal')
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('$RMSE/\sigma_{y}$')
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        fig.savefig(os.path.join(
+                                 save,
+                                 'rmse_vs_uq.png'
+                                 ), bbox_inches='tight')
+
+        pl.close(fig)
+
+        data['x'] = mdists
+        data['y'] = rmses
+
+        jsonfile = os.path.join(save, 'rmse_vs_uq.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
+    zvars = np.array(zvars)
+    mdists = np.array(mdists)
+    rmses = np.array(rmses)
+
+    id_indx = zvars <= gt
+    od_indx = ~id_indx
+
+    return id_indx, od_indx
 
 
 def ground_truth(y, y_pred, y_std, std, in_domain, save):
@@ -570,7 +615,7 @@ def assessment(
         json.dump(data, handle)
 
 
-def pr(score, in_domain, pos_label, choice='max_f1', save=False):
+def pr(score, in_domain, pos_label, save=False):
 
     if pos_label is True:
         score = -score
