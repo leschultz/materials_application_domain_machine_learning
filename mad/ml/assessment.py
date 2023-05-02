@@ -48,16 +48,15 @@ def ground_truth(
                  y,
                  y_pred,
                  sigma,
-                 cut=1.0,
                  ):
 
     # Define ground truth
     absres = abs(y-y_pred)/sigma
 
-    do_pred = absres < cut
+    do_pred = absres < 1
     do_pred = [True if i == 1 else False for i in do_pred]
 
-    return cut, do_pred
+    return do_pred
 
 
 def transforms(gs_model, X):
@@ -204,11 +203,11 @@ class build_model:
                          )
 
             # Define ground truth
-            cut, in_domain = ground_truth(
-                                          data_id['y'],
-                                          data_id['y_pred'],
-                                          data_id['sigma_y'],
-                                          )
+            in_domain = ground_truth(
+                                     data_id['y'],
+                                     data_id['y_pred'],
+                                     data_id['sigma_y'],
+                                     )
 
             if 'calibration' == split[0]:
 
@@ -218,8 +217,6 @@ class build_model:
                                   data_id['y_pred'],
                                   data_id['y_std']
                                   )
-
-                self.cut = cut
 
             data_id['in_domain'] = in_domain
             data_cv.append(data_id)
@@ -243,20 +240,39 @@ class build_model:
                                                  pos_label=i,
                                                  )
 
-                plots.intervals(
-                                data_cv[[
-                                         'z',
-                                         'dist',
-                                         'y',
-                                         'y_pred',
-                                         'y_std',
-                                         'sigma_y',
-                                         ]].copy(),
-                                'dist',
-                                )
-
                 for key, value in self.domain_cut[j][i].items():
                     thr = self.domain_cut[j][i][key]['Threshold']
+                    do_pred = domain_pred(
+                                          data_cv[j],
+                                          thr,
+                                          i,
+                                          )
+
+                    if i is True:
+                        data_cv['ID by {} for {}'.format(j, key)] = do_pred
+                    else:
+                        data_cv['OD by {} for {}'.format(j, key)] = do_pred
+
+        # Ground truth for bins
+        for i in ['dist', 'y_std']:
+
+            data_cv = plots.intervals(
+                                      data_cv,
+                                      i,
+                                      )
+
+        self.domain_bin = {'dist_bin': {}, 'y_std_bin': {}}
+        for i in [True, False]:
+            for j in ['dist_bin', 'y_std_bin']:
+
+                self.domain_bin[j][i] = plots.pr(
+                                                 data_cv[j],
+                                                 data_cv['in_domain_bin'],
+                                                 i
+                                                 )
+
+                for key, value in self.domain_bin[j][i].items():
+                    thr = self.domain_bin[j][i][key]['Threshold']
                     do_pred = domain_pred(
                                           data_cv[j],
                                           thr,
@@ -298,6 +314,22 @@ class build_model:
                     thr = self.domain_cut[j][i][key]['Threshold']
                     do_pred = domain_pred(
                                           pred[j],
+                                          thr,
+                                          i,
+                                          )
+
+                    if i is True:
+                        pred['ID by {} for {}'.format(j, key)] = do_pred
+                    else:
+                        pred['OD by {} for {}'.format(j, key)] = do_pred
+
+        for i in [True, False]:
+            for j in ['dist_bin', 'y_std_bin']:
+
+                for key, value in self.domain_bin[j][i].items():
+                    thr = self.domain_bin[j][i][key]['Threshold']
+                    do_pred = domain_pred(
+                                          pred[j.replace('_bin', '')],
                                           thr,
                                           i,
                                           )
@@ -410,11 +442,11 @@ class combine:
         data_cv = model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
 
-        _, in_domain_test = ground_truth(
-                                         self.y[test],
-                                         data_test['y_pred'],
-                                         model.ystd,
-                                         )
+        in_domain_test = ground_truth(
+                                      self.y[test],
+                                      data_test['y_pred'],
+                                      model.ystd,
+                                      )
 
         z = (self.y[test]-data_test['y_pred'])/data_test['y_std']
 

@@ -345,6 +345,8 @@ def intervals(df, metric, save=False):
     df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
     groups = df.groupby('bin', sort=False)
 
+    metric_name = metric+'_bin'
+
     zvars = []
     mdists = []
     mdists_mins = []
@@ -358,22 +360,27 @@ def intervals(df, metric, save=False):
         rmse = sum(rmse)/len(rmse)
         rmse = rmse**0.5
 
+        zvar = values['z'].var()
+
         if metric == 'y_std':
             m = values[metric]/values['sigma_y']
-            mins = m.min()
-            maxs = m.max()
         else:
             m = values[metric]
-            mins = m.min()
-            maxs = m.max()
 
+        mins = group.left
+        maxs = group.right
         m = m.mean()
 
-        zvars.append(values['z'].var())
+        df.loc[df['bin'] == group, metric_name] = m
+        df.loc[df['bin'] == group, 'var_z_'+metric_name] = zvar
+
+        zvars.append(zvar)
         mdists.append(m)
         mdists_mins.append(mins)
         mdists_maxs.append(maxs)
         rmses.append(rmse)
+
+    df['in_domain_bin'] = df['var_z_'+metric_name] < gt
 
     if save is not False:
 
@@ -476,14 +483,7 @@ def intervals(df, metric, save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-    zvars = np.array(zvars)
-    mdists = np.array(mdists)
-    rmses = np.array(rmses)
-
-    id_indx = zvars <= gt
-    od_indx = ~id_indx
-
-    return id_indx, od_indx
+    return df
 
 
 def ground_truth(y, y_pred, y_std, std, in_domain, save):
