@@ -364,11 +364,13 @@ def intervals(df, metric, save=False):
 
         if metric == 'y_std':
             m = values[metric]/values['sigma_y']
+            mins = m.min()
+            maxs = m.max()
         else:
             m = values[metric]
+            mins = m.min()
+            maxs = m.max()
 
-        mins = group.left
-        maxs = group.right
         m = m.mean()
 
         df.loc[df['bin'] == group, metric_name] = m
