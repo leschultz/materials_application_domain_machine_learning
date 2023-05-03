@@ -500,19 +500,33 @@ class combine:
                 j = 'id'
             else:
                 j = 'od'
-            sigma_thresh = plots.pr(
-                                    df['y_std'],
-                                    df['in_domain'],
-                                    i,
-                                    os.path.join(sigma_name, j),
-                                    )
+            plots.pr(
+                     df['y_std'],
+                     df['in_domain'],
+                     i,
+                     os.path.join(sigma_name, j),
+                     )
 
-            dist_thresh = plots.pr(
-                                   df['dist'],
-                                   df['in_domain'],
-                                   i,
-                                   os.path.join(dist_name, j),
-                                   )
+            plots.pr(
+                     df['dist'],
+                     df['in_domain'],
+                     i,
+                     os.path.join(dist_name, j),
+                     )
+
+            plots.pr(
+                     df['y_std_bin'],
+                     df['in_domain_bin'],
+                     i,
+                     os.path.join(sigma_name+'_bin', j),
+                     )
+
+            plots.pr(
+                     df['dist_bin'],
+                     df['in_domain_bin'],
+                     i,
+                     os.path.join(dist_name+'_bin', j),
+                     )
 
         # Plot prediction time
         res = abs(df['y']-df['y_pred'])
@@ -550,12 +564,21 @@ class combine:
             elif 'dist' in name:
                 w = dist_name
 
-            plots.confusion(
-                            df['in_domain'],
-                            y_pred=df[name].values,
-                            pos_label=pos_label,
-                            save=os.path.join(*[w, pos_label, name])
-                            )
+            if 'bin' in name:
+                plots.confusion(
+                                df['in_domain'+'_bin'],
+                                y_pred=df[name].values,
+                                pos_label=pos_label,
+                                save=os.path.join(*[w+'_bin', pos_label, name])
+                                )
+            else:
+
+                plots.confusion(
+                                df['in_domain'],
+                                y_pred=df[name].values,
+                                pos_label=pos_label,
+                                save=os.path.join(*[w, pos_label, name])
+                                )
 
         # Plot CDF comparison
         plots.cdf_parity(
@@ -568,13 +591,13 @@ class combine:
         plots.intervals(
                         df,
                         'dist',
-                        save=dist_name
+                        save=dist_name+'_bin'
                         )
 
         plots.intervals(
                         df,
                         'y_std',
-                        save=sigma_name
+                        save=sigma_name+'_bin'
                         )
 
         # Plot parity
@@ -671,6 +694,11 @@ class combine:
                         )
 
         data = pd.concat(data)
+        for i in ['dist', 'y_std']:
+            data = plots.intervals(
+                                   data,
+                                   i,
+                                   )
 
         # Statistics
         print('Assessing test and CV statistics from data used for fitting')
