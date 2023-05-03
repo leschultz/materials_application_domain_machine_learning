@@ -466,8 +466,26 @@ def intervals(df, metric, save=False):
                    mdists,
                    rmses,
                    marker='.',
+                   color='b',
                    label=pointlabel,
                    )
+
+        ax.scatter(
+                   mdists_mins,
+                   rmses,
+                   marker='|',
+                   color='r',
+                   label='Bin Start',
+                   )
+
+        ax.scatter(
+                   mdists_maxs,
+                   rmses,
+                   marker='|',
+                   color='k',
+                   label='Bin End',
+                   )
+
         x = np.linspace(*ax.get_xlim())
         ax.plot(x, x, linestyle=':', color='k', label='Ideal')
 
