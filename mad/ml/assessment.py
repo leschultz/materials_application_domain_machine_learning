@@ -566,26 +566,13 @@ class combine:
 
         # Plot the confidence curve
         plots.intervals(
-                        df[[
-                            'z',
-                            'dist',
-                            'y',
-                            'y_pred',
-                            'y_std',
-                            'sigma_y',
-                            ]].copy(),
+                        df,
                         'dist',
                         save=dist_name
                         )
 
         plots.intervals(
-                        df[[
-                            'z',
-                            'y_std',
-                            'y',
-                            'y_pred',
-                            'sigma_y',
-                            ]].copy(),
+                        df,
                         'y_std',
                         save=sigma_name
                         )

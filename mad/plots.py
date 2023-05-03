@@ -335,17 +335,22 @@ def intervals(df, metric, save=False):
     Plot the confidence curve:
     '''
 
-    df['absres'] = abs(df['y'].values-df['y_pred'].values)
-    sorting = [i for i in ['absres', 'y_std', metric] if metric != 'y_std']
-    df = df.sort_values(by=sorting)
-    df['absres'] = df['absres']/df['sigma_y']
-
     gt = 2
     q = 10
-    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
-    groups = df.groupby('bin', sort=False)
-
     metric_name = metric+'_bin'
+
+    df['absres'] = abs(df['y'].values-df['y_pred'].values)
+    df['absres'] = df['absres']/df['sigma_y']
+
+    if metric == 'y_std':
+        df['bin'] = pd.qcut(
+                            (df[metric]/df['sigma_y']).rank(method='first'),
+                            q=q
+                            )
+    else:
+        df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
+
+    groups = df.groupby('bin')
 
     zvars = []
     mdists = []
