@@ -7,11 +7,11 @@ The structure of the code packages is as follows:
 
 ```
 ├── examples
-│   ├── diffusion_kde
-│   ├── fluence_kde
-│   ├── friedman_kde
-│   ├── steel_kde
-│   └── supercond_kde
+│   ├── diffusion
+│   ├── fluence
+│   ├── friedman1
+│   ├── steel_yield_strength
+│   └── super_cond
 ├── LICENSE
 ├── mad
 │   ├── datasets
