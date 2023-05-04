@@ -378,7 +378,7 @@ def intervals(df, metric, save=False):
 
         m = m.mean()
 
-        df.loc[df['bin'] == group, metric_name] = m
+        df.loc[df['bin'] == group, metric_name] = mins
         df.loc[df['bin'] == group, 'var_z_'+metric_name] = zvar
 
         zvars.append(zvar)
@@ -454,7 +454,11 @@ def intervals(df, metric, save=False):
 
         data = {}
         data['x'] = mdists
+        data['x_min'] = mdists_mins
+        data['x_max'] = mdists_maxs
         data['y'] = zvars
+        data['ppb'] = avg_points
+        data['z_var_total'] = zvartot
 
         jsonfile = os.path.join(save, 'confidence.json')
         with open(jsonfile, 'w') as handle:
@@ -502,7 +506,11 @@ def intervals(df, metric, save=False):
         pl.close(fig)
 
         data['x'] = mdists
+        data['x_min'] = mdists_mins
+        data['x_max'] = mdists_maxs
         data['y'] = rmses
+        data['ppb'] = avg_points
+        data['z_var_total'] = zvartot
 
         jsonfile = os.path.join(save, 'rmse_vs_uq.json')
         with open(jsonfile, 'w') as handle:
