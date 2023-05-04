@@ -342,13 +342,7 @@ def intervals(df, metric, save=False):
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
     df['absres'] = df['absres']/df['sigma_y']
 
-    if metric == 'y_std':
-        df['bin'] = pd.qcut(
-                            (df[metric]/df['sigma_y']).rank(method='first'),
-                            q=q
-                            )
-    else:
-        df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
+    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
 
     groups = df.groupby('bin')
 
@@ -367,15 +361,9 @@ def intervals(df, metric, save=False):
 
         zvar = values['z'].var()
 
-        if metric == 'y_std':
-            m = values[metric]/values['sigma_y']
-            mins = m.min()
-            maxs = m.max()
-        else:
-            m = values[metric]
-            mins = m.min()
-            maxs = m.max()
-
+        m = values[metric]
+        mins = m.min()
+        maxs = m.max()
         m = m.mean()
 
         df.loc[df['bin'] == group, metric_name] = mins
@@ -396,7 +384,7 @@ def intervals(df, metric, save=False):
         avg_points = df.shape[0]/q
         zvartot = df['z'].var()
 
-        if metric == 'y_std':
+        if 'y_std' in metric:
             xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
         else:
             xlabel = 'Mean Dissimilarity'

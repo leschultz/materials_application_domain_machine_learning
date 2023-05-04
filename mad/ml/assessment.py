@@ -229,18 +229,16 @@ class build_model:
         # Z scores
         data_cv['z'] = (data_cv['y']-data_cv['y_pred'])/data_cv['y_std']
 
-        self.domain_cut = {'dist': {}, 'y_std': {}}
+        # Normalized uncertaintites
+        data_cv['y_std_norm'] = data_cv['y_std']/data_cv['sigma_y']
+
+        self.domain_cut = {'dist': {}, 'y_std_norm': {}}
         for i in [True, False]:
 
-            for j in ['dist', 'y_std']:
-
-                if j == 'y_std':
-                    dist = data_cv[j]/data_cv['sigma_y']
-                else:
-                    dist = data_cv[j]
+            for j in ['dist', 'y_std_norm']:
 
                 self.domain_cut[j][i] = plots.pr(
-                                                 dist,
+                                                 data_cv[j],
                                                  data_cv['in_domain'],
                                                  pos_label=i,
                                                  )
@@ -248,7 +246,7 @@ class build_model:
                 for key, value in self.domain_cut[j][i].items():
                     thr = self.domain_cut[j][i][key]['Threshold']
                     do_pred = domain_pred(
-                                          dist,
+                                          data_cv[j],
                                           thr,
                                           i,
                                           )
@@ -259,16 +257,16 @@ class build_model:
                         data_cv['OD by {} for {}'.format(j, key)] = do_pred
 
         # Ground truth for bins
-        for i in ['dist', 'y_std']:
+        for i in ['dist', 'y_std_norm']:
 
             data_cv = plots.intervals(
                                       data_cv,
                                       i,
                                       )
 
-        self.domain_bin = {'dist_bin': {}, 'y_std_bin': {}}
+        self.domain_bin = {'dist_bin': {}, 'y_std_norm_bin': {}}
         for i in [True, False]:
-            for j in ['dist_bin', 'y_std_bin']:
+            for j in ['dist_bin', 'y_std_norm_bin']:
 
                 self.domain_bin[j][i] = plots.pr(
                                                  data_cv[j],
@@ -304,16 +302,18 @@ class build_model:
         y_pred = self.gs_model.predict(X)
         y_std = std_pred(self.gs_model, X_trans)
         y_std = self.uq_model.predict(y_std)  # Calibrate hold out
+        y_std_norm = y_std/self.ystd
         dist = self.ds_model.predict(X_trans)
 
         pred = {
                 'y_pred': y_pred,
                 'y_std': y_std,
+                'y_std_norm': y_std_norm,
                 'dist': dist,
                 }
 
         for i in [True, False]:
-            for j in ['dist', 'y_std']:
+            for j in ['dist', 'y_std_norm']:
 
                 for key, value in self.domain_cut[j][i].items():
                     thr = self.domain_cut[j][i][key]['Threshold']
@@ -329,7 +329,7 @@ class build_model:
                         pred['OD by {} for {}'.format(j, key)] = do_pred
 
         for i in [True, False]:
-            for j in ['dist_bin', 'y_std_bin']:
+            for j in ['dist_bin', 'y_std_norm_bin']:
 
                 for key, value in self.domain_bin[j][i].items():
                     thr = self.domain_bin[j][i][key]['Threshold']
@@ -506,7 +506,7 @@ class combine:
             else:
                 j = 'od'
             plots.pr(
-                     df['y_std']/df['sigma_y'],
+                     df['y_std_norm'],
                      df['in_domain'],
                      i,
                      os.path.join(sigma_name, j),
@@ -520,7 +520,7 @@ class combine:
                      )
 
             plots.pr(
-                     df['y_std_bin'],
+                     df['y_std_norm_bin'],
                      df['in_domain_bin'],
                      i,
                      os.path.join(sigma_name+'_bin', j),
@@ -538,7 +538,7 @@ class combine:
         plots.assessment(
                          res,
                          df['sigma_y'],
-                         df['y_std']/df['sigma_y'],
+                         df['y_std_norm'],
                          df['in_domain'],
                          sigma_name,
                          )
@@ -601,7 +601,7 @@ class combine:
 
         plots.intervals(
                         df,
-                        'y_std',
+                        'y_std_norm',
                         save=sigma_name+'_bin'
                         )
 
