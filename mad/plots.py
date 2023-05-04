@@ -335,7 +335,7 @@ def intervals(df, metric, save=False):
     Plot the confidence curve:
     '''
 
-    gt = 2
+    gt = 0.05
     q = 10
     metric_name = metric+'_bin'
 
@@ -366,8 +366,14 @@ def intervals(df, metric, save=False):
         maxs = m.max()
         m = m.mean()
 
+        _, pval = stats.mannwhitneyu(
+                                     np.random.normal(0, 1, values.shape[0]),
+                                     values['z']
+                                     )
+
         df.loc[df['bin'] == group, metric_name] = mins
         df.loc[df['bin'] == group, 'var_z_'+metric_name] = zvar
+        df.loc[df['bin'] == group, 'pval'] = pval
 
         zvars.append(zvar)
         mdists.append(m)
@@ -375,7 +381,7 @@ def intervals(df, metric, save=False):
         mdists_maxs.append(maxs)
         rmses.append(rmse)
 
-    df['in_domain_bin'] = df['var_z_'+metric_name] < gt
+    df['in_domain_bin'] = df['pval'] > gt
 
     if save is not False:
 
@@ -414,13 +420,6 @@ def intervals(df, metric, save=False):
                    marker='|',
                    color='k',
                    label='Bin End',
-                   )
-
-        ax.axhline(
-                   gt,
-                   color='g',
-                   linestyle=':',
-                   label='Ground Truth = {:.1f}'.format(gt)
                    )
 
         ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')

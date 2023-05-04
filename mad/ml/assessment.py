@@ -699,7 +699,7 @@ class combine:
                         )
 
         data = pd.concat(data)
-        for i in ['dist', 'y_std']:
+        for i in ['dist', 'y_std_norm']:
             data = plots.intervals(
                                    data,
                                    i,
