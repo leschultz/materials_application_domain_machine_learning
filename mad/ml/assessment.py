@@ -234,8 +234,13 @@ class build_model:
 
             for j in ['dist', 'y_std']:
 
+                if j == 'y_std':
+                    dist = data_cv[j]/data_cv['sigma_y']
+                else:
+                    dist = data_cv[j]
+
                 self.domain_cut[j][i] = plots.pr(
-                                                 data_cv[j],
+                                                 dist,
                                                  data_cv['in_domain'],
                                                  pos_label=i,
                                                  )
@@ -243,7 +248,7 @@ class build_model:
                 for key, value in self.domain_cut[j][i].items():
                     thr = self.domain_cut[j][i][key]['Threshold']
                     do_pred = domain_pred(
-                                          data_cv[j],
+                                          dist,
                                           thr,
                                           i,
                                           )
@@ -501,7 +506,7 @@ class combine:
             else:
                 j = 'od'
             plots.pr(
-                     df['y_std'],
+                     df['y_std']/df['sigma_y'],
                      df['in_domain'],
                      i,
                      os.path.join(sigma_name, j),
