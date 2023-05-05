@@ -270,7 +270,7 @@ class build_model:
 
                 self.domain_bin[j][i] = plots.pr(
                                                  data_cv[j],
-                                                 data_cv['in_domain_bin'],
+                                                 data_cv['in_domain_'+j],
                                                  i
                                                  )
 
@@ -522,14 +522,14 @@ class combine:
 
             plots.pr(
                      df['y_std_norm_bin'],
-                     df['in_domain_bin'],
+                     df['in_domain_y_std_norm_bin'],
                      i,
                      os.path.join(sigma_name+'_bin', j),
                      )
 
             plots.pr(
                      df['dist_bin'],
-                     df['in_domain_bin'],
+                     df['in_domain_dist_bin'],
                      i,
                      os.path.join(dist_name+'_bin', j),
                      )
@@ -572,7 +572,7 @@ class combine:
 
             if 'bin' in name:
                 plots.confusion(
-                                df['in_domain'+'_bin'],
+                                df['in_domain_'+name.split(' ')[2]],
                                 y_pred=df[name].values,
                                 pos_label=pos_label,
                                 save=os.path.join(*[w+'_bin', pos_label, name])

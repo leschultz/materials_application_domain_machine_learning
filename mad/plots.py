@@ -335,7 +335,7 @@ def intervals(df, metric, save=False):
     Plot the confidence curve:
     '''
 
-    gt = 0.05
+    gt = 0.01
     q = 10
     metric_name = metric+'_bin'
 
@@ -386,7 +386,7 @@ def intervals(df, metric, save=False):
     in_domain = pvals > gt
     out_domain = ~in_domain
 
-    df['in_domain_bin'] = df['pval'] > gt
+    df['in_domain_'+metric_name] = df['pval'] > gt
 
     if save is not False:
 
