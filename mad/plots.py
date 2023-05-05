@@ -352,6 +352,7 @@ def intervals(df, metric, save=False):
     mdists_maxs = []
     rmses = []
     stds = []
+    pvals = []
     for group, values in groups:
 
         rmse = values['absres'].values
@@ -367,12 +368,11 @@ def intervals(df, metric, save=False):
         m = m.mean()
 
         _, pval = stats.mannwhitneyu(
-                                     np.random.normal(0, 1, values.shape[0]),
+                                     np.random.normal(0, 1, 1000),
                                      values['z']
                                      )
 
         df.loc[df['bin'] == group, metric_name] = mins
-        df.loc[df['bin'] == group, 'var_z_'+metric_name] = zvar
         df.loc[df['bin'] == group, 'pval'] = pval
 
         zvars.append(zvar)
@@ -380,6 +380,11 @@ def intervals(df, metric, save=False):
         mdists_mins.append(mins)
         mdists_maxs.append(maxs)
         rmses.append(rmse)
+        pvals.append(pval)
+
+    pvals = np.array(pvals)
+    in_domain = pvals > gt
+    out_domain = ~in_domain
 
     df['in_domain_bin'] = df['pval'] > gt
 
@@ -397,13 +402,25 @@ def intervals(df, metric, save=False):
 
         fig, ax = pl.subplots()
 
+        mdists = np.array(mdists)
+        zvars = np.array(zvars)
+        rmses = np.array(rmses)
         pointlabel = 'PPB = {:.2f}'.format(avg_points)
+
         ax.scatter(
-                   mdists,
-                   zvars,
+                   mdists[in_domain],
+                   zvars[in_domain],
                    marker='.',
                    color='b',
-                   label=pointlabel,
+                   label='ID '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists[out_domain],
+                   zvars[out_domain],
+                   marker='x',
+                   color='b',
+                   label='OD '+pointlabel,
                    )
 
         ax.scatter(
@@ -440,10 +457,12 @@ def intervals(df, metric, save=False):
         pl.close(fig)
 
         data = {}
-        data['x'] = mdists
+        data['x_id'] = mdists[in_domain].tolist()
+        data['y_id'] = zvars[in_domain].tolist()
+        data['x_od'] = mdists[out_domain].tolist()
+        data['y_od'] = zvars[out_domain].tolist()
         data['x_min'] = mdists_mins
         data['x_max'] = mdists_maxs
-        data['y'] = zvars
         data['ppb'] = avg_points
         data['z_var_total'] = zvartot
 
@@ -454,11 +473,19 @@ def intervals(df, metric, save=False):
         fig, ax = pl.subplots()
 
         ax.scatter(
-                   mdists,
-                   rmses,
+                   mdists[in_domain],
+                   rmses[in_domain],
                    marker='.',
                    color='b',
-                   label=pointlabel,
+                   label='ID '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists[out_domain],
+                   rmses[out_domain],
+                   marker='x',
+                   color='b',
+                   label='OD '+pointlabel,
                    )
 
         ax.scatter(
@@ -492,14 +519,83 @@ def intervals(df, metric, save=False):
 
         pl.close(fig)
 
-        data['x'] = mdists
+        data['x_id'] = mdists[in_domain].tolist()
+        data['y_id'] = rmses[in_domain].tolist()
+        data['x_od'] = mdists[out_domain].tolist()
+        data['y_od'] = rmses[out_domain].tolist()
         data['x_min'] = mdists_mins
         data['x_max'] = mdists_maxs
-        data['y'] = rmses
         data['ppb'] = avg_points
         data['z_var_total'] = zvartot
 
         jsonfile = os.path.join(save, 'rmse_vs_uq.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        ax.scatter(
+                   mdists[in_domain],
+                   pvals[in_domain],
+                   marker='.',
+                   color='b',
+                   label='ID '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists[out_domain],
+                   pvals[out_domain],
+                   marker='x',
+                   color='b',
+                   label='OD '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists_mins,
+                   pvals,
+                   marker='|',
+                   color='r',
+                   label='Bin Start',
+                   )
+
+        ax.scatter(
+                   mdists_maxs,
+                   pvals,
+                   marker='|',
+                   color='k',
+                   label='Bin End',
+                   )
+
+        ax.axhline(
+                   gt,
+                   color='k',
+                   linestyle=':',
+                   label='GT = {:.2f}'.format(gt),
+                   )
+
+        ax.set_yscale('log')
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('p-value')
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        fig.savefig(os.path.join(
+                                 save,
+                                 'p_vs_uq.png'
+                                 ), bbox_inches='tight')
+
+        pl.close(fig)
+
+        data['x_id'] = mdists[in_domain].tolist()
+        data['y_id'] = pvals[in_domain].tolist()
+        data['x_od'] = mdists[out_domain].tolist()
+        data['y_od'] = pvals[out_domain].tolist()
+        data['x_min'] = mdists_mins
+        data['x_max'] = mdists_maxs
+        data['ppb'] = avg_points
+
+        jsonfile = os.path.join(save, 'p_vs_uq.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 

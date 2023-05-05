@@ -505,6 +505,7 @@ class combine:
                 j = 'id'
             else:
                 j = 'od'
+
             plots.pr(
                      df['y_std_norm'],
                      df['in_domain'],
@@ -577,7 +578,6 @@ class combine:
                                 save=os.path.join(*[w+'_bin', pos_label, name])
                                 )
             else:
-
                 plots.confusion(
                                 df['in_domain'],
                                 y_pred=df[name].values,
