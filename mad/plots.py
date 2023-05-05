@@ -372,7 +372,7 @@ def intervals(df, metric, save=False):
                                      values['z']
                                      )
 
-        df.loc[df['bin'] == group, metric_name] = mins
+        df.loc[df['bin'] == group, metric_name] = maxs
         df.loc[df['bin'] == group, 'pval'] = pval
 
         zvars.append(zvar)
