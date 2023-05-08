@@ -367,10 +367,10 @@ def intervals(df, metric, save=False):
         maxs = m.max()
         m = m.mean()
 
-        _, pval = stats.mannwhitneyu(
-                                     np.random.normal(0, 1, 1000),
-                                     values['z']
-                                     )
+        _, pval = stats.kstest(
+                               np.random.normal(0, 1, 10000),
+                               values['z']
+                               )
 
         df.loc[df['bin'] == group, metric_name] = maxs
         df.loc[df['bin'] == group, 'pval'] = pval
