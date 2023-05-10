@@ -367,10 +367,10 @@ def intervals(df, metric, save=False):
         maxs = m.max()
         m = m.mean()
 
-        _, pval = stats.kstest(
-                               np.random.normal(0, 1, 10000),
-                               values['z']
-                               )
+        if values.shape[0] < 2:
+            pval = 0.0
+        else:
+            pval = stats.cramervonmises(values['z'], 'norm').pvalue
 
         df.loc[df['bin'] == group, metric_name] = maxs
         df.loc[df['bin'] == group, 'pval'] = pval
