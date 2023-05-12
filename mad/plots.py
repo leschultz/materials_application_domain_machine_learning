@@ -336,7 +336,7 @@ def intervals(df, metric, save=False):
     '''
 
     gt = 0.01
-    q = 10
+    q = df.shape[0]//100
     metric_name = metric+'_bin'
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
@@ -367,10 +367,14 @@ def intervals(df, metric, save=False):
         maxs = m.max()
         m = m.mean()
 
-        pval = stats.anderson_ksamp([
-                                     values['z'],
-                                     np.random.normal(0, 1, 1000),
-                                     ]).pvalue
+        if values.shape[0] > 2:
+            pval = stats.cramervonmises(
+                                        values['z'].values,
+                                        'norm',
+                                        (0, 1)
+                                        ).pvalue
+        else:
+            pval = 0.0
 
         df.loc[df['bin'] == group, metric_name] = maxs
         df.loc[df['bin'] == group, 'pval'] = pval
