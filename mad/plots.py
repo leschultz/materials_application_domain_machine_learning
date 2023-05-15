@@ -337,6 +337,10 @@ def intervals(df, metric, save=False):
 
     gt = 0.01
     q = df.shape[0]//100
+
+    if q < 1:
+        q = 1
+        
     metric_name = metric+'_bin'
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
