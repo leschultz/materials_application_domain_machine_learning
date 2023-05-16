@@ -499,6 +499,19 @@ class combine:
                            job_name
                            )
 
+        # Plot the confidence curve
+        df = plots.intervals(
+                             df,
+                             'dist',
+                             save=dist_name+'_bin'
+                             )
+
+        df = plots.intervals(
+                             df,
+                             'y_std_norm',
+                             save=sigma_name+'_bin'
+                             )
+
         # Precision recall for in domain
         for i in [True, False]:
             if i is True:
@@ -591,19 +604,6 @@ class combine:
                          df['in_domain'],
                          save=job_name
                          )
-
-        # Plot the confidence curve
-        plots.intervals(
-                        df,
-                        'dist',
-                        save=dist_name+'_bin'
-                        )
-
-        plots.intervals(
-                        df,
-                        'y_std_norm',
-                        save=sigma_name+'_bin'
-                        )
 
         # Plot parity
         plots.parity(
