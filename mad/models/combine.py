@@ -186,7 +186,7 @@ class domain_model:
         data_cv['y/std(y)'] = data_cv['y']/data_cv['sigma_y']
 
         # Ground truth
-        data_cv['id'] = data_cv['r']/data_cv['sigma_y'] < 1.0
+        data_cv['id'] = data_cv['r'] < data_cv['sigma_y']
 
         # Get data for bins
         data_cv_bin = data_cv[[
@@ -233,8 +233,8 @@ class domain_model:
                               ]
                              )
         data_cv_bin = data_cv_bin.reset_index()
-        data_cv_bin['dist_min'] = data_cv_bin['bin'].apply(lambda x: x.left)
-        data_cv_bin['dist_max'] = data_cv_bin['bin'].apply(lambda x: x.right)
+        data_cv_bin['dist_min'] = data_cv_bin['bin'].apply(lambda x: x.left).astype(float)
+        data_cv_bin['dist_max'] = data_cv_bin['bin'].apply(lambda x: x.right).astype(float)
 
         # Ground truth for bins
         data_cv_bin['id']  = data_cv_bin['pval'] > 0.01
@@ -249,10 +249,8 @@ class domain_model:
                           save=self.save,
                           )
         
-        print(data_cv_bin['dist_max'])
-
         thresh_bin = plots.pr(
-                              data_cv_bin['dist_max'],
+                              data_cv_bin['dist_max'].values,
                               data_cv_bin['id'],
                               True,
                               save=self.save,
