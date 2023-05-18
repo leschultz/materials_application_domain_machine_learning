@@ -254,7 +254,7 @@ def cdf(x):
     return y, y_pred, area
 
 
-def cdf_parity(x, in_domain, save):
+def cdf_parity(x, save):
     '''
     Plot the quantile quantile plot for cummulative distributions.
     inputs:
@@ -263,9 +263,6 @@ def cdf_parity(x, in_domain, save):
 
     os.makedirs(save, exist_ok=True)
 
-    out_domain = ~in_domain
-
-    data = {}
     fig, ax = pl.subplots()
 
     y, y_pred, area = cdf(x)
@@ -274,34 +271,8 @@ def cdf_parity(x, in_domain, save):
             y_pred,
             zorder=0,
             color='b',
-            label='Total Area: {:.3f}'.format(area),
+            label='Area: {:.3f}'.format(area),
             )
-    data['y'] = list(y)
-    data['y_pred'] = list(y_pred)
-
-    if x[in_domain].shape[0] > 1:
-        y_id, y_pred_id, in_area = cdf(x[in_domain])
-        ax.plot(
-                y_id,
-                y_pred_id,
-                zorder=0,
-                color='g',
-                label='ID Area: {:.3f}'.format(in_area),
-                )
-        data['y_id'] = list(y_id)
-        data['y_pred_id'] = list(y_pred_id)
-
-    if x[out_domain].shape[0] > 1:
-        y_od, y_pred_od, out_area = cdf(x[out_domain])
-        ax.plot(
-                y_od,
-                y_pred_od,
-                zorder=0,
-                color='r',
-                label='OD Area: {:.3f}'.format(out_area),
-                )
-        data['y_od'] = list(y_od)
-        data['y_pred_od'] = list(y_pred_od)
 
     # Line of best fit
     ax.plot(
@@ -326,8 +297,11 @@ def cdf_parity(x, in_domain, save):
 
     pl.close(fig)
 
-    jsonfile = os.path.join(save, 'cdf_parity.json')
-    with open(jsonfile, 'w') as handle:
+    data = {}
+    data['y'] = list(y)
+    data['y_pred'] = list(y_pred)
+    data['Area'] = area
+    with open(os.path.join(save, 'cdf_parity.json'), 'w') as handle:
         json.dump(data, handle)
 
 
@@ -381,7 +355,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     data_cv_bin[metric+'_max'] = data_cv_bin[metric+'_max'].astype(float)
 
     # Ground truth for bins
-    data_cv_bin['id']  = data_cv_bin['pval'] > gt
+    data_cv_bin['id'] = data_cv_bin['pval'] > gt
 
     if save is not False:
 

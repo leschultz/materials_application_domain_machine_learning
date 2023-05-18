@@ -189,6 +189,9 @@ class domain_model:
         # Ground truth
         data_cv['id'] = data_cv['r'] < data_cv['std(y)']
 
+        if self.save:
+            plots.cdf_parity(data_cv['z'], self.save)
+
         th = {}
         data_cv_bin = {}
         prsave = os.path.join(self.save, 'pr')
@@ -220,7 +223,7 @@ class domain_model:
                                   j,
                                   save=os.path.join(prdomainsave, 'single'),
                                   )
-                
+
                 thresh_bin = plots.pr(
                                       data_cv_bin[i][i+'_max'],
                                       data_cv_bin[i]['id'],
