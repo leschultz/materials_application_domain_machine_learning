@@ -230,6 +230,7 @@ class domain_model:
                 th[i][k] = thresh
                 th[i][k+'_bin'] = thresh_bin
 
+        self.thresholds = th
         self.data_cv = data_cv
         self.data_cv_bin = data_cv_bin
         return data_cv, data_cv_bin
@@ -259,6 +260,41 @@ class domain_model:
                 'y_stdc/std(y)': y_stdc_norm,
                 'dist': dist,
                 }
+
+        def domain_pred(dist, dist_cut, domain):
+            '''
+            Predict the domain based on thresholds.
+            '''
+
+            do_pred = []
+            for i in dist:
+                if domain is True:
+                    if i < dist_cut:
+                        do_pred.append(True)
+                    else:
+                        do_pred.append(False)
+                elif domain is False:
+                    if i >= dist_cut:
+                        do_pred.append(True)
+                    else:
+                        do_pred.append(False)
+
+            return do_pred
+
+        for i in ['y_stdc/std(y)', 'dist']:
+            for j, k in zip([True, False], ['id', 'od']):
+                for key, value in self.thresholds[i][k].items():
+                    thr = value['Threshold']
+                    do_pred = domain_pred(
+                                          pred[i],
+                                          thr,
+                                          j,
+                                          )
+
+                    if j is True:
+                        pred['ID by {} for {}'.format(i, key)] = do_pred
+                    else:
+                        pred['OD by {} for {}'.format(i, key)] = do_pred
 
         pred = pd.DataFrame(pred)
 
