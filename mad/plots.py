@@ -336,17 +336,14 @@ def intervals(df, metric, save=False):
     '''
 
     gt = 0.01
-    q = df.shape[0]//100
+    q = 10
 
-    if q < 1:
-        q = 1
-        
     metric_name = metric+'_bin'
 
     df['absres'] = abs(df['y'].values-df['y_pred'].values)
     df['absres'] = df['absres']/df['sigma_y']
 
-    df['bin'] = pd.qcut(df[metric].rank(method='first'), q=q)
+    df['bin'] = pd.cut(df[metric].rank(method='first'), bins=q)
 
     groups = df.groupby('bin')
 
@@ -358,6 +355,9 @@ def intervals(df, metric, save=False):
     stds = []
     pvals = []
     for group, values in groups:
+
+        if values.shape[0] < 1:
+            continue
 
         rmse = values['absres'].values
         rmse = rmse**2
