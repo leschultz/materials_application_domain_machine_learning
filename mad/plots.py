@@ -6,6 +6,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from functools import reduce
 from scipy import stats
 
 import seaborn as sns
@@ -330,89 +331,82 @@ def cdf_parity(x, in_domain, save):
         json.dump(data, handle)
 
 
-def intervals(df, metric, save=False):
+def intervals(data_cv, metric, bins, gt=0.01, save=False):
     '''
     Plot the confidence curve:
     '''
 
-    gt = 0.01
-    q = 10
+    # Get data for bins
+    subset = [metric, 'z', 'r/std(y)']
+    data_cv_bin = data_cv[subset].copy()
 
-    metric_name = metric+'_bin'
+    data_cv_bin['bin'] = pd.qcut(
+                                 data_cv_bin[metric],
+                                 bins,
+                                 )
 
-    df['absres'] = abs(df['y'].values-df['y_pred'].values)
-    df['absres'] = df['absres']/df['sigma_y']
+    # Bin statistics
+    bin_groups = data_cv_bin.groupby('bin')
+    distmean = bin_groups[metric].mean()
+    zvar = bin_groups['z'].var()
+    rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+    pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
+                                                                 x,
+                                                                 'norm',
+                                                                 (0, 1)
+                                                                 ).pvalue)
+    counts = bin_groups['z'].count()
 
-    df['bin'] = pd.cut(df[metric].rank(method='first'), bins=q)
+    distmean = distmean.to_frame().add_suffix('_mean')
+    zvar = zvar.to_frame().add_suffix('_var')
+    rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
+    pvals = pvals.to_frame().rename({'z': 'pval'}, axis=1)
+    counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
-    groups = df.groupby('bin')
+    data_cv_bin = reduce(
+                         lambda x, y: pd.merge(x, y, on='bin'),
+                         [
+                          distmean,
+                          zvar,
+                          rmse,
+                          pvals,
+                          counts,
+                          ]
+                         )
 
-    zvars = []
-    mdists = []
-    mdists_mins = []
-    mdists_maxs = []
-    rmses = []
-    stds = []
-    pvals = []
-    for group, values in groups:
+    data_cv_bin = data_cv_bin.reset_index()
+    data_cv_bin[metric+'_min'] = data_cv_bin['bin'].apply(lambda x: x.left)
+    data_cv_bin[metric+'_max'] = data_cv_bin['bin'].apply(lambda x: x.right)
+    data_cv_bin[metric+'_min'] = data_cv_bin[metric+'_min'].astype(float)
+    data_cv_bin[metric+'_max'] = data_cv_bin[metric+'_max'].astype(float)
 
-        if values.shape[0] < 1:
-            continue
-
-        rmse = values['absres'].values
-        rmse = rmse**2
-        rmse = sum(rmse)/len(rmse)
-        rmse = rmse**0.5
-
-        zvar = values['z'].var()
-
-        m = values[metric]
-        mins = m.min()
-        maxs = m.max()
-        m = m.mean()
-
-        if values.shape[0] > 2:
-            pval = stats.cramervonmises(
-                                        values['z'].values,
-                                        'norm',
-                                        (0, 1)
-                                        ).pvalue
-        else:
-            pval = 0.0
-
-        df.loc[df['bin'] == group, metric_name] = maxs
-        df.loc[df['bin'] == group, 'pval'] = pval
-
-        zvars.append(zvar)
-        mdists.append(m)
-        mdists_mins.append(mins)
-        mdists_maxs.append(maxs)
-        rmses.append(rmse)
-        pvals.append(pval)
-
-    pvals = np.array(pvals)
-    in_domain = pvals > gt
-    out_domain = ~in_domain
-
-    df['in_domain_'+metric_name] = df['pval'] > gt
+    # Ground truth for bins
+    data_cv_bin['id']  = data_cv_bin['pval'] > gt
 
     if save is not False:
 
         os.makedirs(save, exist_ok=True)
 
-        avg_points = df.shape[0]/q
-        zvartot = df['z'].var()
+        avg_points = data_cv.shape[0]/bins
+        zvartot = data_cv['z'].var()
 
-        if 'y_std' in metric:
+        if 'y_stdc/std(y)' in metric:
             xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
         else:
             xlabel = 'Mean Dissimilarity'
 
         fig, ax = pl.subplots()
 
-        mdists = np.array(mdists)
-        zvars = np.array(zvars)
-        rmses = np.array(rmses)
+        mdists = data_cv_bin[metric+'_mean']
+        zvars = data_cv_bin['z_var']
+        rmses = data_cv_bin['rmse/std(y)']
+        mdists_mins = data_cv_bin[metric+'_min']
+        mdists_maxs = data_cv_bin[metric+'_max']
+        pvals = data_cv_bin['pval']
+
+        in_domain = data_cv_bin['id']
+        out_domain = ~in_domain
+
         pointlabel = 'PPB = {:.2f}'.format(avg_points)
 
         ax.scatter(
@@ -469,8 +463,8 @@ def intervals(df, metric, save=False):
         data['y_id'] = zvars[in_domain].tolist()
         data['x_od'] = mdists[out_domain].tolist()
         data['y_od'] = zvars[out_domain].tolist()
-        data['x_min'] = mdists_mins
-        data['x_max'] = mdists_maxs
+        data['x_min'] = mdists_mins.tolist()
+        data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
         data['z_var_total'] = zvartot
 
@@ -531,8 +525,8 @@ def intervals(df, metric, save=False):
         data['y_id'] = rmses[in_domain].tolist()
         data['x_od'] = mdists[out_domain].tolist()
         data['y_od'] = rmses[out_domain].tolist()
-        data['x_min'] = mdists_mins
-        data['x_max'] = mdists_maxs
+        data['x_min'] = mdists_mins.tolist()
+        data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
         data['z_var_total'] = zvartot
 
@@ -599,15 +593,15 @@ def intervals(df, metric, save=False):
         data['y_id'] = pvals[in_domain].tolist()
         data['x_od'] = mdists[out_domain].tolist()
         data['y_od'] = pvals[out_domain].tolist()
-        data['x_min'] = mdists_mins
-        data['x_max'] = mdists_maxs
+        data['x_min'] = mdists_mins.tolist()
+        data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
 
         jsonfile = os.path.join(save, 'p_vs_uq.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-    return df
+    return data_cv_bin
 
 
 def ground_truth(y, y_pred, y_std, std, in_domain, save):
@@ -885,49 +879,6 @@ def pr(score, in_domain, pos_label, save=False):
         data.update(custom)
 
         jsonfile = os.path.join(save, 'pr.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        fig, ax = pl.subplots()
-
-        ax.plot(
-                thresholds,
-                recall[:-1],
-                color='b',
-                label='Recall'
-                )
-
-        ax.plot(
-                thresholds,
-                precision[:-1],
-                color='k',
-                label='Precision'
-                )
-
-        ax.plot(
-                thresholds,
-                f1_scores[:-1],
-                color='g',
-                label='F1'
-                )
-
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-        ax.set_ylim(0.0, 1.05)
-
-        ax.set_xlabel('Thresholds')
-        ax.set_ylabel('Recall, Precision, or F1')
-
-        fig.savefig(os.path.join(save, 'thresholds.png'), bbox_inches='tight')
-        pl.close(fig)
-
-        # Repare plot data for saving
-        data = {}
-        data['recall'] = list(recall[:-1])
-        data['precision'] = list(precision[:-1])
-        data['thresholds'] = list(thresholds)
-
-        jsonfile = os.path.join(save, 'thresholds.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
