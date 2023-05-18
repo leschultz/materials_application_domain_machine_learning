@@ -63,7 +63,7 @@ class nested_cv:
         train, test, count, name = split  # train/test
 
         # Fit models
-        data_cv = self.model.fit(self.X[train], self.y[train], self.g[train])
+        self.model.fit(self.X[train], self.y[train], self.g[train])
         data_test = self.model.predict(self.X[test])
 
         data_test['y'] = self.y[test]
@@ -74,15 +74,11 @@ class nested_cv:
         data_test['split'] = 'test'
         data_test['type'] = name
         data_test['y/std(y)'] = data_test['y']/self.model.ystd
-        data_test['z'] = (data_test['y']-data_test['y_pred'])/data_test['y_std']
+        data_test['r'] = data_test['y']-data_test['y_pred']
+        data_test['z'] = data_test['r']/data_test['y_stdc']
+        data_test['index'] = data_test['index'].astype(int)
 
-        data_cv['fold'] = count
-        data_cv['split'] = 'train'
-
-        data = pd.concat([data_cv, data_test])
-        data['index'] = data['index'].astype(int)
-
-        return data
+        return data_test
 
     def run(self):
         df = parallel(self.assess, self.splits)
