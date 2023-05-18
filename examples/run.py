@@ -57,7 +57,7 @@ def main():
         splits.append(('agglo_{}'.format(i), top_split))
 
     # Fit models
-    model = domain_model(gs_model, ds_model, uq_model, splits)
+    model = domain_model(gs_model, ds_model, uq_model, splits, save='test')
     #data_test = nested_cv(X, y, g, model, splits).run()
     data_test = model.fit(X, y, g)
 

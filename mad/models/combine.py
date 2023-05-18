@@ -1,6 +1,8 @@
 from sklearn.base import clone
 from functools import reduce
 from sklearn import metrics
+from scipy import stats
+from mad import plots
 
 import pandas as pd
 import numpy as np
@@ -16,6 +18,7 @@ class domain_model:
                  uq_model,
                  splits,
                  bins=10,
+                 save=False,
                  ):
 
         self.gs_model = gs_model
@@ -23,6 +26,7 @@ class domain_model:
         self.uq_model = uq_model
         self.splits = splits
         self.bins = bins
+        self.save = save
 
     def transforms(self, gs_model, X):
 
@@ -181,6 +185,9 @@ class domain_model:
         data_cv['y_pred/std(y)'] = data_cv['y_pred']/data_cv['sigma_y']
         data_cv['y/std(y)'] = data_cv['y']/data_cv['sigma_y']
 
+        # Ground truth
+        data_cv['id'] = data_cv['r']/data_cv['sigma_y'] < 1.0
+
         # Get data for bins
         data_cv_bin = data_cv[[
                                'y_stdc/std(y)',
@@ -190,8 +197,8 @@ class domain_model:
                                ]].copy()
 
         data_cv_bin['bin'] = pd.qcut(
-                                     data_cv['dist'],
-                                     q=self.bins,
+                                     data_cv_bin['dist'],
+                                     self.bins,
                                      )
 
         # Bin statistics
@@ -200,12 +207,18 @@ class domain_model:
         stdmean = bin_groups['y_stdc/std(y)'].mean()
         zvar = bin_groups['z'].var()
         rmse = bin_groups['r'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+        pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
+                                                                     x,
+                                                                     'norm',
+                                                                     (0, 1)
+                                                                     ).pvalue)
         counts = bin_groups['r'].count()
 
         distmean = distmean.to_frame().add_suffix('_mean')
         stdmean = stdmean.to_frame().add_suffix('_mean')
         zvar = zvar.to_frame().add_suffix('_var')
         rmse = rmse.to_frame().rename({'r': 'rmse'}, axis=1)
+        pvals = pvals.to_frame().rename({'z': 'pval'}, axis=1)
         counts = counts.to_frame().rename({'r': 'count'}, axis=1)
 
         data_cv_bin = reduce(
@@ -215,17 +228,38 @@ class domain_model:
                               stdmean,
                               zvar,
                               rmse,
+                              pvals,
                               counts,
                               ]
                              )
         data_cv_bin = data_cv_bin.reset_index()
         data_cv_bin['dist_min'] = data_cv_bin['bin'].apply(lambda x: x.left)
         data_cv_bin['dist_max'] = data_cv_bin['bin'].apply(lambda x: x.right)
-        print(data_cv_bin)
+
+        # Ground truth for bins
+        data_cv_bin['id']  = data_cv_bin['pval'] > 0.01
 
         self.data_cv = data_cv
+        self.data_cv_bin = data_cv_bin
 
-        return data_cv
+        thresh = plots.pr(
+                          data_cv['dist'],
+                          data_cv['id'],
+                          True,
+                          save=self.save,
+                          )
+        
+        print(data_cv_bin['dist_max'])
+
+        thresh_bin = plots.pr(
+                              data_cv_bin['dist_max'],
+                              data_cv_bin['id'],
+                              True,
+                              save=self.save,
+                              )
+
+
+        return data_cv, data_cv_bin
 
     def predict(self, X):
 
