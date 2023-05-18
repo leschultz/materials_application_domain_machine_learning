@@ -7,6 +7,7 @@ from mad import plots
 import pandas as pd
 import numpy as np
 import copy
+import os
 
 
 class domain_model:
@@ -242,18 +243,21 @@ class domain_model:
         self.data_cv = data_cv
         self.data_cv_bin = data_cv_bin
 
+
+        prsave = os.path.join(self.save, 'pr')
+        pridsave = os.path.join(prsave, 'id')
         thresh = plots.pr(
                           data_cv['dist'],
                           data_cv['id'],
                           True,
-                          save=self.save,
+                          save=os.path.join(pridsave, 'single'),
                           )
         
         thresh_bin = plots.pr(
                               data_cv_bin['dist_max'].values,
                               data_cv_bin['id'],
                               True,
-                              save=self.save,
+                              save=os.path.join(pridsave, 'bin')
                               )
 
 
