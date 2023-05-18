@@ -190,20 +190,33 @@ class domain_model:
         data_cv['id'] = data_cv['r'] < data_cv['std(y)']
 
         if self.save:
+            plots.parity(
+                         data_cv['y'],
+                         data_cv['y_pred'],
+                         self.ystd,
+                         self.save
+                         )
             plots.cdf_parity(data_cv['z'], self.save)
 
         th = {}
         data_cv_bin = {}
-        prsave = os.path.join(self.save, 'pr')
-        intervalsave = os.path.join(self.save, 'intervals')
+        if self.save:
+            prsave = os.path.join(self.save, 'pr')
+            intervalsave = os.path.join(self.save, 'intervals')
+        else:
+            prsave = intervalsave = self.save
+
         for i in ['y_stdc/std(y)', 'dist']:
 
-            name = i.replace('/', '_')
-            prdistsave = os.path.join(prsave, name)
-            intervaldistsave = os.path.join(
-                                            intervalsave,
-                                            name,
-                                            )
+            if self.save:
+                name = i.replace('/', '_')
+                prdistsave = os.path.join(prsave, name)
+                intervaldistsave = os.path.join(
+                                                intervalsave,
+                                                name,
+                                                )
+            else:
+                prdistsave = intervaldistsave = self.save
 
             dist_bin = plots.intervals(
                                        data_cv,
@@ -216,19 +229,25 @@ class domain_model:
             th[i] = {}
             for j, k in zip([True, False], ['id', 'od']):
 
-                prdomainsave = os.path.join(prdistsave, k)
+                if self.save:
+                    prdomainsave = os.path.join(prdistsave, k)
+                    singlesave = os.path.join(prdomainsave, 'single')
+                    binsave = os.path.join(prdomainsave, 'bin')
+                else:
+                    singlesave = binsave = self.save
+
                 thresh = plots.pr(
                                   data_cv[i],
                                   data_cv['id'],
                                   j,
-                                  save=os.path.join(prdomainsave, 'single'),
+                                  save=singlesave,
                                   )
 
                 thresh_bin = plots.pr(
                                       data_cv_bin[i][i+'_max'],
                                       data_cv_bin[i]['id'],
                                       j,
-                                      save=os.path.join(prdomainsave, 'bin'),
+                                      save=binsave,
                                       )
                 th[i][k] = thresh
                 th[i][k+'_bin'] = thresh_bin

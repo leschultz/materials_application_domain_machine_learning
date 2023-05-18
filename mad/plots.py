@@ -5,6 +5,8 @@ from sklearn.metrics import (
                              auc
                              )
 
+from sklearn import metrics
+
 from matplotlib import pyplot as pl
 from functools import reduce
 from scipy import stats
@@ -23,13 +25,9 @@ matplotlib.rcParams.update(font)
 
 
 def parity(
-           mets,
            y,
            y_pred,
-           in_domain,
-           y_pred_sem=None,
-           name='',
-           units='',
+           sigma_y,
            save='.'
            ):
     '''
@@ -39,137 +37,43 @@ def parity(
         mets = The regression metrics.
         y = The true target value.
         y_pred = The predicted target value.
-        y_pred_sem = The standard error of the mean in predicted values.
-        name = The name of the target value.
-        units = The units of the target value.
+        sigma_y = The standard deviation of target.
         save = The directory to save plot.
     '''
 
     os.makedirs(save, exist_ok=True)
 
-    out_domain = ~in_domain
+    rmse = metrics.mean_squared_error(y, y_pred)**0.5
 
-    labels = {}
-    mets_save = {}
-
-    if y_pred_sem is not None:
-
-        for i in [True, False]:
-
-            m = mets[mets['in_domain'] == i]
-
-            if m.shape[0] > 0:
-
-                m = m.to_dict(orient='records')[0]
-
-                rmse_sigma = m[r'$RMSE/\sigma_{y}$_mean']
-                rmse_sigma_sem = m[r'$RMSE/\sigma_{y}$_sem']
-
-                rmse = m[r'$RMSE$_mean']
-                rmse_sem = m[r'$RMSE$_sem']
-
-                mae = m[r'$MAE$_mean']
-                mae_sem = m[r'$MAE$_sem']
-
-                r2 = m[r'$R^{2}$_mean']
-                r2_sem = m[r'$R^{2}$_sem']
-
-                label = r'$RMSE/\sigma_{y}=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(
-                                                     rmse_sigma,
-                                                     rmse_sigma_sem
-                                                     )
-                label += '\n'
-                label += r'$RMSE=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(rmse, rmse_sem)
-                label += '\n'
-                label += r'$MAE=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(mae, mae_sem)
-                label += '\n'
-                label += r'$R^{2}=$'
-                label += r'{:.2} $\pm$ {:.2}'.format(r2, r2_sem)
-
-                labels[i] = label
-                mets_save[i] = m
-
-            else:
-                labels[i] = 'No out of domain'
-                mets_save[i] = 'No out of domain'
-
+    if y.shape[0] > 1:
+        rmse_sigma = rmse/sigma_y
     else:
+        rmse_sigma = np.nan
 
-        for i in [True, False]:
+    mae = metrics.mean_absolute_error(y, y_pred)
+    r2 = metrics.r2_score(y, y_pred)
 
-            m = mets[mets['in_domain'] == i]
-
-            if m.shape[0] > 0:
-
-                m = m.to_dict(orient='records')[0]
-
-                rmse_sigma = m[r'$RMSE/\sigma_{y}$']
-                rmse = m[r'$RMSE$']
-                mae = m[r'$MAE$']
-                r2 = m[r'$R^{2}$']
-
-                label = r'$RMSE/\sigma_{y}=$'
-                label += r'{:.2}'.format(rmse_sigma)
-                label += '\n'
-                label += r'$RMSE=$'
-                label += r'{:.2}'.format(rmse)
-                label += '\n'
-                label += r'$MAE=$'
-                label += r'{:.2}'.format(mae)
-                label += '\n'
-                label += r'$R^{2}=$'
-                label += r'{:.2}'.format(r2)
-
-                labels[i] = label
-                mets_save[i] = m
-
-            else:
-                labels[i] = 'No out of domain'
-                mets_save[i] = 'No out of domain'
+    label = r'$RMSE/\sigma_{y}=$'
+    label += r'{:.2}'.format(rmse_sigma)
+    label += '\n'
+    label += r'$RMSE=$'
+    label += r'{:.2}'.format(rmse)
+    label += '\n'
+    label += r'$MAE=$'
+    label += r'{:.2}'.format(mae)
+    label += '\n'
+    label += r'$R^{2}=$'
+    label += r'{:.2}'.format(r2)
 
     fig, ax = pl.subplots()
 
-    if y_pred_sem is not None:
-        ax.errorbar(
-                    y[in_domain],
-                    y_pred[in_domain],
-                    y_pred_sem[in_domain],
-                    linestyle='none',
-                    marker='.',
-                    markerfacecolor='None',
-                    zorder=1,
-                    color='b',
-                    )
-        ax.errorbar(
-                    y[out_domain],
-                    y_pred[out_domain],
-                    yerr=y_pred_sem[out_domain],
-                    linestyle='none',
-                    marker='x',
-                    markerfacecolor='None',
-                    zorder=0,
-                    color='r',
-                    )
-
     ax.scatter(
-               y[in_domain],
-               y_pred[in_domain],
+               y,
+               y_pred,
                marker='.',
                zorder=2,
                color='b',
-               label=labels[True],
-               )
-
-    ax.scatter(
-               y[out_domain],
-               y_pred[out_domain],
-               marker='x',
-               zorder=1,
-               color='r',
-               label=labels[False],
+               label=label,
                )
 
     limits = []
@@ -195,8 +99,8 @@ def parity(
 
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-    ax.set_ylabel('Predicted {} {}'.format(name, units))
-    ax.set_xlabel('Actual {} {}'.format(name, units))
+    ax.set_ylabel(r'$\hat{y}$')
+    ax.set_xlabel('y')
 
     h = 8
     w = 8
@@ -205,19 +109,13 @@ def parity(
     fig.savefig(os.path.join(save, 'parity.png'), bbox_inches='tight')
     pl.close(fig)
 
-    # Repare plot data for saving
     data = {}
-    data['y_pred_id'] = list(y_pred[in_domain])
-    data['y_id'] = list(y[in_domain])
-    data['metrics'] = mets_save[True]
-
-    data['y_pred_od'] = list(y_pred[out_domain])
-    data['y_od'] = list(y[out_domain])
-    data['metrics'] = mets_save[False]
-
-    if y_pred_sem is not None:
-        data['y_pred_sem'] = list(y_pred_sem[in_domain])
-        data['y_pred_sem'] = list(y_pred_sem[out_domain])
+    data[r'$RMSE$'] = rmse
+    data[r'$RMSE/\sigma_{y}$'] = rmse_sigma
+    data[r'$MAE$'] = mae
+    data[r'$R^{2}$'] = r2
+    data['y'] = y.tolist()
+    data['y_pred'] = y_pred.tolist()
 
     jsonfile = os.path.join(save, 'parity.json')
     with open(jsonfile, 'w') as handle:
