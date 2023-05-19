@@ -5,12 +5,12 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+from mad.ml.splitters import BootstrappedClusterSplit
 from mad.models.space import distance_model
 from mad.models.combine import domain_model
 from mad.models.uq import ensemble_model
 from mad.ml.assessment import nested_cv
 from mad.datasets import load_data
-from mad.ml import splitters
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     run_name = 'run'
 
     # Load data
-    data = load_data.diffusion()
+    data = load_data.replace_data
     X = data['data']
     y = data['target']
     g = data['class_name']
@@ -48,20 +48,18 @@ def main():
     for i in [2, 3]:
 
         # Cluster Splits
-        top_split = splitters.BootstrappedClusterSplit(
-                                                       AgglomerativeClustering,
-                                                       n_repeats=n_repeats,
-                                                       n_clusters=i
-                                                       )
+        top_split = BootstrappedClusterSplit(
+                                             AgglomerativeClustering,
+                                             n_repeats=n_repeats,
+                                             n_clusters=i
+                                             )
 
         splits.append(('agglo_{}'.format(i), top_split))
 
     # Fit models
-    model = domain_model(gs_model, ds_model, uq_model, splits, save='test')
-    #data_test = nested_cv(X, y, g, model, splits).run()
-    data_test = model.fit(X, y, g)
-
-    print(data_test)
+    model = domain_model(gs_model, ds_model, uq_model, splits)
+    cv = nested_cv(X, y, g, model, splits, save='test')
+    cv.assess()
 
 
 if __name__ == '__main__':
