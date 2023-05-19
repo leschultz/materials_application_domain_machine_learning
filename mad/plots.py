@@ -791,7 +791,7 @@ def pr(score, in_domain, pos_label, save=False):
         for key, value in custom.items():
             custom[key]['Threshold'] *= -1
 
-    if save is not False:
+    if save:
 
         os.makedirs(save, exist_ok=True)
 

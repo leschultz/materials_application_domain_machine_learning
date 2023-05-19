@@ -71,6 +71,9 @@ class domain_model:
                                                   g[train],
                                                   )):
 
+            if tr.shape[0] < 1:
+                continue
+
             gs_model_cv = clone(gs_model)
             ds_model_cv = copy.deepcopy(ds_model)
 
