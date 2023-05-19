@@ -33,8 +33,8 @@ def generate_plots(data_cv, ystd, bins, save):
         intervalsave = os.path.join(save, 'intervals')
 
         parity(
-               data_cv['y'],
-               data_cv['y_pred'],
+               data_cv['y'].values,
+               data_cv['y_pred'].values,
                ystd,
                singlesave,
                )
@@ -282,6 +282,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     data_cv_bin['bin'] = pd.qcut(
                                  data_cv_bin[metric],
                                  bins,
+                                 duplicates='drop',
                                  )
 
     # Bin statistics
@@ -540,12 +541,16 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
+        data_cv_bin.to_csv(os.path.join(
+                                        save,
+                                        'bin.csv'
+                                        ))
+
+
     return data_cv_bin
 
 
 def ground_truth(data_cv, metric, save):
-
-    os.makedirs(save, exist_ok=True)
 
     absres = abs(data_cv['r/std(y)'])
     dist = data_cv[metric]
@@ -556,6 +561,8 @@ def ground_truth(data_cv, metric, save):
     data_cv['id'] = in_domain
 
     if save:
+        os.makedirs(save, exist_ok=True)
+
         fig, ax = pl.subplots()
 
         ax.scatter(

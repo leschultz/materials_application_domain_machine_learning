@@ -5,7 +5,9 @@ from mad import plots
 
 import pandas as pd
 import numpy as np
+import json
 import copy
+import os
 
 
 class domain_model:
@@ -195,9 +197,19 @@ class domain_model:
                                    )
         th, data_cv_bin = out
 
+        if self.save:
+            data_cv.to_csv(os.path.join(
+                                        self.save,
+                                        'single.csv'
+                                        ))
+            jsonfile = os.path.join(
+                                    self.save,
+                                    'thresholds.json'
+                                    )
+            with open(jsonfile, 'w') as handle:
+                json.dump(th, handle)
+
         self.thresholds = th
-        self.data_cv = data_cv
-        self.data_cv_bin = data_cv_bin
         return data_cv, data_cv_bin
 
     def predict(self, X):
