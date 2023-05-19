@@ -24,6 +24,73 @@ font = {'font.size': 16, 'lines.markersize': 10}
 matplotlib.rcParams.update(font)
 
 
+def generate_plots(data_cv, ystd, bins, save):
+
+    th = {}
+    data_cv_bin = {}
+    if save:
+        singlesave = os.path.join(save, 'single')
+        intervalsave = os.path.join(save, 'intervals')
+
+        parity(
+               data_cv['y'],
+               data_cv['y_pred'],
+               ystd,
+               singlesave,
+               )
+        cdf_parity(data_cv['z'], singlesave)
+
+    else:
+        singlesave = intervalsave = save
+
+    for i in ['y_stdc/std(y)', 'dist']:
+
+        if save:
+            name = i.replace('/', '_')
+            singledistsave = os.path.join(singlesave, name)
+            intervaldistsave = os.path.join(
+                                            intervalsave,
+                                            name,
+                                            )
+        else:
+            singledistsave = intervaldistsave = save
+
+        ground_truth(data_cv, i, singledistsave)
+        dist_bin = intervals(
+                             data_cv,
+                             i,
+                             bins,
+                             save=intervaldistsave,
+                             )
+        data_cv_bin[i] = dist_bin
+
+        th[i] = {}
+        for j, k in zip([True, False], ['id', 'od']):
+
+            if save:
+                singledomainsave = os.path.join(singledistsave, k)
+                intervaldomainsave = os.path.join(intervaldistsave, k)
+            else:
+                singledomainsave = intervaldomainsave = save
+
+            thresh = pr(
+                        data_cv[i],
+                        data_cv['id'],
+                        j,
+                        save=singledomainsave,
+                        )
+
+            thresh_bin = pr(
+                            data_cv_bin[i][i+'_max'],
+                            data_cv_bin[i]['id'],
+                            j,
+                            save=intervaldomainsave,
+                            )
+            th[i][k] = thresh
+            th[i][k+'_bin'] = thresh_bin
+
+    return th, data_cv_bin
+
 def parity(
            y,
            y_pred,
@@ -255,7 +322,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     # Ground truth for bins
     data_cv_bin['id'] = data_cv_bin['pval'] > gt
 
-    if save is not False:
+    if save:
 
         os.makedirs(save, exist_ok=True)
 
@@ -476,36 +543,58 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     return data_cv_bin
 
 
-def ground_truth(y, y_pred, y_std, std, in_domain, save):
+def ground_truth(data_cv, metric, save):
 
     os.makedirs(save, exist_ok=True)
 
-    absres = abs(y-y_pred)/std
-    y_std = y_std/std
+    absres = abs(data_cv['r/std(y)'])
+    dist = data_cv[metric]
 
+    in_domain = data_cv['id']
     out_domain = ~in_domain
 
-    fig, ax = pl.subplots()
+    data_cv['id'] = in_domain
 
-    ax.scatter(absres[in_domain], y_std[in_domain], color='g', marker='.')
-    ax.scatter(absres[out_domain], y_std[out_domain], color='r', marker='x')
+    if save:
+        fig, ax = pl.subplots()
 
-    ax.set_xlabel(r'$|y-\hat{y}|/\sigma_{y}$')
-    ax.set_ylabel(r'$\sigma_{c}/\sigma_{y}$')
+        ax.scatter(
+                   dist[in_domain],
+                   absres[in_domain],
+                   color='g',
+                   marker='.'
+                   )
+        ax.scatter(
+                   dist[out_domain],
+                   absres[out_domain],
+                   color='r',
+                   marker='x'
+                   )
 
-    fig.savefig(os.path.join(save, 'ground_truth.png'), bbox_inches='tight')
-    pl.close(fig)
+        if 'y_stdc/std(y)' in metric:
+            xlabel = '$\sigma_{c}/\sigma_{y}$'
+        else:
+            xlabel = 'Dissimilarity'
 
-    # Repare plot data for saving
-    data = {}
-    data['x_green'] = list(absres[in_domain])
-    data['y_green'] = list(y_std[in_domain])
-    data['x_red'] = list(absres[out_domain])
-    data['y_red'] = list(y_std[out_domain])
+        ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
+        ax.set_xlabel(xlabel)
 
-    jsonfile = os.path.join(save, 'ground_truth.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        fig.savefig(
+                    os.path.join(save, 'ground_truth.png'),
+                    bbox_inches='tight'
+                    )
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['x_green'] = absres[in_domain].tolist()
+        data['y_green'] = dist[in_domain].tolist()
+        data['x_red'] = absres[out_domain].tolist()
+        data['y_red'] = dist[out_domain].tolist()
+
+        jsonfile = os.path.join(save, 'ground_truth.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
 
 
 def violin(dist, in_domain, save):
