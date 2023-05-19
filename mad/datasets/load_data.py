@@ -1,4 +1,4 @@
-from sklearn import datasets 
+from sklearn import datasets
 import pandas as pd
 import numpy as np
 
@@ -218,6 +218,7 @@ def steel_yield_strength(**kwargs):
                  ]
 
     return load(df, target, drop_cols, **kwargs)
+
 
 def fluence(**kwargs):
     '''

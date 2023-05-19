@@ -91,6 +91,7 @@ def generate_plots(data_cv, ystd, bins, save):
 
     return th, data_cv_bin
 
+
 def parity(
            y,
            y_pred,
@@ -545,7 +546,6 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
                                         save,
                                         'bin.csv'
                                         ))
-
 
     return data_cv_bin
 

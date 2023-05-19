@@ -64,11 +64,9 @@ class nested_cv:
                 train, test = split
                 yield (train, test, count, splitter[0])
 
-    def assess(self, split):
+    def cv(self, split):
 
         train, test, count, name = split  # train/test
-
-        print(count, name)
 
         # Fit models
         self.model.fit(self.X[train], self.y[train], self.g[train])
@@ -95,19 +93,10 @@ class nested_cv:
 
         return data_test
 
-    def run(self):
-
-        '''
-        # Save model
-        model = copy.deepcopy(self.model)
-        model.save = os.path.join(self.save, 'model')
-        model.fit(self.X, self.y, self.g)
-        dill.dump(model, open(os.path.join(model.save, 'model.dill'), 'wb'))
-        del model
-        '''
+    def assess(self):
 
         # Assess model
-        df = parallel(self.assess, self.splits)
+        df = parallel(self.cv, self.splits)
         df = pd.concat(df)
         df['id'] = abs(df['r/std(y)']) < 1.0
 
@@ -120,5 +109,14 @@ class nested_cv:
                                    )
 
         df.to_csv(os.path.join(save, 'single.csv'), index=False)
+
+        # Save model
+        self.model.save = os.path.join(self.save, 'model')
+        self.model.fit(self.X, self.y, self.g)
+        dill.dump(
+                  self.model,
+                  open(os.path.join(self.model.save, 'model.dill'), 'wb')
+                  )
+        self.model.save = None
 
         return df
