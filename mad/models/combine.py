@@ -132,6 +132,26 @@ class domain_model:
 
         return data
 
+    def domain_pred(self, dist, dist_cut, domain):
+        '''
+        Predict the domain based on thresholds.
+        '''
+
+        do_pred = []
+        for i in dist:
+            if domain is True:
+                if i < dist_cut:
+                    do_pred.append(True)
+                else:
+                    do_pred.append(False)
+            elif domain is False:
+                if i >= dist_cut:
+                    do_pred.append(True)
+                else:
+                    do_pred.append(False)
+
+        return do_pred
+
     def fit(self, X, y, g):
 
         # Get some data statistics
@@ -238,35 +258,15 @@ class domain_model:
                 'dist': dist,
                 }
 
-        def domain_pred(dist, dist_cut, domain):
-            '''
-            Predict the domain based on thresholds.
-            '''
-
-            do_pred = []
-            for i in dist:
-                if domain is True:
-                    if i < dist_cut:
-                        do_pred.append(True)
-                    else:
-                        do_pred.append(False)
-                elif domain is False:
-                    if i >= dist_cut:
-                        do_pred.append(True)
-                    else:
-                        do_pred.append(False)
-
-            return do_pred
-
         for i in ['y_stdc/std(y)', 'dist']:
             for j, k in zip([True, False], ['id', 'od']):
                 for key, value in self.thresholds[i][k].items():
                     thr = value['Threshold']
-                    do_pred = domain_pred(
-                                          pred[i],
-                                          thr,
-                                          j,
-                                          )
+                    do_pred = self.domain_pred(
+                                               pred[i],
+                                               thr,
+                                               j,
+                                               )
 
                     if j is True:
                         pred['ID by {} for {}'.format(i, key)] = do_pred

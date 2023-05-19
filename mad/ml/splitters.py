@@ -76,7 +76,7 @@ class BootstrappedLeaveOneGroupOut:
                 yield indx_sample[train], indx_sample[test]
 
 
-class BootstrappedClusterSplit:
+class BootstrappedLeaveClusterOut:
     '''
     Custom splitting class which pre-clusters data and then splits
     to folds.

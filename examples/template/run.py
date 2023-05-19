@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.ml.splitters import BootstrappedClusterSplit
+from mad.ml.splitters import BootstrappedLeaveClusterOut
 from mad.models.space import distance_model
 from mad.models.combine import domain_model
 from mad.models.uq import ensemble_model
@@ -48,11 +48,11 @@ def main():
     for i in [2, 3]:
 
         # Cluster Splits
-        top_split = BootstrappedClusterSplit(
-                                             AgglomerativeClustering,
-                                             n_repeats=n_repeats,
-                                             n_clusters=i
-                                             )
+        top_split = BootstrappedLeaveClusterOut(
+                                                AgglomerativeClustering,
+                                                n_repeats=n_repeats,
+                                                n_clusters=i
+                                                )
 
         splits.append(('agglo_{}'.format(i), top_split))
 
