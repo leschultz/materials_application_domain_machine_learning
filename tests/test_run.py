@@ -1,21 +1,18 @@
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.cluster import KMeans
 
 from mad.models.space import distance_model
+from mad.models.combine import domain_model
 from mad.models.uq import ensemble_model
-from mad.ml.assessment import combine
+from mad.ml.assessment import nested_cv
 from mad.datasets import load_data
-from mad.ml import splitters
-
-import pandas as pd
 
 import unittest
 import shutil
-import dill
 
 
 class ml_test(unittest.TestCase):
@@ -54,36 +51,11 @@ class ml_test(unittest.TestCase):
         # Types of sampling to test
         splits = [('random', RepeatedKFold(n_repeats=1))]
 
-        for i in splits:
+        # Fit models
+        model = domain_model(gs_model, ds_model, uq_model, splits)
+        cv = nested_cv(X, y, g, model, splits, save=run_name)
+        cv.assess()
 
-            # Assess and build model
-            save = '{}/{}'.format(run_name, i[0])
-
-            spl = combine(
-                          X,
-                          y,
-                          g,
-                          gs_model,
-                          uq_model,
-                          ds_model,
-                          splits,  # Inner loop
-                          i[1],  # Outer loop
-                          save=save,
-                          )
-
-            spl.assess()
-            spl.save_model()
-
-            # Load and use model
-            with open('{}/model/model.dill'.format(save), 'rb') as in_strm:
-                model = dill.load(in_strm)
-
-            print('Loaded model predictions')
-            print(pd.DataFrame(model.predict(X)))
-
-        spl.aggregate(run_name)
-
-        # Clean directory
         shutil.rmtree(run_name)
 
 
