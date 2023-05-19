@@ -6,21 +6,51 @@ Research with respect to application domain with a materials science emphasis is
 The structure of the code packages is as follows:
 
 ```
+materials_application_domain/
 ├── examples
-│   ├── diffusion
-│   ├── fluence
-│   ├── friedman1
-│   ├── steel_yield_strength
-│   └── super_cond
+│   ├── make_runs.sh
+│   ├── submit_jobs.sh
+│   └── template
+│       ├── run.py
+│       ├── run.sh
+│       └── submit.sh
 ├── LICENSE
 ├── mad
 │   ├── datasets
 │   │   ├── data
+│   │   │   ├── citrine_thermal_conductivity_simplified.xlsx
+│   │   │   ├── Dataset_electromigration.xlsx
+│   │   │   ├── Dataset_Perovskite_Opband_simplified.xlsx
+│   │   │   ├── dielectric_constant_simplified.xlsx
+│   │   │   ├── diffusion.csv
+│   │   │   ├── double_perovskites_gap.xlsx
+│   │   │   ├── elastic_tensor_2015_simplified.xlsx
+│   │   │   ├── fluence.csv
+│   │   │   ├── heusler_magnetic_simplified.xlsx
+│   │   │   ├── Perovskite_stability_Wei_updated_forGlenn.xlsx
+│   │   │   ├── perovskite_workfunctions_AO_simplified.xlsx
+│   │   │   ├── piezoelectric_tensor.xlsx
+│   │   │   ├── steel_strength.csv
+│   │   │   └── Supercon_data_features_selected.xlsx
+│   │   ├── __init__.py
+│   │   └── load_data.py
+│   ├── __init__.py
 │   ├── ml
+│   │   ├── assessment.py
+│   │   ├── __init__.py
+│   │   └── splitters.py
 │   ├── models
-│   ├── stats
+│   │   ├── combine.py
+│   │   ├── __init__.py
+│   │   ├── space.py
+│   │   └── uq.py
+│   ├── plots.py
+│   └── utils.py
 ├── README.md
+├── setup.py
 └── tests
+    ├── test_load_data.py
+    └── test_run.py
 ```
 
 ## Coding Style
@@ -35,16 +65,6 @@ pycodestyle <script>
 
 ### Graduate Students
 * **Lane Schultz** - *Main Contributer* - [leschultz](https://github.com/leschultz)
-
-### [Skunkworks](https://skunkworks.engr.wisc.edu/)
-* **Angelo Cortez** - *Code Development* - [angelotc](https://github.com/angelotc)
-* **Yiqi Wang** - *Code Development* - [berniewang8177](https://github.com/berniewang8177)
-* **Avya Sharma** - *Code Development* - [avyasharma](https://github.com/avyasharma)
-* **Kinjal Mehta** - *Code Development* - [kinjjalmehta](https://github.com/kinjjalmehta)
-* **James Sandine** - *Code Development* - [jamessandine](https://github.com/jamessandine)
-* **Vidit Agrawal** - *Code Development* - [viditagr](https://github.com/viditagr)
-* **Linxiu Zeng** - *Testing* - [LinxiuZeng](https://github.com/LinxiuZeng)
-* **Hairong Yin** - *Testing* - [EvelinYin](https://github.com/EvelinYin)
 
 ## Acknowledgments
 
