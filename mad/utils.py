@@ -1,34 +1,23 @@
 from pathos.multiprocessing import ProcessingPool as Pool
-from scipy.optimize import minimize
 from functools import partial
-from pathlib import Path
 from tqdm import tqdm
-
-import numpy as np
 import sys
 import os
-
-
-def find(where, pattern):
-    '''
-    Function to find matching files.
-
-    inputs:
-        where = The top diretory to look for files.
-        pattern = The pattern for files to look for.
-
-    outputs:
-        paths = A list of paths of files found.
-    '''
-
-    paths = list(map(str, Path(where).rglob(pattern)))
-
-    return paths
 
 
 def parallel(func, x, message=None, *args, **kwargs):
     '''
     Run some function in parallel.
+
+    inputs:
+        func = The function to run.
+        x = The list of items to iterate on.
+        message = A message to print.
+        args = Arguemnts for func.
+        kwargs = Keyword arguments for func.
+
+    outputs:
+        data = A list of data for each item, x.
     '''
 
     if message:
@@ -43,48 +32,3 @@ def parallel(func, x, message=None, *args, **kwargs):
                          ))
 
     return data
-
-
-def llh(std, res, x, func):
-    '''
-    Compute the log likelihood.
-    '''
-
-    total = np.log(2*np.pi)
-    total += np.log(func(x, std)**2)
-    total += (res**2)/(func(x, std)**2)
-    total *= -0.5
-
-    return total
-
-
-def set_llh(std, y, y_pred, x, func):
-    '''
-    Compute the log likelihood for a dataset.
-    '''
-
-    res = y-y_pred
-
-    # Get negative to use minimization instead of maximization of llh
-    opt = minimize(
-                   lambda x: -sum(llh(std, res, x, func))/len(res),
-                   x,
-                   method='nelder-mead',
-                   )
-
-    params = opt.x
-
-    return params
-
-
-# Polynomial given coefficients
-def poly(c, std):
-    total = 0.0
-    for i in range(len(c)):
-        total += c[i]*std**i
-    return abs(total)
-
-
-# Power function
-def power(c, std):
-    return abs(c[0]*std**c[1])

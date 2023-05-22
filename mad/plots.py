@@ -25,6 +25,19 @@ matplotlib.rcParams.update(font)
 
 
 def generate_plots(data_cv, ystd, bins, save):
+    '''
+    A function that standardizes plot generation.
+
+    inputs:
+        data_cv = The cross validation data.
+        ystd = The standard deviation of the target variable.
+        bins = The number of bins for data.
+        save = The location to save plots.
+
+    outputs:
+        th = The thresholds from PR curve.
+        data_cv_bin = The binned data.
+    '''
 
     th = {}
     data_cv_bin = {}
@@ -105,7 +118,7 @@ def parity(
         mets = The regression metrics.
         y = The true target value.
         y_pred = The predicted target value.
-        sigma_y = The standard deviation of target.
+        sigma_y = The standard deviation of target variable.
         save = The directory to save plot.
     '''
 
@@ -193,8 +206,14 @@ def parity(
 def cdf(x):
     '''
     Plot the quantile quantile plot for cummulative distributions.
+
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
+
+    outputs:
+        y = The cummulative distribution of observed data.
+        y_pred = The cummulative distribution of standard normal distribution.
+        area = The area between y and y_pred.
     '''
 
     nx = len(x)
@@ -223,8 +242,10 @@ def cdf(x):
 def cdf_parity(x, save):
     '''
     Plot the quantile quantile plot for cummulative distributions.
+
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
+        save = The location to save figure.
     '''
 
     os.makedirs(save, exist_ok=True)
@@ -273,7 +294,17 @@ def cdf_parity(x, save):
 
 def intervals(data_cv, metric, bins, gt=0.01, save=False):
     '''
-    Plot the confidence curve:
+    Do analysis on binned data.
+
+    inputs:
+        data_cv = Cross validation data.
+        meteric = The dissimilarity measure.
+        bins = The number of bins to get statistics.
+        gt = The ground truth for p-value.
+        save = The location to save figures/data.
+
+    outputs:
+        data_cv_bin = The statistics from bins.
     '''
 
     # Get data for bins
@@ -551,6 +582,14 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
 
 
 def ground_truth(data_cv, metric, save):
+    '''
+    plot the ground truth with respect to dissimilarity metric.
+
+    inputs:
+        data_cv = The cross validation data.
+        metric = The dissimilarity metric.
+        save = The location to save figures/data.
+    '''
 
     absres = abs(data_cv['r/std(y)'])
     dist = data_cv[metric]
@@ -606,7 +645,12 @@ def ground_truth(data_cv, metric, save):
 
 def violin(dist, in_domain, save):
     '''
-    Plot the violin plot.
+    The violin plot.
+
+    inputs:
+        dist = The dissimilarity score.
+        in_domain = In domain (True) or out of domain (False).
+        save = The location to save the figure/data.
     '''
 
     df = {'dist': dist, 'in_domain': in_domain}
@@ -644,64 +688,19 @@ def violin(dist, in_domain, save):
         json.dump(data, handle)
 
 
-def assessment(
-               y_res,
-               std,
-               dist,
-               in_domain,
-               save,
-               thresh=None
-               ):
-
-    y_res_norm = y_res/std
-    os.makedirs(save, exist_ok=True)
-
-    out_domain = ~in_domain
-
-    slope, intercept, r, p, se = stats.linregress(dist, y_res_norm)
-
-    fig, ax = pl.subplots()
-
-    ax.scatter(dist[in_domain], y_res_norm[in_domain], color='g', marker='.')
-    ax.scatter(dist[out_domain], y_res_norm[out_domain], color='r', marker='x')
-
-    xfit = np.linspace(min(dist), max(dist))
-    yfit = slope*xfit+intercept
-
-    ax.plot(
-            xfit,
-            yfit,
-            color='k',
-            label='Slope: {:.2f}\nIntercept: {:.2f}'.format(slope, intercept)
-            )
-
-    if thresh:
-        ax.axvline(thresh, color='k')
-
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-    ax.set_xlabel('Dissimilarity')
-    ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
-
-    fig.savefig(os.path.join(save, 'assessment.png'), bbox_inches='tight')
-    pl.close(fig)
-
-    # Repare plot data for saving
-    data = {}
-    data['x_green'] = list(dist[in_domain])
-    data['y_green'] = list(y_res_norm[in_domain])
-    data['x_red'] = list(dist[out_domain])
-    data['y_red'] = list(y_res_norm[out_domain])
-
-    if thresh:
-        data['vertical'] = thresh
-
-    jsonfile = os.path.join(save, 'assessment.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
-
-
 def pr(score, in_domain, pos_label, save=False):
+    '''
+    Plot PR curve and acquire thresholds.
+
+    inputs:
+        score = The dissimilarity score.
+        in_domain = The label for domain.
+        pos_label = The positive label for domain.
+        save = The locatin to save the figure/data.
+    
+    outputs:
+        custom = Data containing threholds for choice of precision/score.
+    '''
 
     if pos_label is True:
         score = -score

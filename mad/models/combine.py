@@ -11,6 +11,9 @@ import os
 
 
 class domain_model:
+    '''
+    Combine distance, UQ, and ensemble regression models.
+    '''
 
     def __init__(
                  self,
@@ -22,6 +25,16 @@ class domain_model:
                  save=False,
                  ):
 
+        '''
+        inputs:
+            gs_model = The grid search enemble model.
+            ds_model = The distance model.
+            uq_model = The UQ model
+            splits = The list of splitting generators.
+            bins = The number of quantailes for binning data.
+            save = The location to save figures and data.
+        '''
+
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
@@ -30,6 +43,15 @@ class domain_model:
         self.save = save
 
     def transforms(self, gs_model, X):
+        '''
+        Apply all steps from a pipeline before the final prediction.
+
+        inputs:
+            gs_model = The gridsearch pipeline model.
+            X = The features.
+        ouputs:
+            X = The features with applied transformations.
+        '''
 
         for step in list(gs_model.best_estimator_.named_steps)[:-1]:
 
@@ -39,6 +61,16 @@ class domain_model:
         return X
 
     def std_pred(self, gs_model, X_test):
+        '''
+        Get predictions from ensemble model.
+
+        inputs:
+            gs_model = The gridsearch pipeline model.
+            X_test = The featues.
+
+        outputs:
+            std = The standard deviation between models from ensemble model.
+        '''
 
         estimators = gs_model.best_estimator_
         estimators = estimators.named_steps['model']
@@ -55,6 +87,18 @@ class domain_model:
     def cv(self, gs_model, ds_model, X, y, g, train, cv):
         '''
         Do cross validation.
+
+        inputs:
+            gs_model = The grisearch pipeline model.
+            ds_model = The distance model.
+            X = The features.
+            y = The target variable.
+            g = The groups for data.
+            train = The indexes for training data.
+            cv = The cross validation generator for splits.
+
+        outputs:
+            data = A pandas dataframe containing CV results.
         '''
 
         g_cv = []
@@ -138,6 +182,14 @@ class domain_model:
     def domain_pred(self, dist, dist_cut, domain):
         '''
         Predict the domain based on thresholds.
+
+        inputs:
+            dist = The score.
+            dist_cut = The threshold.
+            domain = In domain (True) or out of domain (False) class label.
+
+        outputs:
+            do_pred = The domain prediction.
         '''
 
         do_pred = []
@@ -156,6 +208,18 @@ class domain_model:
         return do_pred
 
     def fit(self, X, y, g):
+        '''
+        Fit all models. Thresholds for domain classification are also set.
+        
+        inputs:
+            X = The features.
+            y = The target variable.
+            g = The groups.
+
+        outputs:
+            data_cv = Cross validation data used.
+            data_cv_bin = The binned cross validation data.
+        '''
 
         # Get some data statistics
         self.ystd = np.std(y)
@@ -236,6 +300,15 @@ class domain_model:
         return data_cv, data_cv_bin
 
     def predict(self, X):
+        '''
+        Give domain classification along with other regression predictions.
+
+        inputs:
+            X = The features.
+
+        outputs:
+           pred = A pandas dataframe containing prediction data. 
+        '''
 
         X_trans = self.transforms(
                                   self.gs_model,
