@@ -8,21 +8,8 @@ import os
 
 
 class nested_cv:
-
     '''
-    A class to split data into multiple levels.
-
-    Parameters
-    ----------
-
-    X : numpy array
-        The original features to be split.
-
-    y : numpy array
-        The original target features to be split.
-
-    g : list or numpy array, default = None
-        The groups of data to be split.
+    Class to do nested CV.
     '''
 
     def __init__(
@@ -34,6 +21,16 @@ class nested_cv:
                  splitters=None,
                  save=None,
                  ):
+
+        '''
+        A class to split data into multiple levels.
+
+        inputs:
+            X = The original features to be split.
+            y = The original target features to be split.
+            g = The groups of data to be split.
+        '''
+
 
         self.X = X  # Features
         self.y = y  # Target
@@ -48,23 +45,28 @@ class nested_cv:
             self.g = g
 
         # Generate the splits
-        splits = self.split(
-                            self.X,
-                            self.y,
-                            self.g,
-                            self.splitters
-                            )
+        splits = self.split()
         self.splits = list(splits)
 
-    def split(self, X, y, g, splitters):
+    def split(self):
+        '''
+        Generate the splits.
+        '''
 
         # Train, test splits
-        for splitter in splitters:
-            for count, split in enumerate(splitter[1].split(X, y, g)):
+        for splitter in self.splitters:
+            for count, split in enumerate(splitter[1].split(
+                                                            self.X,
+                                                            self.y,
+                                                            self.g
+                                                            )):
                 train, test = split
                 yield (train, test, count, splitter[0])
 
     def cv(self, split):
+        '''
+        Fit models and get predictions from one split.
+        '''
 
         train, test, count, name = split  # train/test
 
@@ -94,6 +96,9 @@ class nested_cv:
         return data_test
 
     def assess(self):
+        '''
+        Gather assessment data and plot results.
+        '''
 
         # Assess model
         df = parallel(self.cv, self.splits)

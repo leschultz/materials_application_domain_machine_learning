@@ -30,21 +30,27 @@ def main():
     # ML UQ function
     uq_model = uq_model(params=[0.0, 1.0])
 
-    # ML Pipeline
+    # ML
     scale = StandardScaler()
     model = RandomForestRegressor()
 
+    # The grid for grid search
     grid = {}
     grid['model__n_estimators'] = [100]
+
+    # The machine learning pipeline
     pipe = Pipeline(steps=[
                            ('scaler', scale),
                            ('model', model),
                            ])
+
+    # The gridsearch model
     gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
     # Types of sampling to test
     splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
 
+    # Boostrap, cluster data, and generate splits
     for i in [2, 3]:
 
         # Cluster Splits

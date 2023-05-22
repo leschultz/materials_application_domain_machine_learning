@@ -11,7 +11,7 @@ import random
 
 class NoSplit:
     '''
-    Class to not split data
+    Class to not split data.
     '''
 
     def get_n_splits(self):

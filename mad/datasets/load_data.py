@@ -10,7 +10,15 @@ data_path = pkg_resources.resource_filename('mad', 'datasets/data')
 
 def load(df, target, drop_cols=None, class_name=None, n=None, frac=None):
     '''
-    Returns data for regression task
+    Returns data.
+
+    inputs:
+        df = The path of the data.
+        target = The name of the target variable.
+        drop_cols = Columns to drop.
+        class_name = The column containing groups.
+        n = The number of samples to acquire from data.
+        frac = The fraction of samples to acquire from data.
     '''
 
     path = os.path.join(data_path, df)

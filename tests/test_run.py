@@ -18,6 +18,9 @@ import shutil
 class ml_test(unittest.TestCase):
 
     def test_ml(self):
+        '''
+        Test a quick run.
+        '''
 
         run_name = 'run'
 
@@ -34,14 +37,17 @@ class ml_test(unittest.TestCase):
         # ML UQ function
         uq_model = calibration_model()
 
-        # ML Pipeline
+        # ML
         scale = StandardScaler()
         model = RandomForestRegressor()
 
+        # The grid to do grid search
         grid = {}
         grid['model__n_estimators'] = [100]
         grid['model__max_features'] = [None]
         grid['model__max_depth'] = [None]
+
+        # The ML Pipeline
         pipe = Pipeline(steps=[
                                ('scaler', scale),
                                ('model', model)
@@ -56,6 +62,7 @@ class ml_test(unittest.TestCase):
         cv = nested_cv(X, y, g, model, splits, save=run_name)
         cv.assess()
 
+        # Clean up directory
         shutil.rmtree(run_name)
 
 
