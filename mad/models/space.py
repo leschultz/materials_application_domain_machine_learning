@@ -20,7 +20,7 @@ class distance_model:
         Get the distances based on a metric.
         inputs:
             X_train = The features of the training set.
-            y_train = The training target when applicable.`
+            y_train = The training target when applicable.
             X_test = The features of the test set.
             dist = The distance to consider.
         ouputs:
@@ -35,10 +35,7 @@ class distance_model:
 
         elif self.dist == 'kde':
             bw = estimate_bandwidth(X_train)
-            model = KernelDensity(bandwidth=bw).fit(X_train)
-
-            self.model = model
-            self.bw = bw
+            self.model = KernelDensity(bandwidth=bw).fit(X_train)
 
             dist = self.model.score_samples(X_train)
             self.scaler = lambda x: 1-np.exp(x-max(dist))
@@ -49,6 +46,14 @@ class distance_model:
             dist = np.mean(dist, axis=0)
 
     def predict(self, X):
+        '''
+        Get the distances for individual cases.
+
+        inputs:
+            X = The features of data.
+        outputs:
+            dist = The distance array.
+        '''
 
         if self.dist == 'gpr':
             _, dist = self.model.predict(X, return_std=True)

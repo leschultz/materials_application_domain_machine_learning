@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 
 from mad.models.space import distance_model
 from mad.models.combine import domain_model
-from mad.models.uq import ensemble_model
+from mad.models.uq import calibration_model
 from mad.ml.assessment import nested_cv
 from mad.datasets import load_data
 
@@ -32,7 +32,7 @@ class ml_test(unittest.TestCase):
         ds_model = distance_model(dist='kde')
 
         # ML UQ function
-        uq_model = ensemble_model()
+        uq_model = calibration_model()
 
         # ML Pipeline
         scale = StandardScaler()

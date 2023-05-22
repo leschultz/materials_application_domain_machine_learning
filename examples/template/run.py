@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 from mad.ml.splitters import BootstrappedLeaveClusterOut
 from mad.models.space import distance_model
 from mad.models.combine import domain_model
-from mad.models.uq import ensemble_model
+from mad.models.uq import uq_model
 from mad.ml.assessment import nested_cv
 from mad.datasets import load_data
 
@@ -28,7 +28,7 @@ def main():
     ds_model = distance_model(dist='kde')
 
     # ML UQ function
-    uq_model = ensemble_model(params=[0.0, 1.0])
+    uq_model = uq_model(params=[0.0, 1.0])
 
     # ML Pipeline
     scale = StandardScaler()

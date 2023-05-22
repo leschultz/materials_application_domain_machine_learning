@@ -5,6 +5,14 @@ import numpy as np
 def llh(std, res, x, func):
     '''
     Compute the log likelihood.
+
+    inputs:
+        std = The uncertainty measure.
+        res = The residuals.
+        x = The initial fitting parameters.
+        func = The type of UQ function.
+    outputs:
+        total =  The total negative log likelihood.
     '''
 
     total = np.log(2*np.pi)
@@ -18,6 +26,15 @@ def llh(std, res, x, func):
 def set_llh(y, y_pred, y_std, x, func):
     '''
     Compute the log likelihood for a dataset.
+
+    inputs:
+        y = The target variable.
+        y_pred = The prediction of the target variable.
+        y_std = The uncertainty of the target variable.
+        x = The initial guess for UQ fitting parameters.
+        func = The UQ fitting function.
+    outputs
+        params = The fit parameters for the UQ function.
     '''
 
     res = y-y_pred
@@ -34,26 +51,63 @@ def set_llh(y, y_pred, y_std, x, func):
     return params
 
 
-# Polynomial given coefficients
 def poly(c, std):
+    '''
+    A polynomial function.
+
+    inputs:
+        c = A list for each polynomial coefficient.
+        std = The UQ measure.
+    outputs:
+        total = The aggregate absolute value result from the polynomial.
+    '''
+
     total = 0.0
     for i in range(len(c)):
         total += c[i]*std**i
-    return abs(total)
+    total = abs(total)
+    return total
 
 
-# Power function
 def power(c, std):
-    return abs(c[0]*std**c[1])
+    '''
+    A function raised to a power and multiplied by a number.
+
+    inputs:
+        c = The multiplying coefficient.
+        std = The power to raise the input.
+    outputs:
+        total = The multiple power of the input.
+    '''
+
+    total = abs(c[0]*std**c[1])
+
+    return total
 
 
-class ensemble_model:
+class calibration_model:
+    '''
+    A UQ model for calibration of uncertainties.
+    '''
 
     def __init__(self, params=[0.0, 1.0], uq_func=poly):
+        '''
+        inputs:
+            params = The fitting coefficients initial guess.
+            uq_func = The type of UQ function.
+        '''
         self.params = params
         self.uq_func = uq_func
 
     def fit(self, y, y_pred, y_std):
+        '''
+        Fit the UQ parameters for a model.
+
+        inputs:
+            y = The target variable.
+            y_pred = The prediction for the target variable.
+            y_std = The uncertainty for the target variable.
+        '''
 
         params = set_llh(
                          y,
@@ -66,4 +120,16 @@ class ensemble_model:
         self.params = params
 
     def predict(self, y_std):
-        return self.uq_func(self.params, y_std)
+        '''
+        Use the fitted UQ model to predict uncertainties.
+
+        inputs:
+            y_std = The uncalibrated uncertainties.
+
+        outputs:
+            y_stdc = The calibrated uncertainties.
+        '''
+
+        y_stdc = self.uq_func(self.params, y_std)
+
+        return y_stdc
