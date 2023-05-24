@@ -322,6 +322,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     distmean = bin_groups[metric].mean()
     zvar = bin_groups['z'].var()
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+    areas = bin_groups['z'].apply(lambda x: cdf(x)[2])
     pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
                                                                  x,
                                                                  'norm',
@@ -332,6 +333,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     distmean = distmean.to_frame().add_suffix('_mean')
     zvar = zvar.to_frame().add_suffix('_var')
     rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
+    areas = areas.to_frame().rename({'z': 'area'}, axis=1)
     pvals = pvals.to_frame().rename({'z': 'pval'}, axis=1)
     counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
@@ -341,6 +343,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
                           distmean,
                           zvar,
                           rmse,
+                          areas,
                           pvals,
                           counts,
                           ]
@@ -375,6 +378,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         mdists_mins = data_cv_bin[metric+'_min']
         mdists_maxs = data_cv_bin[metric+'_max']
         pvals = data_cv_bin['pval']
+        areas = data_cv_bin['area']
 
         in_domain = data_cv_bin['id']
         out_domain = ~in_domain
@@ -573,6 +577,64 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
+        fig, ax = pl.subplots()
+
+        ax.scatter(
+                   mdists[in_domain],
+                   areas[in_domain],
+                   marker='.',
+                   color='b',
+                   label='ID '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists[out_domain],
+                   areas[out_domain],
+                   marker='x',
+                   color='b',
+                   label='OD '+pointlabel,
+                   )
+
+        ax.scatter(
+                   mdists_mins,
+                   areas,
+                   marker='|',
+                   color='r',
+                   label='Bin Start',
+                   )
+
+        ax.scatter(
+                   mdists_maxs,
+                   areas,
+                   marker='|',
+                   color='k',
+                   label='Bin End',
+                   )
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('Miscalibration Area')
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        fig.savefig(os.path.join(
+                                 save,
+                                 'area_vs_uq.png'
+                                 ), bbox_inches='tight')
+
+        pl.close(fig)
+
+        data['x_id'] = mdists[in_domain].tolist()
+        data['y_id'] = areas[in_domain].tolist()
+        data['x_od'] = mdists[out_domain].tolist()
+        data['y_od'] = areas[out_domain].tolist()
+        data['x_min'] = mdists_mins.tolist()
+        data['x_max'] = mdists_maxs.tolist()
+        data['ppb'] = avg_points
+
+        jsonfile = os.path.join(save, 'area_vs_uq.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
         data_cv_bin.to_csv(os.path.join(
                                         save,
                                         'bin.csv'
@@ -643,51 +705,6 @@ def ground_truth(data_cv, metric, save):
             json.dump(data, handle)
 
 
-def violin(dist, in_domain, save):
-    '''
-    The violin plot.
-
-    inputs:
-        dist = The dissimilarity score.
-        in_domain = In domain (True) or out of domain (False).
-        save = The location to save the figure/data.
-    '''
-
-    df = {'dist': dist, 'in_domain': in_domain}
-    df = pd.DataFrame(df)
-
-    groups = df.groupby('in_domain')
-    median = groups.median()
-    dist = median['dist'].sort_values(ascending=False)
-    dist = dist.to_frame().reset_index()['in_domain'].values
-
-    df['in_domain'] = pd.Categorical(df['in_domain'], dist)
-
-    fig, ax = pl.subplots()
-    sns.violinplot(
-                   data=df,
-                   x='dist',
-                   y='in_domain',
-                   ax=ax,
-                   palette='Spectral',
-                   cut=0,
-                   scale='width',
-                   inner='quartile'
-                   )
-
-    fig.savefig(os.path.join(save, 'violin.png'), bbox_inches='tight')
-    pl.close(fig)
-
-    # Repare plot data for saving
-    data = {}
-    data['x'] = list(df['dist'].values)
-    data['y'] = list(df['in_domain'].values)
-
-    jsonfile = os.path.join(save, 'violin.json')
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
-
-
 def pr(score, in_domain, pos_label, save=False):
     '''
     Plot PR curve and acquire thresholds.
@@ -697,7 +714,7 @@ def pr(score, in_domain, pos_label, save=False):
         in_domain = The label for domain.
         pos_label = The positive label for domain.
         save = The locatin to save the figure/data.
-    
+
     outputs:
         custom = Data containing threholds for choice of precision/score.
     '''
