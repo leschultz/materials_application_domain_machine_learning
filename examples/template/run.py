@@ -28,7 +28,7 @@ def main():
     ds_model = distance_model(dist='kde')
 
     # ML UQ function
-    calibration_model = calibration_model(params=[0.0, 1.0])
+    uq_model = calibration_model(params=[0.0, 1.0])
 
     # ML
     scale = StandardScaler()
@@ -63,7 +63,7 @@ def main():
         splits.append(('agglo_{}'.format(i), top_split))
 
     # Fit models
-    model = domain_model(gs_model, ds_model, calibration_model, splits)
+    model = domain_model(gs_model, ds_model, uq_model, splits)
     cv = nested_cv(X, y, g, model, splits, save=run_name)
     cv.assess()
 
