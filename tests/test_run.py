@@ -35,7 +35,7 @@ class ml_test(unittest.TestCase):
         ds_model = distance_model(dist='kde')
 
         # ML UQ function
-        uq_model = calibration_model()
+        calibration_model = calibration_model()
 
         # ML
         scale = StandardScaler()
@@ -58,7 +58,7 @@ class ml_test(unittest.TestCase):
         splits = [('random', RepeatedKFold(n_repeats=1))]
 
         # Fit models
-        model = domain_model(gs_model, ds_model, uq_model, splits)
+        model = domain_model(gs_model, ds_model, calibration_model, splits)
         cv = nested_cv(X, y, g, model, splits, save=run_name)
         cv.assess()
 
