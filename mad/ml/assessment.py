@@ -31,7 +31,6 @@ class nested_cv:
             g = The groups of data to be split.
         '''
 
-
         self.X = X  # Features
         self.y = y  # Target
         self.splitters = splitters  # Splitter

@@ -1,6 +1,5 @@
 from sklearn.metrics import (
                              precision_recall_curve,
-                             ConfusionMatrixDisplay,
                              confusion_matrix,
                              auc
                              )
@@ -101,6 +100,14 @@ def generate_plots(data_cv, ystd, bins, save):
                             )
             th[i][k] = thresh
             th[i][k+'_bin'] = thresh_bin
+
+        # Confusion matrix as a function of thresholds
+        confusion(data_cv[i], data_cv['id'], singledistsave)
+        confusion(
+                  data_cv_bin[i][i+'_max'],
+                  data_cv_bin[i]['id'],
+                  intervaldistsave
+                  )
 
     return th, data_cv_bin
 
@@ -673,13 +680,15 @@ def single_truth(data_cv, metric, save):
                    dist[in_domain],
                    absres[in_domain],
                    color='g',
-                   marker='.'
+                   marker='.',
+                   label='ID',
                    )
         ax.scatter(
                    dist[out_domain],
                    absres[out_domain],
                    color='r',
-                   marker='x'
+                   marker='x',
+                   label='OD',
                    )
 
         if 'y_stdc/std(y)' in metric:
@@ -689,6 +698,8 @@ def single_truth(data_cv, metric, save):
 
         ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
         ax.set_xlabel(xlabel)
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         fig.savefig(
                     os.path.join(save, 'ground_truth.png'),
@@ -713,17 +724,21 @@ def single_truth(data_cv, metric, save):
                    dist[in_domain],
                    res[in_domain],
                    color='g',
-                   marker='.'
+                   marker='.',
+                   label='ID',
                    )
         ax.scatter(
                    dist[out_domain],
                    res[out_domain],
                    color='r',
-                   marker='x'
+                   marker='x',
+                   label='OD',
                    )
 
         ax.set_ylabel(r'$(y-\hat{y})/\sigma_{y}$')
         ax.set_xlabel(xlabel)
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         fig.savefig(
                     os.path.join(save, 'res_truth.png'),
@@ -748,17 +763,21 @@ def single_truth(data_cv, metric, save):
                    dist[in_domain],
                    zvals[in_domain],
                    color='g',
-                   marker='.'
+                   marker='.',
+                   label='ID',
                    )
         ax.scatter(
                    dist[out_domain],
                    zvals[out_domain],
                    color='r',
-                   marker='x'
+                   marker='x',
+                   label='OD',
                    )
 
         ax.set_ylabel('z')
         ax.set_xlabel(xlabel)
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         fig.savefig(
                     os.path.join(save, 'z_truth.png'),
@@ -783,17 +802,21 @@ def single_truth(data_cv, metric, save):
                    dist[in_domain],
                    absz[in_domain],
                    color='g',
-                   marker='.'
+                   marker='.',
+                   label='ID',
                    )
         ax.scatter(
                    dist[out_domain],
                    absz[out_domain],
                    color='r',
-                   marker='x'
+                   marker='x',
+                   label='OD',
                    )
 
         ax.set_ylabel('|z|')
         ax.set_xlabel(xlabel)
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         fig.savefig(
                     os.path.join(save, 'abs(z)_truth.png'),
@@ -830,10 +853,6 @@ def pr(score, in_domain, pos_label, save=False):
     if pos_label is True:
         score = -score
 
-    baseline = [1 if i == pos_label else 0 for i in in_domain]
-    baseline = sum(baseline)/len(in_domain)
-    relative_base = 1-baseline  # The amount of area to gain in PR
-
     precision, recall, thresholds = precision_recall_curve(
                                                            in_domain,
                                                            score,
@@ -851,24 +870,6 @@ def pr(score, in_domain, pos_label, save=False):
     # Maximum F1 score
     max_f1_index = np.argmax(f1_scores)
 
-    # AUC score
-    auc_score = auc(recall, precision)
-    auc_relative = (auc_score-baseline)/relative_base
-
-    # Relative f1
-    precision_rel = precision-baseline
-    precision_rel = precision_rel.clip(min=0.0)
-    num = 2*recall*precision_rel
-    den = recall+precision_rel
-    f1_rel = np.divide(
-                       num,
-                       den,
-                       out=np.zeros_like(den), where=(den != 0)
-                       )
-
-    # Maximum Relative F1 score
-    rel_f1_index = np.argmax(f1_rel)
-
     custom = {}
     custom['Max F1'] = {
                         'Precision': precision[max_f1_index],
@@ -877,19 +878,12 @@ def pr(score, in_domain, pos_label, save=False):
                         'F1': f1_scores[max_f1_index],
                         }
 
-    custom['Max Relative F1'] = {
-                                 'Precision': precision[rel_f1_index],
-                                 'Recall': recall[rel_f1_index],
-                                 'Threshold': thresholds[rel_f1_index],
-                                 'F1': f1_scores[rel_f1_index],
-                                 }
-
     # Loop for lowest to highest to get better thresholds than the other way
     nprec = len(precision)
     nthresh = nprec-1  # sklearn convention
     nthreshindex = nthresh-1  # Foor loop index comparison
     loop = range(nprec)
-    for cut in [0.95, 0.75, 0.5, 0.25]:
+    for cut in [0.95]:
 
         for index in loop:
             p = precision[index]
@@ -912,10 +906,19 @@ def pr(score, in_domain, pos_label, save=False):
     # Convert back
     if pos_label is True:
         thresholds = -thresholds
+        score = -score
         for key, value in custom.items():
             custom[key]['Threshold'] *= -1
 
     if save:
+
+        baseline = [1 if i == pos_label else 0 for i in in_domain]
+        baseline = sum(baseline)/len(in_domain)
+        relative_base = 1-baseline  # The amount of area to gain in PR
+
+        # AUC score
+        auc_score = auc(recall, precision)
+        auc_relative = (auc_score-baseline)/relative_base
 
         os.makedirs(save, exist_ok=True)
 
@@ -975,3 +978,65 @@ def pr(score, in_domain, pos_label, save=False):
             json.dump(data, handle)
 
     return custom
+
+
+def confusion(scores, in_domain, save=False):
+    '''
+    Plot the TP, TN, FP, and FN values as a function of thresholds.
+
+    inputs:
+        scores = The dissimilarity score.
+        in_domain = The domain label.
+        save = The location to save figure/data.
+    '''
+
+    if save:
+
+        # Calculate confusion matrixes
+        tps = []
+        fps = []
+        tns = []
+        fns = []
+        total = len(in_domain)
+        sort = sorted(set(scores))
+        for t in sort:
+
+            pred = scores < t
+            matrix = confusion_matrix(
+                                      in_domain,
+                                      pred,
+                                      labels=[False, True]
+                                      )
+
+            tn, fp, fn, tp = matrix.ravel()
+
+            tps.append(tp/total)
+            fps.append(fp/total)
+            tns.append(tn/total)
+            fns.append(fn/total)
+
+        fig, ax = pl.subplots()
+        ax.plot(sort, tps, label='True ID')
+        ax.plot(sort, fps, label='False ID')
+        ax.plot(sort, tns, label='True OD')
+        ax.plot(sort, fns, label='False OD')
+
+        ax.set_xlabel('Threshold')
+        ax.set_ylabel('Fraction of TP, FP, TN, or FN')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        fig.savefig(os.path.join(save, 'confusion.png'), bbox_inches='tight')
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['True ID'] = tps
+        data['False ID'] = fps
+        data['True OD'] = tns
+        data['False OD'] = fns
+        data['Threshold'] = sort
+        data['Total'] = total
+
+        jsonfile = os.path.join(save, 'confusion.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
