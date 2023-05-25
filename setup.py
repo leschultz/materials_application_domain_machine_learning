@@ -1,7 +1,7 @@
 import setuptools
 
 # Package information
-name = 'mad'
+name = 'madml'
 version = '0.0.1'
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/application_domain.git'
@@ -21,12 +21,8 @@ install_requires = [
                     'numpy',
                     'pathos',
                     'tqdm',
-                    'statsmodels',
                     'pytest',
                     'openpyxl',
-                    'umap-learn',
-                    'gpytorch',
-                    'seaborn',
                     ]
 long_description = open('README.md').read()
 

@@ -5,12 +5,12 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from mad.ml.splitters import BootstrappedLeaveClusterOut
-from mad.models.space import distance_model
-from mad.models.combine import domain_model
-from mad.models.uq import calibration_model
-from mad.ml.assessment import nested_cv
-from mad.datasets import load_data
+from madml.ml.splitters import BootstrappedLeaveClusterOut
+from madml.models.space import distance_model
+from madml.models.combine import domain_model
+from madml.models.uq import calibration_model
+from madml.ml.assessment import nested_cv
+from madml.datasets import load_data
 
 
 def main():

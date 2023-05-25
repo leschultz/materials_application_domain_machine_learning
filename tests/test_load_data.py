@@ -1,4 +1,4 @@
-from mad.datasets import load_data
+from madml.datasets import load_data
 import unittest
 
 
