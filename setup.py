@@ -4,7 +4,8 @@ import setuptools
 name = 'madml'
 version = '0.0.1'
 description = 'Application domain of machine learning in materials science.'
-url = 'https://github.com/leschultz/application_domain.git'
+url = 'https://github.com/leschultz/'\
+      'materials_application_domain_machine_learning.git'
 author = 'Lane E. Schultz'
 author_email = 'laneenriqueschultz@gmail.com'
 python_requires = '>=3.6'
