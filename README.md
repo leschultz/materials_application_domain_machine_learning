@@ -6,7 +6,7 @@ Research with respect to application domain with a materials science emphasis is
 The structure of the code packages is as follows:
 
 ```
-materials_application_domain/
+materials_application_domain_machine_learning/
 ├── examples
 │   ├── make_runs.sh
 │   ├── submit_jobs.sh
@@ -15,7 +15,7 @@ materials_application_domain/
 │       ├── run.sh
 │       └── submit.sh
 ├── LICENSE
-├── mad
+├── madml
 │   ├── datasets
 │   │   ├── data
 │   │   │   ├── citrine_thermal_conductivity_simplified.xlsx
