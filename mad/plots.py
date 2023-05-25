@@ -691,6 +691,13 @@ def single_truth(data_cv, metric, save):
                    label='OD',
                    )
 
+        ax.axhline(
+                   1.0,
+                   color='k',
+                   linestyle=':',
+                   label='GT = 1',
+                   )
+
         if 'y_stdc/std(y)' in metric:
             xlabel = r'$\sigma_{c}/\sigma_{y}$'
         else:
