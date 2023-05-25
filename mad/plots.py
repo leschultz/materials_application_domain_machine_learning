@@ -68,13 +68,13 @@ def generate_plots(data_cv, ystd, bins, save):
         else:
             singledistsave = intervaldistsave = save
 
-        ground_truth(data_cv, i, singledistsave)
-        dist_bin = intervals(
-                             data_cv,
-                             i,
-                             bins,
-                             save=intervaldistsave,
-                             )
+        single_truth(data_cv, i, singledistsave)
+        dist_bin = binned_truth(
+                                data_cv,
+                                i,
+                                bins,
+                                save=intervaldistsave,
+                                )
         data_cv_bin[i] = dist_bin
 
         th[i] = {}
@@ -292,7 +292,7 @@ def cdf_parity(x, save):
         json.dump(data, handle)
 
 
-def intervals(data_cv, metric, bins, gt=0.01, save=False):
+def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
     '''
     Do analysis on binned data.
 
@@ -366,7 +366,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         zvartot = data_cv['z'].var()
 
         if 'y_stdc/std(y)' in metric:
-            xlabel = 'Mean $\sigma_{c}/\sigma_{y}$'
+            xlabel = r'Mean $\sigma_{c}/\sigma_{y}$'
         else:
             xlabel = 'Mean Dissimilarity'
 
@@ -486,7 +486,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         ax.plot(x, x, linestyle=':', color='k', label='Ideal')
 
         ax.set_xlabel(xlabel)
-        ax.set_ylabel('$RMSE/\sigma_{y}$')
+        ax.set_ylabel(r'$RMSE/\sigma_{y}$')
 
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
@@ -560,7 +560,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
 
         fig.savefig(os.path.join(
                                  save,
-                                 'p_vs_uq.png'
+                                 'ground_truth.png'
                                  ), bbox_inches='tight')
 
         pl.close(fig)
@@ -573,7 +573,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
         data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
 
-        jsonfile = os.path.join(save, 'p_vs_uq.json')
+        jsonfile = os.path.join(save, 'ground_truth.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
@@ -643,7 +643,7 @@ def intervals(data_cv, metric, bins, gt=0.01, save=False):
     return data_cv_bin
 
 
-def ground_truth(data_cv, metric, save):
+def single_truth(data_cv, metric, save):
     '''
     plot the ground truth with respect to dissimilarity metric.
 
@@ -653,7 +653,10 @@ def ground_truth(data_cv, metric, save):
         save = The location to save figures/data.
     '''
 
-    absres = abs(data_cv['r/std(y)'])
+    res = data_cv['r/std(y)']
+    zvals = data_cv['z']
+    absres = abs(res)
+    absz = abs(zvals)
     dist = data_cv[metric]
 
     in_domain = data_cv['id']
@@ -680,7 +683,7 @@ def ground_truth(data_cv, metric, save):
                    )
 
         if 'y_stdc/std(y)' in metric:
-            xlabel = '$\sigma_{c}/\sigma_{y}$'
+            xlabel = r'$\sigma_{c}/\sigma_{y}$'
         else:
             xlabel = 'Dissimilarity'
 
@@ -701,6 +704,111 @@ def ground_truth(data_cv, metric, save):
         data['y_red'] = dist[out_domain].tolist()
 
         jsonfile = os.path.join(save, 'ground_truth.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        ax.scatter(
+                   dist[in_domain],
+                   res[in_domain],
+                   color='g',
+                   marker='.'
+                   )
+        ax.scatter(
+                   dist[out_domain],
+                   res[out_domain],
+                   color='r',
+                   marker='x'
+                   )
+
+        ax.set_ylabel(r'$(y-\hat{y})/\sigma_{y}$')
+        ax.set_xlabel(xlabel)
+
+        fig.savefig(
+                    os.path.join(save, 'res_truth.png'),
+                    bbox_inches='tight'
+                    )
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['x_green'] = res[in_domain].tolist()
+        data['y_green'] = dist[in_domain].tolist()
+        data['x_red'] = res[out_domain].tolist()
+        data['y_red'] = dist[out_domain].tolist()
+
+        jsonfile = os.path.join(save, 'res_truth.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        ax.scatter(
+                   dist[in_domain],
+                   zvals[in_domain],
+                   color='g',
+                   marker='.'
+                   )
+        ax.scatter(
+                   dist[out_domain],
+                   zvals[out_domain],
+                   color='r',
+                   marker='x'
+                   )
+
+        ax.set_ylabel('z')
+        ax.set_xlabel(xlabel)
+
+        fig.savefig(
+                    os.path.join(save, 'z_truth.png'),
+                    bbox_inches='tight'
+                    )
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['x_green'] = zvals[in_domain].tolist()
+        data['y_green'] = dist[in_domain].tolist()
+        data['x_red'] = zvals[out_domain].tolist()
+        data['y_red'] = dist[out_domain].tolist()
+
+        jsonfile = os.path.join(save, 'z_truth.json')
+        with open(jsonfile, 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        ax.scatter(
+                   dist[in_domain],
+                   absz[in_domain],
+                   color='g',
+                   marker='.'
+                   )
+        ax.scatter(
+                   dist[out_domain],
+                   absz[out_domain],
+                   color='r',
+                   marker='x'
+                   )
+
+        ax.set_ylabel('|z|')
+        ax.set_xlabel(xlabel)
+
+        fig.savefig(
+                    os.path.join(save, 'abs(z)_truth.png'),
+                    bbox_inches='tight'
+                    )
+        pl.close(fig)
+
+        # Repare plot data for saving
+        data = {}
+        data['x_green'] = absz[in_domain].tolist()
+        data['y_green'] = dist[in_domain].tolist()
+        data['x_red'] = absz[out_domain].tolist()
+        data['y_red'] = dist[out_domain].tolist()
+
+        jsonfile = os.path.join(save, 'abs(z)_truth.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
