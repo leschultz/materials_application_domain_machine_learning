@@ -210,7 +210,7 @@ class domain_model:
     def fit(self, X, y, g):
         '''
         Fit all models. Thresholds for domain classification are also set.
-        
+
         inputs:
             X = The features.
             y = The target variable.
@@ -307,7 +307,7 @@ class domain_model:
             X = The features.
 
         outputs:
-           pred = A pandas dataframe containing prediction data. 
+           pred = A pandas dataframe containing prediction data.
         '''
 
         X_trans = self.transforms(

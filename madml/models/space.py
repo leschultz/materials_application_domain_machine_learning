@@ -35,7 +35,11 @@ class distance_model:
 
         elif self.dist == 'kde':
             bw = estimate_bandwidth(X_train)
-            self.model = KernelDensity(bandwidth=bw).fit(X_train)
+
+            if bw > 0.0:
+                self.model = KernelDensity(bandwidth=bw).fit(X_train)
+            else:
+                self.model = KernelDensity().fit(X_train)
 
             dist = self.model.score_samples(X_train)
             self.scaler = lambda x: 1-np.exp(x-max(dist))
