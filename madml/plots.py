@@ -708,7 +708,7 @@ def single_truth(data_cv, metric, save):
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         fig.savefig(
-                    os.path.join(save, 'ground_truth.png'),
+                    os.path.join(save, 'absres_truth.png'),
                     bbox_inches='tight'
                     )
         pl.close(fig)
@@ -720,7 +720,7 @@ def single_truth(data_cv, metric, save):
         data['x_red'] = absres[out_domain].tolist()
         data['y_red'] = dist[out_domain].tolist()
 
-        jsonfile = os.path.join(save, 'ground_truth.json')
+        jsonfile = os.path.join(save, 'absres_truth.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
