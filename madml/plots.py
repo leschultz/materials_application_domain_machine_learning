@@ -715,10 +715,10 @@ def single_truth(data_cv, metric, save):
 
         # Repare plot data for saving
         data = {}
-        data['x_green'] = absres[in_domain].tolist()
-        data['y_green'] = dist[in_domain].tolist()
-        data['x_red'] = absres[out_domain].tolist()
-        data['y_red'] = dist[out_domain].tolist()
+        data['x_id'] = absres[in_domain].tolist()
+        data['y_id'] = dist[in_domain].tolist()
+        data['x_od'] = absres[out_domain].tolist()
+        data['y_od'] = dist[out_domain].tolist()
 
         jsonfile = os.path.join(save, 'absres_truth.json')
         with open(jsonfile, 'w') as handle:
@@ -754,10 +754,10 @@ def single_truth(data_cv, metric, save):
 
         # Repare plot data for saving
         data = {}
-        data['x_green'] = res[in_domain].tolist()
-        data['y_green'] = dist[in_domain].tolist()
-        data['x_red'] = res[out_domain].tolist()
-        data['y_red'] = dist[out_domain].tolist()
+        data['x_id'] = res[in_domain].tolist()
+        data['y_id'] = dist[in_domain].tolist()
+        data['x_od'] = res[out_domain].tolist()
+        data['y_od'] = dist[out_domain].tolist()
 
         jsonfile = os.path.join(save, 'res_truth.json')
         with open(jsonfile, 'w') as handle:
@@ -793,10 +793,10 @@ def single_truth(data_cv, metric, save):
 
         # Repare plot data for saving
         data = {}
-        data['x_green'] = zvals[in_domain].tolist()
-        data['y_green'] = dist[in_domain].tolist()
-        data['x_red'] = zvals[out_domain].tolist()
-        data['y_red'] = dist[out_domain].tolist()
+        data['x_id'] = zvals[in_domain].tolist()
+        data['y_id'] = dist[in_domain].tolist()
+        data['x_od'] = zvals[out_domain].tolist()
+        data['y_od'] = dist[out_domain].tolist()
 
         jsonfile = os.path.join(save, 'z_truth.json')
         with open(jsonfile, 'w') as handle:
@@ -832,10 +832,10 @@ def single_truth(data_cv, metric, save):
 
         # Repare plot data for saving
         data = {}
-        data['x_green'] = absz[in_domain].tolist()
-        data['y_green'] = dist[in_domain].tolist()
-        data['x_red'] = absz[out_domain].tolist()
-        data['y_red'] = dist[out_domain].tolist()
+        data['x_id'] = absz[in_domain].tolist()
+        data['y_id'] = dist[in_domain].tolist()
+        data['x_od'] = absz[out_domain].tolist()
+        data['y_od'] = dist[out_domain].tolist()
 
         jsonfile = os.path.join(save, 'abs(z)_truth.json')
         with open(jsonfile, 'w') as handle:
