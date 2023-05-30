@@ -49,7 +49,7 @@ def generate_plots(data_cv, ystd, bins, save):
                ystd,
                singlesave,
                )
-        cdf_parity(data_cv['z'], singlesave)
+        cdf_parity(data_cv['z'], intervalsave)
 
     else:
         singlesave = intervalsave = save
