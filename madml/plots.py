@@ -271,6 +271,7 @@ def cdf(x, save=None, subsave=None):
                         y,
                         y,
                         y_pred,
+                        alpha=0.4,
                         label=area_label,
                         )
 
@@ -333,6 +334,7 @@ def cdf(x, save=None, subsave=None):
                         eval_points,
                         y,
                         y_pred,
+                        alpha=0.4,
                         label=area_label,
                         )
 
