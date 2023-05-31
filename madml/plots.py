@@ -49,7 +49,7 @@ def generate_plots(data_cv, ystd, bins, save):
                ystd,
                singlesave,
                )
-        cdf_parity(data_cv['z'], intervalsave)
+        cdf(data_cv['z'], intervalsave)
 
     else:
         singlesave = intervalsave = save
@@ -209,12 +209,14 @@ def parity(
         json.dump(data, handle)
 
 
-def cdf(x):
+def cdf(x, save=None, subsave=None):
     '''
     Plot the quantile quantile plot for cummulative distributions.
 
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
+        save = The location to save the figure/data.
+        subsave = Adding to a directory of the saving.
 
     outputs:
         y = The cummulative distribution of observed data.
@@ -239,63 +241,112 @@ def cdf(x):
     y_pred = np.interp(eval_points, x, xfrac)  # Predicted
     y = np.interp(eval_points, z, zfrac)  # Standard Normal
 
-    # Area bertween ideal Gaussian and observed
+    # Area between ideal Gaussian and observed
     area = np.trapz(abs(y_pred-y), x=y, dx=0.00001)
 
+    if save:
+
+        if subsave:
+            save = os.path.join(save, subsave)
+
+        os.makedirs(save, exist_ok=True)
+
+        area_label = 'Miscalibration Area: {:.3f}'.format(area)
+
+        fig, ax = pl.subplots()
+
+        ax.plot(
+                y,
+                y_pred,
+                zorder=0,
+                color='b',
+                linewidth=4,
+                )
+
+        ax.fill_between(
+                        y,
+                        y,
+                        y_pred,
+                        label=area_label,
+                        )
+
+        # Line of best fit
+        ax.plot(
+                [0, 1],
+                [0, 1],
+                color='k',
+                linestyle=':',
+                zorder=1,
+                linewidth=4,
+                label='Ideal',
+                )
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        ax.set_ylabel('Predicted CDF')
+        ax.set_xlabel('Standard Normal CDF')
+
+        h = 8
+        w = 8
+
+        fig.set_size_inches(h, w, forward=True)
+        ax.set_aspect('equal')
+        fig.savefig(os.path.join(save, 'cdf_parity.png'), bbox_inches='tight')
+
+        pl.close(fig)
+
+        data = {}
+        data['y'] = list(y)
+        data['y_pred'] = list(y_pred)
+        data['Area'] = area
+        with open(os.path.join(save, 'cdf_parity.json'), 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        ax.plot(
+                eval_points,
+                y,
+                zorder=0,
+                color='g',
+                linewidth=4,
+                label='Standard Normal Distribution',
+                )
+
+        ax.plot(
+                eval_points,
+                y_pred,
+                zorder=1,
+                color='r',
+                linewidth=4,
+                label='Observed Distribution',
+                )
+
+        ax.fill_between(
+                        eval_points,
+                        y,
+                        y_pred,
+                        label=area_label,
+                        )
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        ax.set_xlabel('z')
+        ax.set_ylabel('CDF(z)')
+
+        fig.savefig(os.path.join(save, 'cdf.png'), bbox_inches='tight')
+
+        pl.close(fig)
+
+        data = {}
+        data['x'] = list(eval_points)
+        data['y'] = list(y)
+        data['y_pred'] = list(y_pred)
+        data['Area'] = area
+        with open(os.path.join(save, 'cdf.json'), 'w') as handle:
+            json.dump(data, handle)
+
     return y, y_pred, area
-
-
-def cdf_parity(x, save):
-    '''
-    Plot the quantile quantile plot for cummulative distributions.
-
-    inputs:
-        x = The residuals normalized by the calibrated uncertainties.
-        save = The location to save figure.
-    '''
-
-    os.makedirs(save, exist_ok=True)
-
-    fig, ax = pl.subplots()
-
-    y, y_pred, area = cdf(x)
-    ax.plot(
-            y,
-            y_pred,
-            zorder=0,
-            color='b',
-            label='Area: {:.3f}'.format(area),
-            )
-
-    # Line of best fit
-    ax.plot(
-            [0, 1],
-            [0, 1],
-            color='k',
-            linestyle=':',
-            zorder=1,
-            )
-
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-    ax.set_ylabel('Predicted CDF')
-    ax.set_xlabel('Standard Normal CDF')
-
-    h = 8
-    w = 8
-
-    fig.set_size_inches(h, w, forward=True)
-    ax.set_aspect('equal')
-    fig.savefig(os.path.join(save, 'cdf_parity.png'), bbox_inches='tight')
-
-    pl.close(fig)
-
-    data = {}
-    data['y'] = list(y)
-    data['y_pred'] = list(y_pred)
-    data['Area'] = area
-    with open(os.path.join(save, 'cdf_parity.json'), 'w') as handle:
-        json.dump(data, handle)
 
 
 def binned_truth(data_cv, metric, bins, gt=0.1, save=False):
