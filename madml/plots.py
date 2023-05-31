@@ -298,7 +298,7 @@ def cdf_parity(x, save):
         json.dump(data, handle)
 
 
-def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
+def binned_truth(data_cv, metric, bins, gt=0.1, save=False):
     '''
     Do analysis on binned data.
 
@@ -306,7 +306,7 @@ def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
         data_cv = Cross validation data.
         meteric = The dissimilarity measure.
         bins = The number of bins to get statistics.
-        gt = The ground truth for p-value.
+        gt = The ground truth threshold for miscallibration area.
         save = The location to save figures/data.
 
     outputs:
@@ -362,7 +362,7 @@ def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
     data_cv_bin[metric+'_max'] = data_cv_bin[metric+'_max'].astype(float)
 
     # Ground truth for bins
-    data_cv_bin['id'] = data_cv_bin['pval'] > gt
+    data_cv_bin['id'] = data_cv_bin['area'] < gt
 
     if save:
 
@@ -550,13 +550,6 @@ def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
                    label='Bin End',
                    )
 
-        ax.axhline(
-                   gt,
-                   color='k',
-                   linestyle=':',
-                   label='GT = {:.2f}'.format(gt),
-                   )
-
         ax.set_yscale('log')
 
         ax.set_xlabel(xlabel)
@@ -617,6 +610,13 @@ def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
                    label='Bin End',
                    )
 
+        ax.axhline(
+                   gt,
+                   color='k',
+                   linestyle=':',
+                   label='GT = {:.2f}'.format(gt),
+                   )
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Miscalibration Area')
 
@@ -636,6 +636,7 @@ def binned_truth(data_cv, metric, bins, gt=0.01, save=False):
         data['x_min'] = mdists_mins.tolist()
         data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
+        data['ground_truth'] = gt
 
         jsonfile = os.path.join(save, 'area_vs_uq.json')
         with open(jsonfile, 'w') as handle:
