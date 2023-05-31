@@ -242,7 +242,8 @@ def cdf(x, save=None, subsave=None):
     y = np.interp(eval_points, z, zfrac)  # Standard Normal
 
     # Area between ideal Gaussian and observed
-    area = np.trapz(abs(y_pred-y), x=y, dx=0.00001)
+    area = abs(y_pred-y)
+    area = np.trapz(area, x=y, dx=0.00001)
 
     if save:
 
@@ -358,7 +359,7 @@ def cdf(x, save=None, subsave=None):
     return y, y_pred, area
 
 
-def binned_truth(data_cv, metric, bins, gt=0.1, save=False):
+def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     '''
     Do analysis on binned data.
 
