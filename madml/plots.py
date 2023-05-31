@@ -246,8 +246,12 @@ def cdf(x, save=None, subsave=None):
 
     if save:
 
-        if subsave:
-            save = os.path.join(save, subsave)
+        cdf_name = 'cdf'
+        parity_name = 'cdf_parity'
+        if subsave is not None:
+            save = os.path.join(save, 'each_bin')
+            cdf_name = '{}_{}'.format(cdf_name, subsave)
+            parity_name = '{}_{}'.format(parity_name, subsave)
 
         os.makedirs(save, exist_ok=True)
 
@@ -291,7 +295,10 @@ def cdf(x, save=None, subsave=None):
 
         fig.set_size_inches(h, w, forward=True)
         ax.set_aspect('equal')
-        fig.savefig(os.path.join(save, 'cdf_parity.png'), bbox_inches='tight')
+        fig.savefig(os.path.join(
+                                 save,
+                                 parity_name+'.png'
+                                 ), bbox_inches='tight')
 
         pl.close(fig)
 
@@ -299,7 +306,7 @@ def cdf(x, save=None, subsave=None):
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
         data['Area'] = area
-        with open(os.path.join(save, 'cdf_parity.json'), 'w') as handle:
+        with open(os.path.join(save, parity_name+'.json'), 'w') as handle:
             json.dump(data, handle)
 
         fig, ax = pl.subplots()
@@ -334,7 +341,7 @@ def cdf(x, save=None, subsave=None):
         ax.set_xlabel('z')
         ax.set_ylabel('CDF(z)')
 
-        fig.savefig(os.path.join(save, 'cdf.png'), bbox_inches='tight')
+        fig.savefig(os.path.join(save, cdf_name+'.png'), bbox_inches='tight')
 
         pl.close(fig)
 
@@ -343,7 +350,7 @@ def cdf(x, save=None, subsave=None):
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
         data['Area'] = area
-        with open(os.path.join(save, 'cdf.json'), 'w') as handle:
+        with open(os.path.join(save, cdf_name+'.json'), 'w') as handle:
             json.dump(data, handle)
 
     return y, y_pred, area
@@ -379,7 +386,11 @@ def binned_truth(data_cv, metric, bins, gt=0.1, save=False):
     distmean = bin_groups[metric].mean()
     zvar = bin_groups['z'].var()
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
-    areas = bin_groups['z'].apply(lambda x: cdf(x)[2])
+    areas = bin_groups.apply(lambda x: cdf(
+                                           x['z'],
+                                           save=save,
+                                           subsave=x['bin'].unique()[0],
+                                           )[2])
     pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
                                                                  x,
                                                                  'norm',
@@ -390,7 +401,7 @@ def binned_truth(data_cv, metric, bins, gt=0.1, save=False):
     distmean = distmean.to_frame().add_suffix('_mean')
     zvar = zvar.to_frame().add_suffix('_var')
     rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
-    areas = areas.to_frame().rename({'z': 'area'}, axis=1)
+    areas = areas.to_frame().rename({0: 'area'}, axis=1)
     pvals = pvals.to_frame().rename({'z': 'pval'}, axis=1)
     counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
