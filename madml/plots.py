@@ -465,7 +465,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         if 'y_stdc/std(y)' in metric:
             xlabel = r'Mean $\sigma_{c}/\sigma_{y}$'
         else:
-            xlabel = 'Mean Dissimilarity'
+            xlabel = 'Mean D'
 
         fig, ax = pl.subplots()
 
@@ -792,7 +792,7 @@ def single_truth(data_cv, metric, save):
         if 'y_stdc/std(y)' in metric:
             xlabel = r'$\sigma_{c}/\sigma_{y}$'
         else:
-            xlabel = 'Dissimilarity'
+            xlabel = 'D'
 
         ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
         ax.set_xlabel(xlabel)
