@@ -1,4 +1,3 @@
-from madml.utils import parallel
 from madml import plots
 import pandas as pd
 import numpy as np
@@ -70,6 +69,7 @@ class nested_cv:
         train, test, count, name = split  # train/test
 
         # Fit models
+        print('Nested CV {} Fold: {}'.format(name, count))
         self.model.fit(self.X[train], self.y[train], self.g[train])
         data_test = self.model.predict(self.X[test])
 
@@ -79,7 +79,7 @@ class nested_cv:
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
-        data_test['type'] = name
+        data_test['splitter'] = name
         data_test['index'] = data_test['index'].astype(int)
 
         # z score
@@ -100,7 +100,7 @@ class nested_cv:
         '''
 
         # Assess model
-        df = parallel(self.cv, self.splits)
+        df = [self.cv(i) for i in self.splits]
         df = pd.concat(df)
         df['id'] = abs(df['r/std(y)']) < 1.0
 
@@ -115,6 +115,7 @@ class nested_cv:
         df.to_csv(os.path.join(save, 'single.csv'), index=False)
 
         # Save model
+        print('Saving Full Fit Model')
         self.model.save = os.path.join(self.save, 'model')
         self.model.fit(self.X, self.y, self.g)
         dill.dump(

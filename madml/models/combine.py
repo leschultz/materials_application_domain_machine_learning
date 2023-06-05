@@ -1,3 +1,4 @@
+from madml.utils import parallel
 from sklearn.base import clone
 from sklearn import metrics
 from scipy import stats
@@ -5,6 +6,7 @@ from madml import plots
 
 import pandas as pd
 import numpy as np
+
 import json
 import copy
 import os
@@ -38,9 +40,9 @@ class domain_model:
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
-        self.splits = splits
         self.bins = bins
         self.save = save
+        self.splits = splits
 
     def transforms(self, gs_model, X):
         '''
@@ -84,96 +86,55 @@ class domain_model:
 
         return std
 
-    def cv(self, gs_model, ds_model, X, y, g, train, cv):
+    def cv(self, split, gs_model, ds_model, X, y, g):
         '''
         Do cross validation.
 
         inputs:
+            split = The split of data.
             gs_model = The grisearch pipeline model.
             ds_model = The distance model.
             X = The features.
             y = The target variable.
             g = The groups for data.
-            train = The indexes for training data.
-            cv = The cross validation generator for splits.
+            split = The split of data.
 
         outputs:
             data = A pandas dataframe containing CV results.
         '''
 
-        g_cv = []
-        y_cv = []
-        y_cv_pred = []
-        y_cv_std = []
-        index_cv = []
-        dist_cv = []
-        sigma_y = []
-        split_count = []
-        for count, (tr, te) in enumerate(cv.split(
-                                                  X[train],
-                                                  y[train],
-                                                  g[train],
-                                                  )):
+        count, splitter, tr, te = split
 
-            if tr.shape[0] < 1:
-                continue
+        if tr.shape[0] < 1:
+            return pd.DataFrame()
 
-            gs_model_cv = clone(gs_model)
-            ds_model_cv = copy.deepcopy(ds_model)
+        gs_model_cv = clone(gs_model)
+        ds_model_cv = copy.deepcopy(ds_model)
 
-            gs_model_cv.fit(X[train][tr], y[train][tr])
+        gs_model_cv.fit(X[tr], y[tr])
 
-            X_trans_tr = self.transforms(
-                                         gs_model_cv,
-                                         X[train][tr],
-                                         )
+        X_trans_tr = self.transforms(
+                                     gs_model_cv,
+                                     X[tr],
+                                     )
 
-            X_trans_te = self.transforms(
-                                         gs_model_cv,
-                                         X[train][te],
-                                         )
+        X_trans_te = self.transforms(
+                                     gs_model_cv,
+                                     X[te],
+                                     )
 
-            ds_model_cv.fit(X_trans_tr, y[train][tr])
-
-            std = self.std_pred(gs_model_cv, X_trans_te)
-
-            y_cv_pred = np.append(
-                                  y_cv_pred,
-                                  gs_model_cv.predict(X[train][te])
-                                  )
-
-            y_cv_std = np.append(
-                                 y_cv_std,
-                                 std
-                                 )
-            y_cv = np.append(
-                             y_cv,
-                             y[train][te]
-                             )
-            g_cv = np.append(
-                             g_cv,
-                             g[train][te]
-                             )
-
-            index_cv = np.append(index_cv, train[te])
-            dist_cv = np.append(
-                                dist_cv,
-                                ds_model_cv.predict(X_trans_te)
-                                )
-
-            cases = len(y[train][te])
-            sigma_y += [np.std(y[train][tr])]*cases
-            split_count += [count]*cases
+        ds_model_cv.fit(X_trans_tr, y[tr])
 
         data = pd.DataFrame()
-        data['g'] = g_cv
-        data['y'] = y_cv
-        data['y_pred'] = y_cv_pred
-        data['y_stdu'] = y_cv_std
-        data['dist'] = dist_cv
-        data['index'] = index_cv
-        data['fold'] = split_count
-        data['std(y)'] = sigma_y  # Of the data trained on
+        data['g'] = g[te]
+        data['y'] = y[te]
+        data['y_pred'] = gs_model_cv.predict(X[te])
+        data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
+        data['dist'] = ds_model_cv.predict(X_trans_te)
+        data['index'] = te
+        data['fold'] = [count]*te.shape[0]
+        data['std(y)'] = [np.std(y[tr])]*te.shape[0]  # Of the data trained on
+        data['splitter'] = splitter
 
         data['index'] = data['index'].astype(int)
 
@@ -231,35 +192,34 @@ class domain_model:
                                   self.gs_model,
                                   X,
                                   )
-        self.ds_model.fit(X_trans, y)
+        # Generate all splits
+        splits = []
+        for i in self.splits:
+            for count, (tr, te) in enumerate(i[1].split(X, y, g)):
+                splits.append((count, i[0], tr, te))
 
-        # Do cross validation in nested loop
-        data_cv = []
-        for split in self.splits:
-
-            data_id = self.cv(
-                              self.gs_model,
-                              self.ds_model,
-                              X,
-                              y,
-                              g,
-                              np.arange(y.shape[0]),
-                              split[1],
-                              )
-
-            if 'calibration' == split[0]:
-
-                # Fit on hold out data ID
-                self.uq_model.fit(
-                                  data_id['y'],
-                                  data_id['y_pred'],
-                                  data_id['y_stdu']
-                                  )
-
-            data_id['type'] = split[0]
-            data_cv.append(data_id)
+        data_cv = parallel(
+                           self.cv,
+                           splits,
+                           gs_model=self.gs_model,
+                           ds_model=self.ds_model,
+                           X=X,
+                           y=y,
+                           g=g,
+                           )
 
         data_cv = pd.concat(data_cv)
+        data_id = data_cv[data_cv['splitter'] == 'calibration']
+
+        # Fit distance model
+        self.ds_model.fit(X_trans, y)
+
+        # Fit on hold out data ID
+        self.uq_model.fit(
+                          data_id['y'],
+                          data_id['y_pred'],
+                          data_id['y_stdu']
+                          )
 
         # Calibrate uncertainties
         data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'])
@@ -288,7 +248,7 @@ class domain_model:
             data_cv.to_csv(os.path.join(
                                         self.save,
                                         'single.csv'
-                                        ))
+                                        ), index=False)
             jsonfile = os.path.join(
                                     self.save,
                                     'thresholds.json'

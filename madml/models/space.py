@@ -18,11 +18,13 @@ class distance_model:
             ):
         '''
         Get the distances based on a metric.
+
         inputs:
             X_train = The features of the training set.
             y_train = The training target when applicable.
             X_test = The features of the test set.
             dist = The distance to consider.
+
         ouputs:
             dists = A dictionary of distances.
         '''
