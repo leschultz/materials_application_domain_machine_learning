@@ -48,8 +48,20 @@ def generate_plots(data_cv, ystd, bins, save):
                data_cv['y_pred'].values,
                ystd,
                singlesave,
+               'total',
                )
-        cdf(data_cv['z'], intervalsave)
+        cdf(data_cv['z'], intervalsave, subsave='_total')
+
+        # For only calibration data
+        indx = data_cv['splitter'] == 'calibration'
+        parity(
+               data_cv[indx]['y'].values,
+               data_cv[indx]['y_pred'].values,
+               ystd,
+               singlesave,
+               'calibration',
+               )
+        cdf(data_cv[indx]['z'], intervalsave, subsave='_calibration')
 
     else:
         singlesave = intervalsave = save
@@ -115,7 +127,8 @@ def parity(
            y,
            y_pred,
            sigma_y,
-           save='.'
+           save='.',
+           subname='',
            ):
     '''
     Make a paroody plot.
@@ -193,7 +206,10 @@ def parity(
     w = 8
 
     fig.set_size_inches(h, w, forward=True)
-    fig.savefig(os.path.join(save, 'parity.png'), bbox_inches='tight')
+    fig.savefig(os.path.join(
+                             save,
+                             'parity_{}.png'.format(subname)
+                             ), bbox_inches='tight')
     pl.close(fig)
 
     data = {}
@@ -204,19 +220,20 @@ def parity(
     data['y'] = y.tolist()
     data['y_pred'] = y_pred.tolist()
 
-    jsonfile = os.path.join(save, 'parity.json')
+    jsonfile = os.path.join(save, 'parity_{}.json'.format(subname))
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
 
 
-def cdf(x, save=None, subsave=None):
+def cdf(x, save=None, binsave=None, subsave=''):
     '''
     Plot the quantile quantile plot for cummulative distributions.
 
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
         save = The location to save the figure/data.
-        subsave = Adding to a directory of the saving.
+        binsave = Adding to a directory of the saving for each bin.
+        subsave = Append a name to the save file.
 
     outputs:
         y = The cummulative distribution of observed data.
@@ -249,10 +266,10 @@ def cdf(x, save=None, subsave=None):
 
         cdf_name = 'cdf'
         parity_name = 'cdf_parity'
-        if subsave is not None:
+        if binsave is not None:
             save = os.path.join(save, 'each_bin')
-            cdf_name = '{}_{}'.format(cdf_name, subsave)
-            parity_name = '{}_{}'.format(parity_name, subsave)
+            cdf_name = '{}_{}'.format(cdf_name, binsave)
+            parity_name = '{}_{}'.format(parity_name, binsave)
 
         os.makedirs(save, exist_ok=True)
 
@@ -299,7 +316,7 @@ def cdf(x, save=None, subsave=None):
         ax.set_aspect('equal')
         fig.savefig(os.path.join(
                                  save,
-                                 parity_name+'.png'
+                                 '{}{}.png'.format(parity_name, subsave)
                                  ), bbox_inches='tight')
 
         pl.close(fig)
@@ -308,7 +325,10 @@ def cdf(x, save=None, subsave=None):
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
         data['Area'] = area
-        with open(os.path.join(save, parity_name+'.json'), 'w') as handle:
+        with open(os.path.join(
+                               save,
+                               '{}{}.json'.format(parity_name, subsave)
+                               ), 'w') as handle:
             json.dump(data, handle)
 
         fig, ax = pl.subplots()
@@ -344,7 +364,10 @@ def cdf(x, save=None, subsave=None):
         ax.set_xlabel('z')
         ax.set_ylabel('CDF(z)')
 
-        fig.savefig(os.path.join(save, cdf_name+'.png'), bbox_inches='tight')
+        fig.savefig(os.path.join(
+                                 save,
+                                 '{}{}.png'.format(cdf_name, subsave),
+                                 ), bbox_inches='tight')
 
         pl.close(fig)
 
@@ -353,7 +376,10 @@ def cdf(x, save=None, subsave=None):
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
         data['Area'] = area
-        with open(os.path.join(save, cdf_name+'.json'), 'w') as handle:
+        with open(os.path.join(
+                               save,
+                               '{}{}.json'.format(cdf_name, subsave),
+                               ), 'w') as handle:
             json.dump(data, handle)
 
     return y, y_pred, area
@@ -392,7 +418,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     areas = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
-                                           subsave=x['bin'].unique()[0],
+                                           binsave=x['bin'].unique()[0],
                                            )[2])
     pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
                                                                  x,

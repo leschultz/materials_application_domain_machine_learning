@@ -115,7 +115,7 @@ class nested_cv:
         df.to_csv(os.path.join(save, 'single.csv'), index=False)
 
         # Save model
-        print('Saving Full Fit Model')
+        print('Making Full Fit Model')
         self.model.save = os.path.join(self.save, 'model')
         self.model.fit(self.X, self.y, self.g)
         dill.dump(
