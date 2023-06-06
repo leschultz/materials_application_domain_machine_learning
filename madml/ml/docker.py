@@ -9,7 +9,7 @@ def predict(df, container_name):
     client = docker.from_env()
     x = client.containers.run(
                               'leschultz/cmg:latest',
-                              '/bin/python3 predict.py',
+                              '/bin/python3 model_predict.py',
                               volumes=['/tmp:/mnt'],
                               )
 

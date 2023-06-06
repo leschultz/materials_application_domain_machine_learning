@@ -3,4 +3,4 @@
 export PYTHONPATH=$(pwd)/../../..:$PYTHONPATH
 
 rm -rf run
-python3 run.py
+python3 fit.py

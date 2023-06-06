@@ -18,9 +18,9 @@ do
 
     if [ ${i} = "friedman1" ]
     then
-        sed -i "s/replace_data/'${i}', n_samples=1000, n_features=5/g" run.py
+        sed -i "s/replace_data/'${i}', n_samples=1000, n_features=5/g" fit.py
     else
-        sed -i "s/replace_data/${i}()/g" run.py
+        sed -i "s/replace_data/'${i}'/g" fit.py
     fi
 
     cd - > /dev/null
