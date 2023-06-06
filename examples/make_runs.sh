@@ -16,11 +16,13 @@ do
     cp -r template "runs/${i}"
     cd "runs/${i}"
 
+    sed -i "s/replace_data/'${i}'/g" fit.py
+
     if [ ${i} = "friedman1" ]
     then
-        sed -i "s/replace_data/'${i}', n_samples=1000, n_features=5/g" fit.py
+        sed -i "s/replace_args/, n_samples=1000, n_features=5/g" fit.py
     else
-        sed -i "s/replace_data/'${i}'/g" fit.py
+        sed -i "s/replace_args//g" fit.py
     fi
 
     cd - > /dev/null

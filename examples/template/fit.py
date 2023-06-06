@@ -16,9 +16,10 @@ from madml import datasets
 def main():
 
     run_name = 'run'
+    data_name = replace_data
 
     # Load data
-    data = datasets.load(replace_data)
+    data = datasets.load(data_namereplace_args)
     X = data['data']
     y = data['target']
     g = data['class_name']
@@ -66,6 +67,7 @@ def main():
     model = domain_model(gs_model, ds_model, uq_model, splits)
     cv = nested_cv(X, y, g, model, splits, save=run_name)
     cv.assess()
+    cv.push('leschultz/cmg:{}'.format(data_name))
 
 
 if __name__ == '__main__':

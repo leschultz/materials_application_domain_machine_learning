@@ -12,7 +12,6 @@ RUN pip install -U pip
 RUN git clone https://github.com/leschultz/materials_application_domain_machine_learning.git
 RUN cd materials_application_domain_machine_learning && pip install -e .
 
-COPY fit.py .
-RUN python3 fit.py
+COPY model.dill .
 
 COPY model_predict.py .

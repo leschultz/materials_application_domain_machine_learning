@@ -1,6 +1,9 @@
+from madml.hosting import docker
 from madml import plots
+import pkg_resources
 import pandas as pd
 import numpy as np
+import shutil
 import copy
 import dill
 import os
@@ -122,6 +125,34 @@ class nested_cv:
                   self.model,
                   open(os.path.join(self.model.save, 'model.dill'), 'wb')
                   )
-        self.model.save = None
 
         return df
+
+    def push(self, name):
+        '''
+        Push docker container with full fit model.
+        '''
+
+        print('Pushing model to {}'.format(name))
+        data_path = pkg_resources.resource_filename(
+                                                    'madml',
+                                                    'templates/docker',
+                                                    )
+        save = os.path.join(self.save, 'hosting')
+        shutil.copytree(data_path, save)
+
+        os.chdir(save)
+        shutil.copy('../model/model.dill', '.')
+
+        docker.build_and_push_container(name)
+
+        with open('user_predict.py', 'r') as handle:
+            data = handle.read()
+
+        data = data.replace('replace', name)
+
+        with open('user_predict.py', 'w') as handle:
+            handle.write(data)
+
+        for i in ['Dockerfile', 'model.dill', 'model_predict.py']:
+            os.remove(i)

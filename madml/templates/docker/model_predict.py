@@ -3,7 +3,7 @@ import dill
 
 df = pd.read_csv('/mnt/test.csv')
 
-with open('run/model/model.dill', 'rb') as handle:
+with open('model.dill', 'rb') as handle:
     model = dill.load(handle)
 
 df = model.predict(df.values)
