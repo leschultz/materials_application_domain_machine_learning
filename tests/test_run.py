@@ -9,7 +9,7 @@ from madml.models.space import distance_model
 from madml.models.combine import domain_model
 from madml.models.uq import calibration_model
 from madml.ml.assessment import nested_cv
-from madml.datasets import load_data
+from madml import datasets
 
 import unittest
 import shutil
@@ -25,7 +25,7 @@ class ml_test(unittest.TestCase):
         run_name = 'run'
 
         # Load data
-        data = load_data.diffusion()
+        data = datasets.load('diffusion')
         df = data['frame']
         X = data['data']
         y = data['target']
@@ -55,7 +55,7 @@ class ml_test(unittest.TestCase):
         gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
 
         # Types of sampling to test
-        splits = [('random', RepeatedKFold(n_repeats=1))]
+        splits = [('calibration', RepeatedKFold(n_repeats=1))]
 
         # Fit models
         model = domain_model(gs_model, ds_model, uq_model, splits)
