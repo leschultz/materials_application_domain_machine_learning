@@ -10,7 +10,7 @@ from madml.models.space import distance_model
 from madml.models.combine import domain_model
 from madml.models.uq import calibration_model
 from madml.ml.assessment import nested_cv
-from madml.datasets import load_data
+from madml import datasets
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     run_name = 'run'
 
     # Load data
-    data = load_data.replace_data
+    data = datasets.load(replace_data)
     X = data['data']
     y = data['target']
     g = data['class_name']
