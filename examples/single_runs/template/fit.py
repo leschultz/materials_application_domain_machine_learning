@@ -19,7 +19,7 @@ def main():
     data_name = replace_data
 
     # Load data
-    data = datasets.load(data_namereplace_args)
+    data = datasets.load(data_name)
     X = data['data']
     y = data['target']
     g = data['class_name']

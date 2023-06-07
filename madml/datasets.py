@@ -72,7 +72,7 @@ def load(name, *args, **kwargs):
         df = 'friedman_data.csv'
         target = 'y'
 
-        X, y = make_friedman1(*args, **kwargs)
+        X, y = make_friedman1(n_samples=1000, n_features=5)
 
         data = {}
         data['data'] = X

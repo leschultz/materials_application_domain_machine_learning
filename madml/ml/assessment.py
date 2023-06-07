@@ -141,6 +141,7 @@ class nested_cv:
         save = os.path.join(self.save, 'hosting')
         shutil.copytree(data_path, save)
 
+        old = os.getcwd()
         os.chdir(save)
         shutil.copy('../model/model.dill', '.')
 
@@ -156,3 +157,5 @@ class nested_cv:
 
         for i in ['Dockerfile', 'model.dill', 'model_predict.py']:
             os.remove(i)
+
+        os.chdir(old)
