@@ -17,7 +17,13 @@ def main():
 
     for data_name in datasets.list_data():
 
-        if not data_name in ['diffusion', 'friedman1', 'steel_yield_strength']:
+        if not data_name in [
+                             'diffusion',
+                             'friedman1',
+                             'steel_yield_strength',
+                             'fluence',
+                             'super_cond',
+                             ]:
             continue
 
         print(data_name)
