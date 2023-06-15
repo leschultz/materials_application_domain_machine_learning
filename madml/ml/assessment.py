@@ -73,12 +73,13 @@ class nested_cv:
 
         # Fit models
         print('Nested CV {} Fold: {}'.format(name, count))
-        self.model.fit(self.X[train], self.y[train], self.g[train])
-        data_test = self.model.predict(self.X[test])
+        model = copy.deepcopy(self.model)
+        model.fit(self.X[train], self.y[train], self.g[train])
+        data_test = model.predict(self.X[test])
 
         data_test['y'] = self.y[test]
         data_test['g'] = self.g[test]
-        data_test['std(y)'] = self.model.ystd
+        data_test['std(y)'] = model.ystd
         data_test['index'] = test
         data_test['fold'] = count
         data_test['split'] = 'test'
