@@ -182,16 +182,6 @@ class domain_model:
             data_cv_bin = The binned cross validation data.
         '''
 
-        # Get some data statistics
-        self.ystd = np.std(y)
-
-        # Build the model
-        self.gs_model.fit(X, y)
-
-        X_trans = self.transforms(
-                                  self.gs_model,
-                                  X,
-                                  )
         # Generate all splits
         splits = []
         for i in self.splits:
@@ -211,15 +201,26 @@ class domain_model:
         data_cv = pd.concat(data_cv)
         data_id = data_cv[data_cv['splitter'] == 'calibration']
 
-        # Fit distance model
-        self.ds_model.fit(X_trans, y)
-
         # Fit on hold out data ID
         self.uq_model.fit(
                           data_id['y'],
                           data_id['y_pred'],
                           data_id['y_stdu']
                           )
+
+        # Get some data statistics
+        self.ystd = np.std(y)
+
+        # Build the model
+        self.gs_model.fit(X, y)
+
+        X_trans = self.transforms(
+                                  self.gs_model,
+                                  X,
+                                  )
+
+        # Fit distance model
+        self.ds_model.fit(X_trans, y)
 
         # Calibrate uncertainties
         data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'])

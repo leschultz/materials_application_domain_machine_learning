@@ -1059,6 +1059,8 @@ def pr(score, in_domain, pos_label, save=False):
         ax.set_xlabel('Recall')
         ax.set_ylabel('Precision')
 
+        ax.set_aspect('equal', adjustable='box')
+
         fig.savefig(os.path.join(save, 'pr.png'), bbox_inches='tight')
         pl.close(fig)
 
