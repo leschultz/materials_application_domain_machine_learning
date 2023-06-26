@@ -1,2 +1,4 @@
 **/__pycache__/*
 **/runs/*
+/dist/
+src/madml.egg-info/
