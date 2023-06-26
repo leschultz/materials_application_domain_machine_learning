@@ -26,6 +26,7 @@ install_requires = [
                     'openpyxl',
                     'docker',
                     ]
+
 long_description = open('README.md').read()
 
 # Passing variables to setup
@@ -41,4 +42,5 @@ setuptools.setup(
                  classifiers=classifiers,
                  install_requires=install_requires,
                  long_description=long_description,
+                 long_description_content_type='text/markdown',
                  )

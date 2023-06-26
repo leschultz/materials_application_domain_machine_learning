@@ -8,46 +8,58 @@ The structure of the code packages is as follows:
 ```
 materials_application_domain_machine_learning/
 ├── examples
-│   ├── make_runs.sh
-│   ├── submit_jobs.sh
-│   └── template
-│       ├── run.py
-│       ├── run.sh
-│       └── submit.sh
+│   ├── auto_push
+│   │   ├── fit.py
+│   │   ├── run.sh
+│   │   └── submit.sh
+│   └── single_runs
+│       ├── make_runs.sh
+│       ├── submit_jobs.sh
+│       └── template
+│           ├── fit.py
+│           ├── run.sh
+│           └── submit.sh
 ├── LICENSE
-├── madml
-│   ├── datasets
-│   │   ├── data
-│   │   │   ├── citrine_thermal_conductivity_simplified.xlsx
-│   │   │   ├── Dataset_electromigration.xlsx
-│   │   │   ├── Dataset_Perovskite_Opband_simplified.xlsx
-│   │   │   ├── dielectric_constant_simplified.xlsx
-│   │   │   ├── diffusion.csv
-│   │   │   ├── double_perovskites_gap.xlsx
-│   │   │   ├── elastic_tensor_2015_simplified.xlsx
-│   │   │   ├── fluence.csv
-│   │   │   ├── heusler_magnetic_simplified.xlsx
-│   │   │   ├── Perovskite_stability_Wei_updated_forGlenn.xlsx
-│   │   │   ├── perovskite_workfunctions_AO_simplified.xlsx
-│   │   │   ├── piezoelectric_tensor.xlsx
-│   │   │   ├── steel_strength.csv
-│   │   │   └── Supercon_data_features_selected.xlsx
-│   │   ├── __init__.py
-│   │   └── load_data.py
-│   ├── __init__.py
-│   ├── ml
-│   │   ├── assessment.py
-│   │   ├── __init__.py
-│   │   └── splitters.py
-│   ├── models
-│   │   ├── combine.py
-│   │   ├── __init__.py
-│   │   ├── space.py
-│   │   └── uq.py
-│   ├── plots.py
-│   └── utils.py
+├── pyproject.toml
 ├── README.md
 ├── setup.py
+├── src
+│   └── madml
+│       ├── data
+│       │   ├── citrine_thermal_conductivity_simplified.xlsx
+│       │   ├── Dataset_electromigration.xlsx
+│       │   ├── Dataset_Perovskite_Opband_simplified.xlsx
+│       │   ├── dielectric_constant_simplified.xlsx
+│       │   ├── diffusion.csv
+│       │   ├── double_perovskites_gap.xlsx
+│       │   ├── elastic_tensor_2015_simplified.xlsx
+│       │   ├── fluence.csv
+│       │   ├── heusler_magnetic_simplified.xlsx
+│       │   ├── Perovskite_stability_Wei_updated_forGlenn.xlsx
+│       │   ├── perovskite_workfunctions_AO_simplified.xlsx
+│       │   ├── piezoelectric_tensor.xlsx
+│       │   ├── steel_strength.csv
+│       │   └── Supercon_data_features_selected.xlsx
+│       ├── datasets.py
+│       ├── hosting
+│       │   └─── docker.py
+│       ├── __init__.py
+│       ├── ml
+│       │   ├── assessment.py
+│       │   ├── __init__.py
+│       │   └── splitters.py
+│       ├── models
+│       │   ├── combine.py
+│       │   ├── __init__.py
+│       │   ├── space.py
+│       │   └── uq.py
+│       ├── plots.py
+│       ├── templates
+│       │   └── docker
+│       │       ├── Dockerfile
+│       │       ├── model_predict.py
+│       │       └── user_predict.py
+│       └── utils.py
 └── tests
     ├── test_load_data.py
     └── test_run.py
