@@ -1,8 +1,11 @@
 from madml.hosting import docker
 from madml import plots
-import pkg_resources
+
 import pandas as pd
 import numpy as np
+
+import pkg_resources
+import subprocess
 import shutil
 import copy
 import dill
@@ -146,6 +149,17 @@ class nested_cv:
         os.chdir(save)
         shutil.copy('../model/model.dill', '.')
 
+        # Capture current environment
+        env = subprocess.run(
+                             ['pip', 'freeze'],
+                             capture_output=True,
+                             text=True
+                             )
+        print(env)
+
+        with open('requirements.txt', 'w') as handle:
+            handle.write(env.stdout)
+
         docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:
@@ -155,8 +169,5 @@ class nested_cv:
 
         with open('user_predict.py', 'w') as handle:
             handle.write(data)
-
-        for i in ['Dockerfile', 'model.dill', 'model_predict.py']:
-            os.remove(i)
 
         os.chdir(old)

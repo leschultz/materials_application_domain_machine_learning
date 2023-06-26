@@ -9,8 +9,11 @@ RUN apt upgrade -y
 
 RUN apt install python3-pip git -y
 RUN pip install -U pip
-RUN git clone https://github.com/leschultz/materials_application_domain_machine_learning.git
-RUN cd materials_application_domain_machine_learning && pip install -e .
+RUN pip install madml
+
+# Copy the user's packages
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 COPY model.dill .
 
