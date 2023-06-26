@@ -2,7 +2,7 @@ import setuptools
 
 # Package information
 name = 'madml'
-version = '0.0.1'
+version = '0.0.9'
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/'\
       'materials_application_domain_machine_learning.git'
@@ -13,7 +13,7 @@ classifiers = ['Programming Language :: Python :: 3',
                'License :: OSI Approved :: MIT License',
                'Operating System :: OS Independent',
                ]
-packages = setuptools.find_packages()
+packages = setuptools.find_packages(where='src')
 install_requires = [
                     'matplotlib',
                     'scipy',
@@ -38,6 +38,8 @@ setuptools.setup(
                  author=author,
                  author_email=author_email,
                  packages=packages,
+                 package_dir={'': 'src'},
+                 package_data={'madml': ['*.*', 'data/*']},
                  python_requires=python_requires,
                  classifiers=classifiers,
                  install_requires=install_requires,
