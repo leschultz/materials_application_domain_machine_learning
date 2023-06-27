@@ -155,8 +155,6 @@ class nested_cv:
                              capture_output=True,
                              text=True
                              )
-        print(env)
-
         with open('requirements.txt', 'w') as handle:
             handle.write(env.stdout)
 

@@ -64,7 +64,6 @@ def main():
 
         # Boostrap, cluster data, and generate splits
         for i in [2, 3]:
-            break
 
             # Cluster Splits
             top_split = BootstrappedLeaveClusterOut(
