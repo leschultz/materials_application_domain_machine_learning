@@ -152,12 +152,12 @@ class nested_cv:
 
         return df
 
-    def push(self, name):
+    def push(self, name, push_container=True):
         '''
         Push docker container with full fit model.
         '''
 
-        print('Pushing model to {}'.format(name))
+        print('Creating files to upload model to {}'.format(name))
         data_path = pkg_resources.resource_filename(
                                                     'madml',
                                                     'templates/docker',
@@ -179,9 +179,11 @@ class nested_cv:
         with open('requirements.txt', 'w') as handle:
             handle.write(env.stdout)
 
-        docker.build_and_push_container(name)
+        if push_container:
+            docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:
+            print('Pushing model')
             data = handle.read()
 
         data = data.replace('replace', name)
