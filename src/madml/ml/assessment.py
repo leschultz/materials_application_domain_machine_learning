@@ -125,6 +125,26 @@ class nested_cv:
         print('Making Full Fit Model')
         self.model.save = os.path.join(self.save, 'model')
         self.model.fit(self.X, self.y, self.g)
+
+        np.savetxt(
+                   os.path.join(self.model.save, 'X.csv'),
+                   self.X,
+                   delimiter=',',
+                   )
+
+        np.savetxt(
+                   os.path.join(self.model.save, 'y.csv'),
+                   self.y,
+                   delimiter=',',
+                   )
+
+        np.savetxt(
+                   os.path.join(self.model.save, 'g.csv'),
+                   self.g,
+                   delimiter=',',
+                   fmt='%s',
+                   )
+
         dill.dump(
                   self.model,
                   open(os.path.join(self.model.save, 'model.dill'), 'wb')
@@ -148,6 +168,7 @@ class nested_cv:
         old = os.getcwd()
         os.chdir(save)
         shutil.copy('../model/model.dill', '.')
+        shutil.copy('../model/X.csv', '.')
 
         # Capture current environment
         env = subprocess.run(

@@ -1,11 +1,9 @@
 from madml.hosting.docker import predict
-from madml import datasets
+import numpy as np
 
 container_name = 'replace'
 
-data = container_name.split(':')[-1]
-data = datasets.load(data)
-X = data['data']
+X = np.loadtxt('X.csv', delimiter=',')
 
 y = predict(X, container_name)
 print(y)
