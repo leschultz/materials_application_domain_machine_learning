@@ -180,10 +180,10 @@ class nested_cv:
             handle.write(env.stdout)
 
         if push_container:
+            print('Pushing model')
             docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:
-            print('Pushing model')
             data = handle.read()
 
         data = data.replace('replace', name)
