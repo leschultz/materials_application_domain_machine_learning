@@ -150,7 +150,7 @@ class nested_cv:
                   open(os.path.join(self.model.save, 'model.dill'), 'wb')
                   )
 
-        return df
+        return df, self.model
 
     def push(self, name, push_container=False):
         '''
