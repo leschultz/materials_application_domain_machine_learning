@@ -152,9 +152,13 @@ class nested_cv:
 
         return df
 
-    def push(self, name, push_container=True):
+    def push(self, name, push_container=False):
         '''
         Push docker container with full fit model.
+        
+        inputs:
+            name = The name of the container <account>/<repository_name>/<tag>
+            push_container = Whether to build and push a container with model.
         '''
 
         print('Creating files to upload model to {}'.format(name))

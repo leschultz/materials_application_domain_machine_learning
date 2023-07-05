@@ -2,7 +2,7 @@ import setuptools
 
 # Package information
 name = 'madml'
-version = '0.1.7'
+version = '0.1.8'
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/'\
       'materials_application_domain_machine_learning.git'
