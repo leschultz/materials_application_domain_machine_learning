@@ -90,14 +90,16 @@ class calibration_model:
     A UQ model for calibration of uncertainties.
     '''
 
-    def __init__(self, params=[0.0, 1.0], uq_func=poly):
+    def __init__(self, params=[0.0, 1.0], uq_func=poly, prior=False):
         '''
         inputs:
             params = The fitting coefficients initial guess.
             uq_func = The type of UQ function.
         '''
+
         self.params = params
         self.uq_func = uq_func
+        self.prior = prior
 
     def fit(self, y, y_pred, y_std):
         '''
@@ -109,15 +111,18 @@ class calibration_model:
             y_std = The uncertainty for the target variable.
         '''
 
-        params = set_llh(
-                         y,
-                         y_pred,
-                         y_std,
-                         self.params,
-                         self.uq_func
-                         )
+        if self.prior is False:
+            params = set_llh(
+                             y,
+                             y_pred,
+                             y_std,
+                             self.params,
+                             self.uq_func
+                             )
 
-        self.params = params
+            self.params = params
+        else:
+            self.params = 'Manual'
 
     def predict(self, y_std):
         '''
@@ -130,6 +135,9 @@ class calibration_model:
             y_stdc = The calibrated uncertainties.
         '''
 
-        y_stdc = self.uq_func(self.params, y_std)
+        if self.prior is False:
+            y_stdc = self.uq_func(self.params, y_std)
+        else:
+            y_stdc = self.uq_func(y_std)
 
         return y_stdc
