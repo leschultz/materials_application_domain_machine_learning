@@ -297,18 +297,18 @@ class domain_model:
 
         for i in ['y_stdc/std(y)', 'dist']:
             for j, k in zip([True, False], ['id', 'od']):
-                for key, value in self.thresholds[i][k].items():
-                    thr = value['Threshold']
-                    do_pred = self.domain_pred(
-                                               pred[i],
-                                               thr,
-                                               j,
-                                               )
+                for method in ['', '_bin']:
+                    k += method
+                    for key, value in self.thresholds[i][k].items():
+                        thr = value['Threshold']
+                        do_pred = self.domain_pred(
+                                                   pred[i],
+                                                   thr,
+                                                   j,
+                                                   )
 
-                    if j is True:
-                        pred['ID by {} for {}'.format(i, key)] = do_pred
-                    else:
-                        pred['OD by {} for {}'.format(i, key)] = do_pred
+                        name = '{} by {} for {}'.format(k.upper(), i, key)
+                        pred[name] = do_pred
 
         pred = pd.DataFrame(pred)
 
