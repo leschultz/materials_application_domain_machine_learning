@@ -75,7 +75,7 @@ class nested_cv:
         train, test, count, name = split  # train/test
 
         # Fit models
-        print('Nested CV {} Fold: {}'.format(name, count))
+        print('MADMl - Nested CV {} Fold: {}'.format(name, count))
         model = copy.deepcopy(self.model)
         model.fit(self.X[train], self.y[train], self.g[train])
         data_test = model.predict(self.X[test])
@@ -122,7 +122,7 @@ class nested_cv:
         df.to_csv(os.path.join(save, 'single.csv'), index=False)
 
         # Save model
-        print('Making Full Fit Model')
+        print('MADML - Making Full Fit Model')
         self.model.save = os.path.join(self.save, 'model')
         self.model.fit(self.X, self.y, self.g)
 
@@ -161,7 +161,7 @@ class nested_cv:
             push_container = Whether to build and push a container with model.
         '''
 
-        print('Creating files to upload model to {}'.format(name))
+        print('MADML - Creating files to upload model to {}'.format(name))
         data_path = pkg_resources.resource_filename(
                                                     'madml',
                                                     'templates/docker',
@@ -184,7 +184,7 @@ class nested_cv:
             handle.write(env.stdout)
 
         if push_container:
-            print('Pushing model')
+            print('MADML -Pushing model')
             docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:

@@ -197,8 +197,6 @@ def parity(
     ax.set_xlim(limits)
     ax.set_ylim(limits)
 
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
     ax.set_ylabel(r'$\hat{y}$')
     ax.set_xlabel('y')
 
@@ -206,11 +204,32 @@ def parity(
     w = 8
 
     fig.set_size_inches(h, w, forward=True)
+    fig.tight_layout()
+
+    fig_legend, ax_legend = pl.subplots()
+    ax_legend.axis(False)
+    legend = ax_legend.legend(
+                              *ax.get_legend_handles_labels(),
+                              frameon=False,
+                              loc='center',
+                              bbox_to_anchor=(0.5, 0.5)
+                              )
+    ax_legend.spines['top'].set_visible(False)
+    ax_legend.spines['bottom'].set_visible(False)
+    ax_legend.spines['left'].set_visible(False)
+    ax_legend.spines['right'].set_visible(False)
+
     fig.savefig(os.path.join(
                              save,
                              'parity_{}.png'.format(subname)
                              ), bbox_inches='tight')
+    fig_legend.savefig(os.path.join(
+                                    save,
+                                    'parity_{}_legend.png'.format(subname)
+                                    ), bbox_inches='tight')
+
     pl.close(fig)
+    pl.close(fig_legend)
 
     data = {}
     data[r'$RMSE$'] = rmse
@@ -273,7 +292,8 @@ def cdf(x, save=None, binsave=None, subsave=''):
 
         os.makedirs(save, exist_ok=True)
 
-        area_label = 'Miscalibration Area: {:.3f}'.format(area)
+        area_label = 'Observed Distribution'
+        area_label += '\nMiscalibration Area: {:.3f}'.format(area)
 
         fig, ax = pl.subplots()
 
@@ -283,15 +303,8 @@ def cdf(x, save=None, binsave=None, subsave=''):
                 zorder=0,
                 color='b',
                 linewidth=4,
+                label=area_label,
                 )
-
-        ax.fill_between(
-                        y,
-                        y,
-                        y_pred,
-                        alpha=0.4,
-                        label=area_label,
-                        )
 
         # Line of best fit
         ax.plot(
@@ -304,8 +317,6 @@ def cdf(x, save=None, binsave=None, subsave=''):
                 label='Ideal',
                 )
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
         ax.set_ylabel('Predicted CDF')
         ax.set_xlabel('Standard Normal CDF')
 
@@ -314,12 +325,36 @@ def cdf(x, save=None, binsave=None, subsave=''):
 
         fig.set_size_inches(h, w, forward=True)
         ax.set_aspect('equal')
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
+
         fig.savefig(os.path.join(
                                  save,
                                  '{}{}.png'.format(parity_name, subsave)
                                  ), bbox_inches='tight')
 
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        '{}{}_legend.png'.format(
+                                                                 parity_name,
+                                                                 subsave
+                                                                 )
+                                        ), bbox_inches='tight')
+
         pl.close(fig)
+        pl.close(fig_legend)
 
         data = {}
         data['y'] = list(y)
@@ -348,28 +383,42 @@ def cdf(x, save=None, binsave=None, subsave=''):
                 zorder=1,
                 color='r',
                 linewidth=4,
-                label='Observed Distribution',
+                label=area_label,
                 )
-
-        ax.fill_between(
-                        eval_points,
-                        y,
-                        y_pred,
-                        alpha=0.4,
-                        label=area_label,
-                        )
-
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         ax.set_xlabel('z')
         ax.set_ylabel('CDF(z)')
+
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(os.path.join(
                                  save,
                                  '{}{}.png'.format(cdf_name, subsave),
                                  ), bbox_inches='tight')
 
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        '{}{}_legend.png'.format(
+                                                                 cdf_name,
+                                                                 subsave
+                                                                 ),
+                                        ), bbox_inches='tight')
+
         pl.close(fig)
+        pl.close(fig_legend)
 
         data = {}
         data['x'] = list(eval_points)
@@ -519,17 +568,36 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         ax.set_ylim(0.0, None)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
         ax.set_xlabel(xlabel)
         ax.set_ylabel(r'VAR(z)')
+
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(os.path.join(
                                  save,
                                  'confidence.png'
                                  ), bbox_inches='tight')
 
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'confidence_legend.png'
+                                        ), bbox_inches='tight')
+
         pl.close(fig)
+        pl.close(fig_legend)
 
         data = {}
         data['x_id'] = mdists[in_domain].tolist()
@@ -585,14 +653,33 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         ax.set_xlabel(xlabel)
         ax.set_ylabel(r'$RMSE/\sigma_{y}$')
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(os.path.join(
                                  save,
                                  'rmse_vs_uq.png'
                                  ), bbox_inches='tight')
 
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'rmse_vs_uq_legend.png'
+                                        ), bbox_inches='tight')
+
         pl.close(fig)
+        pl.close(fig_legend)
 
         data['x_id'] = mdists[in_domain].tolist()
         data['y_id'] = rmses[in_domain].tolist()
@@ -646,14 +733,33 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         ax.set_xlabel(xlabel)
         ax.set_ylabel('p-value')
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(os.path.join(
                                  save,
                                  'ground_truth.png'
                                  ), bbox_inches='tight')
 
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'ground_truth_legend.png'
+                                        ), bbox_inches='tight')
+
         pl.close(fig)
+        pl.close(fig_legend)
 
         data['x_id'] = mdists[in_domain].tolist()
         data['y_id'] = pvals[in_domain].tolist()
@@ -711,14 +817,31 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Miscalibration Area')
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
+        fig.tight_layout()
         fig.savefig(os.path.join(
                                  save,
                                  'area_vs_uq.png'
                                  ), bbox_inches='tight')
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'area_vs_uq_legend.png'
+                                        ), bbox_inches='tight')
 
         pl.close(fig)
+        pl.close(fig_legend)
 
         data['x_id'] = mdists[in_domain].tolist()
         data['y_id'] = areas[in_domain].tolist()
@@ -797,13 +920,31 @@ def single_truth(data_cv, metric, save):
         ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
         ax.set_xlabel(xlabel)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(
                     os.path.join(save, 'absres_truth.png'),
                     bbox_inches='tight'
                     )
+        fig_legend.savefig(
+                           os.path.join(save, 'absres_truth_legend.png'),
+                           bbox_inches='tight'
+                           )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}
@@ -836,13 +977,30 @@ def single_truth(data_cv, metric, save):
         ax.set_ylabel(r'$(y-\hat{y})/\sigma_{y}$')
         ax.set_xlabel(xlabel)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
+        fig.tight_layout()
         fig.savefig(
                     os.path.join(save, 'res_truth.png'),
                     bbox_inches='tight'
                     )
+        fig_legend.savefig(
+                           os.path.join(save, 'res_truth_legend.png'),
+                           bbox_inches='tight'
+                           )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}
@@ -875,13 +1033,31 @@ def single_truth(data_cv, metric, save):
         ax.set_ylabel('z')
         ax.set_xlabel(xlabel)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(
                     os.path.join(save, 'z_truth.png'),
                     bbox_inches='tight'
                     )
+        fig_legend.savefig(
+                           os.path.join(save, 'z_truth_legend.png'),
+                           bbox_inches='tight'
+                           )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}
@@ -914,13 +1090,31 @@ def single_truth(data_cv, metric, save):
         ax.set_ylabel('|z|')
         ax.set_xlabel(xlabel)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.tight_layout()
 
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
+
+        fig_legend.savefig(
+                           os.path.join(save, 'abs(z)_truth_legend.png'),
+                           bbox_inches='tight'
+                           )
         fig.savefig(
                     os.path.join(save, 'abs(z)_truth.png'),
                     bbox_inches='tight'
                     )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}
@@ -1051,8 +1245,6 @@ def pr(score, in_domain, pos_label, save=False):
             label += '\nThreshold: {:.2f}'.format(t)
             ax.scatter(r, p, marker='o', label=label)
 
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
         ax.set_xlim(0.0, 1.05)
         ax.set_ylim(0.0, 1.05)
 
@@ -1061,8 +1253,29 @@ def pr(score, in_domain, pos_label, save=False):
 
         ax.set_aspect('equal', adjustable='box')
 
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
+
         fig.savefig(os.path.join(save, 'pr.png'), bbox_inches='tight')
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'pr_legend.png'
+                                        ), bbox_inches='tight'
+                           )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}
@@ -1123,10 +1336,30 @@ def confusion(scores, in_domain, save=False):
 
         ax.set_xlabel('Threshold')
         ax.set_ylabel('Fraction of TP, FP, TN, or FN')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
 
         fig.savefig(os.path.join(save, 'confusion.png'), bbox_inches='tight')
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        'confusion_legend.png'
+                                        ), bbox_inches='tight'
+                           )
         pl.close(fig)
+        pl.close(fig_legend)
 
         # Repare plot data for saving
         data = {}

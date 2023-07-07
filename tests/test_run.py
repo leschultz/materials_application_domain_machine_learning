@@ -52,7 +52,13 @@ class ml_test(unittest.TestCase):
                                ('scaler', scale),
                                ('model', model)
                                ])
-        gs_model = GridSearchCV(pipe, grid, cv=RepeatedKFold(n_repeats=1))
+
+        # The gridsearch model
+        gs_model = GridSearchCV(
+                                pipe,
+                                grid,
+                                cv=((slice(None), slice(None)),),  # No splits
+                                )
 
         # Types of sampling to test
         splits = [('calibration', RepeatedKFold(n_repeats=1))]
