@@ -81,7 +81,9 @@ def main():
         # Fit models
         model = domain_model(gs_model, ds_model, uq_model, splits)
         cv = nested_cv(X, y, g, model, splits, save=run_name)
-        cv.assess()
+        _, model = cv.assess()
+        df = model.predict(X)
+        print(df)
         cv.push('leschultz/cmg:{}'.format(data_name))
 
 
