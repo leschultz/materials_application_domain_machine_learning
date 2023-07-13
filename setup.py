@@ -2,7 +2,7 @@ import setuptools
 
 # Package information
 name = 'madml'
-version = '0.2.4'  # Need to increment every time to push to PyPI
+version = '0.2.5'  # Need to increment every time to push to PyPI
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/'\
       'materials_application_domain_machine_learning.git'

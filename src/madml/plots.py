@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 
 import matplotlib
+import warnings
 import json
 import os
 
@@ -1145,11 +1146,16 @@ def pr(score, in_domain, pos_label, save=False):
     if pos_label is True:
         score = -score
 
-    precision, recall, thresholds = precision_recall_curve(
-                                                           in_domain,
-                                                           score,
-                                                           pos_label=pos_label,
-                                                           )
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+
+        prc_scores = precision_recall_curve(
+                                            in_domain,
+                                            score,
+                                            pos_label=pos_label,
+                                            )
+
+        precision, recall, thresholds = prc_scores
 
     num = 2*recall*precision
     den = recall+precision
@@ -1177,10 +1183,14 @@ def pr(score, in_domain, pos_label, save=False):
     loop = range(nprec)
     for cut in [0.95]:
 
-        for index in loop:
-            p = precision[index]
-            if p >= cut:
-                break
+        # Correction for no observed precision higher than cut
+        if not any(precision[:-1] >= cut):
+            break
+        else:
+            for index in loop:
+                p = precision[index]
+                if p >= cut:
+                    break
 
         name = 'Minimum Precision: {}'.format(cut)
         custom[name] = {
@@ -1189,7 +1199,7 @@ def pr(score, in_domain, pos_label, save=False):
                         'F1': f1_scores[index],
                         }
 
-        # If precision is set at arbitrary 1 from sklearn convetion
+        # If precision is set at arbitrary 1 from sklearn convention
         if index > nthreshindex:
             custom[name]['Threshold'] = max(thresholds)
         else:
@@ -1210,7 +1220,11 @@ def pr(score, in_domain, pos_label, save=False):
 
         # AUC score
         auc_score = auc(recall, precision)
-        auc_relative = (auc_score-baseline)/relative_base
+
+        if relative_base == 0.0:
+            auc_relative = np.nan
+        else:
+            auc_relative = (auc_score-baseline)/relative_base
 
         os.makedirs(save, exist_ok=True)
 

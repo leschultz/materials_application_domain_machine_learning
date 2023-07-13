@@ -49,7 +49,9 @@ class distance_model:
                                            ).fit(X_train)
 
             dist = self.model.score_samples(X_train)
-            self.scaler = lambda x: 1-np.exp(x-max(dist))
+            m = max(dist)
+            cut = 0.0  # No likelihood shoudl be greater than that trained on
+            self.scaler = lambda x: np.maximum(cut, 1-np.exp(x-m))
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
