@@ -38,6 +38,9 @@ def generate_plots(data_cv, ystd, bins, save):
         data_cv_bin = The binned data.
     '''
 
+    # I can sort by these without target variable leakage
+    data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc', 'dist'])
+
     th = {}
     data_cv_bin = {}
     if save:
@@ -455,20 +458,25 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     data_cv_bin = data_cv[subset].copy()
 
     data_cv_bin['bin'] = pd.qcut(
-                                 data_cv_bin[metric],
+                                 data_cv_bin[metric].rank(method='first'),
                                  bins,
-                                 duplicates='drop',
                                  )
 
     # Bin statistics
     bin_groups = data_cv_bin.groupby('bin')
     distmean = bin_groups[metric].mean()
+    binmin = bin_groups[metric].min()
+    binmax = bin_groups[metric].max()
     zvar = bin_groups['z'].var()
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
     areas = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
-                                           binsave=x['bin'].unique()[0],
+                                           binsave='(' +
+                                                   str(x[metric].min()) +
+                                                   '_' +
+                                                   str(x[metric].max()) +
+                                                   ')',
                                            )[2])
     pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
                                                                  x,
@@ -478,6 +486,8 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     counts = bin_groups['z'].count()
 
     distmean = distmean.to_frame().add_suffix('_mean')
+    binmin = binmin.to_frame().add_suffix('_min')
+    binmax = binmax.to_frame().add_suffix('_max')
     zvar = zvar.to_frame().add_suffix('_var')
     rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
     areas = areas.to_frame().rename({0: 'area'}, axis=1)
@@ -488,6 +498,8 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                          lambda x, y: pd.merge(x, y, on='bin'),
                          [
                           distmean,
+                          binmin,
+                          binmax,
                           zvar,
                           rmse,
                           areas,
@@ -497,10 +509,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                          )
 
     data_cv_bin = data_cv_bin.reset_index()
-    data_cv_bin[metric+'_min'] = data_cv_bin['bin'].apply(lambda x: x.left)
-    data_cv_bin[metric+'_max'] = data_cv_bin['bin'].apply(lambda x: x.right)
-    data_cv_bin[metric+'_min'] = data_cv_bin[metric+'_min'].astype(float)
-    data_cv_bin[metric+'_max'] = data_cv_bin[metric+'_max'].astype(float)
+    data_cv_bin.drop('bin', axis=1, inplace=True)
 
     # Ground truth for bins
     data_cv_bin['id'] = data_cv_bin['area'] < gt
