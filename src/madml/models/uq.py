@@ -1,5 +1,6 @@
 from scipy.optimize import minimize
 import numpy as np
+import warnings
 
 
 def llh(std, res, x, func):
@@ -40,11 +41,14 @@ def set_llh(y, y_pred, y_std, x, func):
     res = y-y_pred
 
     # Get negative to use minimization instead of maximization of llh
-    opt = minimize(
-                   lambda x: -sum(llh(y_std, res, x, func))/len(res),
-                   x,
-                   method='nelder-mead',
-                   )
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+
+        opt = minimize(
+                       lambda x: -sum(llh(y_std, res, x, func))/len(res),
+                       x,
+                       method='nelder-mead',
+                       )
 
     params = opt.x
 

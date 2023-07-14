@@ -37,15 +37,16 @@ class distance_model:
 
         elif self.dist == 'kde':
             bw = estimate_bandwidth(X_train)
+            kernel = 'epanechnikov'
 
             if bw > 0.0:
                 self.model = KernelDensity(
-                                           kernel='tophat',
+                                           kernel=kernel,
                                            bandwidth=bw,
                                            ).fit(X_train)
             else:
                 self.model = KernelDensity(
-                                           kernel='tophat',
+                                           kernel=kernel,
                                            ).fit(X_train)
 
             dist = self.model.score_samples(X_train)
