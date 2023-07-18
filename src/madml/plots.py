@@ -52,9 +52,6 @@ def generate_plots(data_cv, ystd, bins, save):
     data_cv_bin = {}
     if save:
 
-        # For only calibration data
-        indx = data_cv['splitter'] == 'calibration'
-
         singlesave = os.path.join(save, 'single')
 
         parity(
@@ -65,19 +62,45 @@ def generate_plots(data_cv, ystd, bins, save):
                'total',
                )
 
-        # For only calibration data
-        parity(
-               data_cv[indx]['y'].values,
-               data_cv[indx]['y_pred'].values,
-               ystd,
-               singlesave,
-               'calibration',
-               )
-
         if condition:
             intervalsave = os.path.join(save, 'intervals')
             cdf(data_cv['z'], intervalsave, subsave='_total')
-            cdf(data_cv[indx]['z'], intervalsave, subsave='_calibration')
+
+        # For each splitter of data
+        for split, values in data_cv.groupby(['splitter']):
+
+            sub = '{}'.format(split)
+            parity(
+                   values['y'].values,
+                   values['y_pred'].values,
+                   ystd,
+                   singlesave,
+                   sub,
+                   )
+            if condition:
+                cdf(
+                    values['z'],
+                    intervalsave,
+                    subsave='_'+sub
+                    )
+
+            # For each fold of data
+            for fold, subvalues in values.groupby(['fold']):
+
+                subsub = '{}_fold_{}'.format(split, fold)
+                parity(
+                       subvalues['y'].values,
+                       subvalues['y_pred'].values,
+                       ystd,
+                       singlesave,
+                       subsub,
+                       )
+                if condition:
+                    cdf(
+                        subvalues['z'],
+                        intervalsave,
+                        subsave='_'+subsub
+                        )
 
     else:
         singlesave = intervalsave = save
