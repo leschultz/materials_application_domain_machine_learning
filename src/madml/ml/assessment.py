@@ -88,14 +88,20 @@ class nested_cv:
         data_test['split'] = 'test'
         data_test['splitter'] = name
         data_test['index'] = data_test['index'].astype(int)
+        data_test['r'] = data_test['y']-data_test['y_pred']
 
         # z score
-        data_test['r'] = data_test['y']-data_test['y_pred']
-        data_test['z'] = data_test['r']/data_test['y_stdc']
-        data_test['r/std(y)'] = data_test['r']/data_test['std(y)']
+        if 'y_stdu' in data_test.columns:
+            data_test['z'] = data_test['r']/data_test['y_stdc']
+
+            calc = data_test['y_stdc']/data_test['std(y)']
+            data_test['y_stdc/std(y)'] = calc
+
+            calc = data_test['y_stdu']/data_test['std(y)']
+            data_test['y_stdu/std(y)'] = calc
 
         # Normalized
-        data_test['y_stdc/std(y)'] = data_test['y_stdc']/data_test['std(y)']
+        data_test['r/std(y)'] = data_test['r']/data_test['std(y)']
         data_test['y_pred/std(y)'] = data_test['y_pred']/data_test['std(y)']
         data_test['y/std(y)'] = data_test['y']/data_test['std(y)']
 
@@ -155,7 +161,7 @@ class nested_cv:
     def push(self, name, push_container=False):
         '''
         Push docker container with full fit model.
-        
+
         inputs:
             name = The name of the container <account>/<repository_name>/<tag>
             push_container = Whether to build and push a container with model.

@@ -1,3 +1,4 @@
+from sklearn.model_selection import RepeatedKFold
 from madml.utils import parallel
 from sklearn.base import clone
 from sklearn import metrics
@@ -21,8 +22,8 @@ class domain_model:
                  self,
                  gs_model,
                  ds_model,
-                 uq_model,
-                 splits,
+                 uq_model=None,
+                 splits=[('calibration', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  save=False,
                  ):
@@ -123,18 +124,20 @@ class domain_model:
                                      X[te],
                                      )
 
-        ds_model_cv.fit(X_trans_tr, y[tr])
+        ds_model_cv.fit(X_trans_tr)
 
         data = pd.DataFrame()
         data['g'] = g[te]
         data['y'] = y[te]
         data['y_pred'] = gs_model_cv.predict(X[te])
-        data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
         data['dist'] = ds_model_cv.predict(X_trans_te)
         data['index'] = te
         data['fold'] = [count]*te.shape[0]
         data['std(y)'] = [np.std(y[tr])]*te.shape[0]  # Of the data trained on
         data['splitter'] = splitter
+
+        if self.uq_model:
+            data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
 
         data['index'] = data['index'].astype(int)
 
@@ -199,17 +202,28 @@ class domain_model:
                            )
 
         data_cv = pd.concat(data_cv)
-        data_id = data_cv[data_cv['splitter'] == 'calibration']
-
-        # Fit on hold out data ID
-        self.uq_model.fit(
-                          data_id['y'],
-                          data_id['y_pred'],
-                          data_id['y_stdu']
-                          )
 
         # Get some data statistics
         self.ystd = np.std(y)
+
+        # Residuals
+        data_cv['r'] = data_cv['y']-data_cv['y_pred']
+        data_cv['r/std(y)'] = data_cv['r']/data_cv['std(y)']
+        data_cv['y_pred/std(y)'] = data_cv['y_pred']/data_cv['std(y)']
+        data_cv['y/std(y)'] = data_cv['y']/data_cv['std(y)']
+        data_cv['id'] = abs(data_cv['r/std(y)']) < 1.0  # Ground truth
+
+        # Fit on hold out data ID
+        if self.uq_model:
+            data_id = data_cv[data_cv['splitter'] == 'calibration']
+            self.uq_model.fit(
+                              data_id['y'],
+                              data_id['y_pred'],
+                              data_id['y_stdu']
+                              )
+            data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'])
+            data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
+            data_cv['z'] = data_cv['r']/data_cv['y_stdc']
 
         # Build the model
         self.gs_model.fit(X, y)
@@ -220,22 +234,7 @@ class domain_model:
                                   )
 
         # Fit distance model
-        self.ds_model.fit(X_trans, y)
-
-        # Calibrate uncertainties
-        data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'])
-
-        # z score
-        data_cv['r'] = data_cv['y']-data_cv['y_pred']
-        data_cv['z'] = data_cv['r']/data_cv['y_stdc']
-        data_cv['r/std(y)'] = data_cv['r']/data_cv['std(y)']
-
-        # Normalized
-        data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
-        data_cv['y_pred/std(y)'] = data_cv['y_pred']/data_cv['std(y)']
-        data_cv['y/std(y)'] = data_cv['y']/data_cv['std(y)']
-
-        data_cv['id'] = abs(data_cv['r/std(y)']) < 1.0
+        self.ds_model.fit(X_trans)
 
         out = plots.generate_plots(
                                    data_cv,
@@ -279,25 +278,38 @@ class domain_model:
         # Model predictions
         y_pred = self.gs_model.predict(X)
         y_pred_norm = y_pred/self.ystd
-        y_stdu = self.std_pred(self.gs_model, X_trans)
-        y_stdc = self.uq_model.predict(y_stdu)  # Calibrate hold out
-        y_stdc_norm = y_stdc/self.ystd
-        y_stdu_norm = y_stdu/self.ystd
         dist = self.ds_model.predict(X_trans)
 
-        pred = {
-                'y_pred': y_pred,
-                'y_pred/std(y)': y_pred_norm,
-                'y_stdu': y_stdu,
-                'y_stdu/std(y)': y_stdu_norm,
-                'y_stdc': y_stdc,
-                'y_stdc/std(y)': y_stdc_norm,
-                'dist': dist,
-                }
+        if self.uq_model:
+            y_stdu = self.std_pred(self.gs_model, X_trans)
+            y_stdc = self.uq_model.predict(y_stdu)
+            y_stdc_norm = y_stdc/self.ystd
+            y_stdu_norm = y_stdu/self.ystd
 
-        for i in ['y_stdc/std(y)', 'dist']:
+            pred = {
+                    'y_pred': y_pred,
+                    'y_pred/std(y)': y_pred_norm,
+                    'y_stdu': y_stdu,
+                    'y_stdu/std(y)': y_stdu_norm,
+                    'y_stdc': y_stdc,
+                    'y_stdc/std(y)': y_stdc_norm,
+                    'dist': dist,
+                    }
+
+            dists = ['y_stdc/std(y)', 'dist']
+            methods = ['', '_bin']
+        else:
+            pred = {
+                    'y_pred': y_pred,
+                    'y_pred/std(y)': y_pred_norm,
+                    'dist': dist,
+                    }
+            dists = ['dist']
+            methods = ['']
+
+        for i in dists:
             for j, k in zip([True, False], ['id', 'od']):
-                for method in ['', '_bin']:
+                for method in methods:
                     k += method
                     for key, value in self.thresholds[i][k].items():
                         thr = value['Threshold']

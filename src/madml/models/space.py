@@ -8,50 +8,54 @@ import numpy as np
 
 class distance_model:
 
-    def __init__(self, dist='kde'):
+    def __init__(self, dist='kde', *args, **kwargs):
+
         self.dist = dist
+        self.args = args
+        self.kwargs = kwargs
 
     def fit(
             self,
             X_train,
-            y_train,
             ):
         '''
         Get the distances based on a metric.
 
         inputs:
             X_train = The features of the training set.
-            y_train = The training target when applicable.
-            X_test = The features of the test set.
             dist = The distance to consider.
 
         ouputs:
             dists = A dictionary of distances.
         '''
 
-        if self.dist == 'gpr':
-            self.model = GaussianProcessRegressor()
-            self.model.fit(X_train, y_train)
-            _, dist = self.model.predict(X_train, return_std=True)
-            self.scaler = lambda x: -x
+        if self.dist == 'kde':
 
-        elif self.dist == 'kde':
-            bw = estimate_bandwidth(X_train)
-            kernel = 'epanechnikov'
+            if 'kernel' in self.kwargs.keys():
+                self.kernel = self.kwargs['kernel']
+            else:
+                self.kernel = 'epanechnikov'
 
-            if bw > 0.0:
+            if 'bandwidth' in self.kwargs.keys():
+                self.bandwidth = self.kwargs['bandwidth']
+            else:
+                self.bandwidth = estimate_bandwidth(X_train)
+
+            # If the estimated bandwidth is zero
+            if self.bandwidth > 0.0:
                 self.model = KernelDensity(
-                                           kernel=kernel,
-                                           bandwidth=bw,
+                                           kernel=self.kernel,
+                                           bandwidth=self.bandwidth,
                                            ).fit(X_train)
             else:
                 self.model = KernelDensity(
-                                           kernel=kernel,
+                                           kernel=self.kernel,
                                            ).fit(X_train)
+                self.bandwidth = self.model.bandwidth  # Update
 
             dist = self.model.score_samples(X_train)
             m = max(dist)
-            cut = 0.0  # No likelihood shoudl be greater than that trained on
+            cut = 0.0  # No likelihood should be greater than that trained on
             self.scaler = lambda x: np.maximum(cut, 1-np.exp(x-m))
 
         else:
@@ -69,11 +73,7 @@ class distance_model:
             dist = The distance array.
         '''
 
-        if self.dist == 'gpr':
-            _, dist = self.model.predict(X, return_std=True)
-            dist = self.scaler(dist)
-
-        elif self.dist == 'kde':
+        if self.dist == 'kde':
             dist = self.model.score_samples(X)
             dist = self.scaler(dist)
 

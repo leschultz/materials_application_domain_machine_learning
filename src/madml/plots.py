@@ -38,14 +38,24 @@ def generate_plots(data_cv, ystd, bins, save):
         data_cv_bin = The binned data.
     '''
 
+    condition = 'z' in data_cv.columns  # Condition to do binning
+
     # I can sort by these without target variable leakage
-    data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc', 'dist'])
+    if condition:
+        data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc', 'dist'])
+        dists = ['y_stdc/std(y)', 'dist']
+    else:
+        data_cv = data_cv.sort_values(by=['y_pred', 'dist'])
+        dists = ['dist']
 
     th = {}
     data_cv_bin = {}
     if save:
+
+        # For only calibration data
+        indx = data_cv['splitter'] == 'calibration'
+
         singlesave = os.path.join(save, 'single')
-        intervalsave = os.path.join(save, 'intervals')
 
         parity(
                data_cv['y'].values,
@@ -54,10 +64,8 @@ def generate_plots(data_cv, ystd, bins, save):
                singlesave,
                'total',
                )
-        cdf(data_cv['z'], intervalsave, subsave='_total')
 
         # For only calibration data
-        indx = data_cv['splitter'] == 'calibration'
         parity(
                data_cv[indx]['y'].values,
                data_cv[indx]['y_pred'].values,
@@ -65,38 +73,49 @@ def generate_plots(data_cv, ystd, bins, save):
                singlesave,
                'calibration',
                )
-        cdf(data_cv[indx]['z'], intervalsave, subsave='_calibration')
+
+        if condition:
+            intervalsave = os.path.join(save, 'intervals')
+            cdf(data_cv['z'], intervalsave, subsave='_total')
+            cdf(data_cv[indx]['z'], intervalsave, subsave='_calibration')
 
     else:
         singlesave = intervalsave = save
 
-    for i in ['y_stdc/std(y)', 'dist']:
+    for i in dists:
 
         if save:
             name = i.replace('/', '_')
             singledistsave = os.path.join(singlesave, name)
-            intervaldistsave = os.path.join(
-                                            intervalsave,
-                                            name,
-                                            )
+
+            if condition:
+                intervaldistsave = os.path.join(
+                                                intervalsave,
+                                                name,
+                                                )
         else:
             singledistsave = intervaldistsave = save
 
         single_truth(data_cv, i, singledistsave)
-        dist_bin = binned_truth(
-                                data_cv,
-                                i,
-                                bins,
-                                save=intervaldistsave,
-                                )
-        data_cv_bin[i] = dist_bin
+
+        if condition:
+
+            dist_bin = binned_truth(
+                                    data_cv,
+                                    i,
+                                    bins,
+                                    save=intervaldistsave,
+                                    )
+            data_cv_bin[i] = dist_bin
 
         th[i] = {}
         for j, k in zip([True, False], ['id', 'od']):
 
             if save:
                 singledomainsave = os.path.join(singledistsave, k)
-                intervaldomainsave = os.path.join(intervaldistsave, k)
+
+                if condition:
+                    intervaldomainsave = os.path.join(intervaldistsave, k)
             else:
                 singledomainsave = intervaldomainsave = save
 
@@ -107,22 +126,26 @@ def generate_plots(data_cv, ystd, bins, save):
                         save=singledomainsave,
                         )
 
-            thresh_bin = pr(
-                            data_cv_bin[i][i+'_max'],
-                            data_cv_bin[i]['id'],
-                            j,
-                            save=intervaldomainsave,
-                            )
             th[i][k] = thresh
-            th[i][k+'_bin'] = thresh_bin
+
+            if condition:
+                thresh_bin = pr(
+                                data_cv_bin[i][i+'_max'],
+                                data_cv_bin[i]['id'],
+                                j,
+                                save=intervaldomainsave,
+                                )
+                th[i][k+'_bin'] = thresh_bin
 
         # Confusion matrix as a function of thresholds
         confusion(data_cv[i], data_cv['id'], singledistsave)
-        confusion(
-                  data_cv_bin[i][i+'_max'],
-                  data_cv_bin[i]['id'],
-                  intervaldistsave
-                  )
+
+        if condition:
+            confusion(
+                      data_cv_bin[i][i+'_max'],
+                      data_cv_bin[i]['id'],
+                      intervaldistsave
+                      )
 
     return th, data_cv_bin
 
@@ -885,10 +908,12 @@ def single_truth(data_cv, metric, save):
     '''
 
     res = data_cv['r/std(y)']
-    zvals = data_cv['z']
     absres = abs(res)
-    absz = abs(zvals)
     dist = data_cv[metric]
+
+    if 'z' in data_cv.columns:
+        zvals = data_cv['z']
+        absz = abs(zvals)
 
     in_domain = data_cv['id']
     out_domain = ~in_domain
@@ -1023,119 +1048,120 @@ def single_truth(data_cv, metric, save):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-        fig, ax = pl.subplots()
+        if 'z' in data_cv.columns:
+            fig, ax = pl.subplots()
 
-        ax.scatter(
-                   dist[in_domain],
-                   zvals[in_domain],
-                   color='g',
-                   marker='.',
-                   label='ID',
-                   )
-        ax.scatter(
-                   dist[out_domain],
-                   zvals[out_domain],
-                   color='r',
-                   marker='x',
-                   label='OD',
-                   )
+            ax.scatter(
+                       dist[in_domain],
+                       zvals[in_domain],
+                       color='g',
+                       marker='.',
+                       label='ID',
+                       )
+            ax.scatter(
+                       dist[out_domain],
+                       zvals[out_domain],
+                       color='r',
+                       marker='x',
+                       label='OD',
+                       )
 
-        ax.set_ylabel('z')
-        ax.set_xlabel(xlabel)
+            ax.set_ylabel('z')
+            ax.set_xlabel(xlabel)
 
-        fig.tight_layout()
+            fig.tight_layout()
 
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
+            fig_legend, ax_legend = pl.subplots()
+            ax_legend.axis(False)
+            legend = ax_legend.legend(
+                                      *ax.get_legend_handles_labels(),
+                                      frameon=False,
+                                      loc='center',
+                                      bbox_to_anchor=(0.5, 0.5)
+                                      )
+            ax_legend.spines['top'].set_visible(False)
+            ax_legend.spines['bottom'].set_visible(False)
+            ax_legend.spines['left'].set_visible(False)
+            ax_legend.spines['right'].set_visible(False)
 
-        fig.savefig(
-                    os.path.join(save, 'z_truth.png'),
-                    bbox_inches='tight'
-                    )
-        fig_legend.savefig(
-                           os.path.join(save, 'z_truth_legend.png'),
-                           bbox_inches='tight'
-                           )
-        pl.close(fig)
-        pl.close(fig_legend)
+            fig.savefig(
+                        os.path.join(save, 'z_truth.png'),
+                        bbox_inches='tight'
+                        )
+            fig_legend.savefig(
+                               os.path.join(save, 'z_truth_legend.png'),
+                               bbox_inches='tight'
+                               )
+            pl.close(fig)
+            pl.close(fig_legend)
 
-        # Repare plot data for saving
-        data = {}
-        data['x_id'] = zvals[in_domain].tolist()
-        data['y_id'] = dist[in_domain].tolist()
-        data['x_od'] = zvals[out_domain].tolist()
-        data['y_od'] = dist[out_domain].tolist()
+            # Repare plot data for saving
+            data = {}
+            data['x_id'] = zvals[in_domain].tolist()
+            data['y_id'] = dist[in_domain].tolist()
+            data['x_od'] = zvals[out_domain].tolist()
+            data['y_od'] = dist[out_domain].tolist()
 
-        jsonfile = os.path.join(save, 'z_truth.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
+            jsonfile = os.path.join(save, 'z_truth.json')
+            with open(jsonfile, 'w') as handle:
+                json.dump(data, handle)
 
-        fig, ax = pl.subplots()
+            fig, ax = pl.subplots()
 
-        ax.scatter(
-                   dist[in_domain],
-                   absz[in_domain],
-                   color='g',
-                   marker='.',
-                   label='ID',
-                   )
-        ax.scatter(
-                   dist[out_domain],
-                   absz[out_domain],
-                   color='r',
-                   marker='x',
-                   label='OD',
-                   )
+            ax.scatter(
+                       dist[in_domain],
+                       absz[in_domain],
+                       color='g',
+                       marker='.',
+                       label='ID',
+                       )
+            ax.scatter(
+                       dist[out_domain],
+                       absz[out_domain],
+                       color='r',
+                       marker='x',
+                       label='OD',
+                       )
 
-        ax.set_ylabel('|z|')
-        ax.set_xlabel(xlabel)
+            ax.set_ylabel('|z|')
+            ax.set_xlabel(xlabel)
 
-        fig.tight_layout()
+            fig.tight_layout()
 
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
+            fig_legend, ax_legend = pl.subplots()
+            ax_legend.axis(False)
+            legend = ax_legend.legend(
+                                      *ax.get_legend_handles_labels(),
+                                      frameon=False,
+                                      loc='center',
+                                      bbox_to_anchor=(0.5, 0.5)
+                                      )
+            ax_legend.spines['top'].set_visible(False)
+            ax_legend.spines['bottom'].set_visible(False)
+            ax_legend.spines['left'].set_visible(False)
+            ax_legend.spines['right'].set_visible(False)
 
-        fig_legend.savefig(
-                           os.path.join(save, 'abs(z)_truth_legend.png'),
-                           bbox_inches='tight'
-                           )
-        fig.savefig(
-                    os.path.join(save, 'abs(z)_truth.png'),
-                    bbox_inches='tight'
-                    )
-        pl.close(fig)
-        pl.close(fig_legend)
+            fig_legend.savefig(
+                               os.path.join(save, 'abs(z)_truth_legend.png'),
+                               bbox_inches='tight'
+                               )
+            fig.savefig(
+                        os.path.join(save, 'abs(z)_truth.png'),
+                        bbox_inches='tight'
+                        )
+            pl.close(fig)
+            pl.close(fig_legend)
 
-        # Repare plot data for saving
-        data = {}
-        data['x_id'] = absz[in_domain].tolist()
-        data['y_id'] = dist[in_domain].tolist()
-        data['x_od'] = absz[out_domain].tolist()
-        data['y_od'] = dist[out_domain].tolist()
+            # Repare plot data for saving
+            data = {}
+            data['x_id'] = absz[in_domain].tolist()
+            data['y_id'] = dist[in_domain].tolist()
+            data['x_od'] = absz[out_domain].tolist()
+            data['y_od'] = dist[out_domain].tolist()
 
-        jsonfile = os.path.join(save, 'abs(z)_truth.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
+            jsonfile = os.path.join(save, 'abs(z)_truth.json')
+            with open(jsonfile, 'w') as handle:
+                json.dump(data, handle)
 
 
 def pr(score, in_domain, pos_label, save=False):
