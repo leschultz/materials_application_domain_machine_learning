@@ -150,6 +150,7 @@ def generate_plots(data_cv, ystd, bins, save):
                         )
 
             th[i][k] = thresh
+            confusion(data_cv[i], data_cv['id'], singledomainsave)
 
             if condition:
                 thresh_bin = pr(
@@ -160,15 +161,11 @@ def generate_plots(data_cv, ystd, bins, save):
                                 )
                 th[i][k+'_bin'] = thresh_bin
 
-        # Confusion matrix as a function of thresholds
-        confusion(data_cv[i], data_cv['id'], singledistsave)
-
-        if condition:
-            confusion(
-                      data_cv_bin[i][i+'_max'],
-                      data_cv_bin[i]['id'],
-                      intervaldistsave
-                      )
+                confusion(
+                          data_cv_bin[i][i+'_max'],
+                          data_cv_bin[i]['id'],
+                          intervaldomainsave
+                          )
 
     return th, data_cv_bin
 
