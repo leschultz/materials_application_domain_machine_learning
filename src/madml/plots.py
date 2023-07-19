@@ -38,15 +38,19 @@ def generate_plots(data_cv, ystd, bins, save):
         data_cv_bin = The binned data.
     '''
 
-    condition = 'z' in data_cv.columns  # Condition to do binning
+    uqcond = 'z' in data_cv.columns  # Condition to do UQ
+    dscond = 'dist' in data_cv.columns  # Condition for distance
 
     # I can sort by these without target variable leakage
-    if condition:
+    if uqcond and dscond:
         data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc', 'dist'])
         dists = ['y_stdc/std(y)', 'dist']
-    else:
+    elif dscond:
         data_cv = data_cv.sort_values(by=['y_pred', 'dist'])
         dists = ['dist']
+    else:
+        data_cv = data_cv.sort_values(by=['y_pred'])
+        dists = []
 
     th = {}
     data_cv_bin = {}
@@ -62,7 +66,7 @@ def generate_plots(data_cv, ystd, bins, save):
                'total',
                )
 
-        if condition:
+        if uqcond:
             intervalsave = os.path.join(save, 'intervals')
             cdf(data_cv['z'], intervalsave, subsave='_total')
 
@@ -77,7 +81,7 @@ def generate_plots(data_cv, ystd, bins, save):
                    singlesave,
                    sub,
                    )
-            if condition:
+            if uqcond:
                 cdf(
                     values['z'],
                     intervalsave,
@@ -95,7 +99,7 @@ def generate_plots(data_cv, ystd, bins, save):
                        singlesave,
                        subsub,
                        )
-                if condition:
+                if uqcond:
                     cdf(
                         subvalues['z'],
                         intervalsave,
@@ -111,7 +115,7 @@ def generate_plots(data_cv, ystd, bins, save):
             name = i.replace('/', '_')
             singledistsave = os.path.join(singlesave, name)
 
-            if condition:
+            if uqcond:
                 intervaldistsave = os.path.join(
                                                 intervalsave,
                                                 name,
@@ -121,7 +125,7 @@ def generate_plots(data_cv, ystd, bins, save):
 
         single_truth(data_cv, i, singledistsave)
 
-        if condition:
+        if uqcond:
 
             dist_bin = binned_truth(
                                     data_cv,
@@ -137,7 +141,7 @@ def generate_plots(data_cv, ystd, bins, save):
             if save:
                 singledomainsave = os.path.join(singledistsave, k)
 
-                if condition:
+                if uqcond:
                     intervaldomainsave = os.path.join(intervaldistsave, k)
             else:
                 singledomainsave = intervaldomainsave = save
@@ -152,7 +156,7 @@ def generate_plots(data_cv, ystd, bins, save):
             th[i][k] = thresh
             confusion(data_cv[i], data_cv['id'], singledomainsave)
 
-            if condition:
+            if uqcond:
                 thresh_bin = pr(
                                 data_cv_bin[i][i+'_max'],
                                 data_cv_bin[i]['id'],

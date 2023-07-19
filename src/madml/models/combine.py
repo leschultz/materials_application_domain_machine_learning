@@ -21,7 +21,7 @@ class domain_model:
     def __init__(
                  self,
                  gs_model,
-                 ds_model,
+                 ds_model=None,
                  uq_model=None,
                  splits=[('calibration', RepeatedKFold(n_repeats=2))],
                  bins=10,
@@ -110,27 +110,12 @@ class domain_model:
             return pd.DataFrame()
 
         gs_model_cv = clone(gs_model)
-        ds_model_cv = copy.deepcopy(ds_model)
-
         gs_model_cv.fit(X[tr], y[tr])
-
-        X_trans_tr = self.transforms(
-                                     gs_model_cv,
-                                     X[tr],
-                                     )
-
-        X_trans_te = self.transforms(
-                                     gs_model_cv,
-                                     X[te],
-                                     )
-
-        ds_model_cv.fit(X_trans_tr)
 
         data = pd.DataFrame()
         data['g'] = g[te]
         data['y'] = y[te]
         data['y_pred'] = gs_model_cv.predict(X[te])
-        data['dist'] = ds_model_cv.predict(X_trans_te)
         data['index'] = te
         data['fold'] = [count]*te.shape[0]
         data['std(y)'] = [np.std(y[tr])]*te.shape[0]  # Of the data trained on
@@ -138,6 +123,21 @@ class domain_model:
 
         if self.uq_model:
             data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
+
+        if self.ds_model:
+            ds_model_cv = copy.deepcopy(ds_model)
+
+            X_trans_tr = self.transforms(
+                                         gs_model_cv,
+                                         X[tr],
+                                         )
+            X_trans_te = self.transforms(
+                                         gs_model_cv,
+                                         X[te],
+                                         )
+            ds_model_cv.fit(X_trans_tr)
+
+            data['dist'] = ds_model_cv.predict(X_trans_te)
 
         data['index'] = data['index'].astype(int)
 
@@ -228,13 +228,14 @@ class domain_model:
         # Build the model
         self.gs_model.fit(X, y)
 
-        X_trans = self.transforms(
-                                  self.gs_model,
-                                  X,
-                                  )
+        if self.ds_model:
+            X_trans = self.transforms(
+                                      self.gs_model,
+                                      X,
+                                      )
 
-        # Fit distance model
-        self.ds_model.fit(X_trans)
+            # Fit distance model
+            self.ds_model.fit(X_trans)
 
         out = plots.generate_plots(
                                    data_cv,
@@ -278,7 +279,15 @@ class domain_model:
         # Model predictions
         y_pred = self.gs_model.predict(X)
         y_pred_norm = y_pred/self.ystd
-        dist = self.ds_model.predict(X_trans)
+
+        pred = {
+                'y_pred': y_pred,
+                'y_pred/std(y)': y_pred_norm,
+                }
+
+        if self.ds_model:
+            dist = self.ds_model.predict(X_trans)
+            pred['dist'] = dist
 
         if self.uq_model:
             y_stdu = self.std_pred(self.gs_model, X_trans)
@@ -286,26 +295,19 @@ class domain_model:
             y_stdc_norm = y_stdc/self.ystd
             y_stdu_norm = y_stdu/self.ystd
 
-            pred = {
-                    'y_pred': y_pred,
-                    'y_pred/std(y)': y_pred_norm,
-                    'y_stdu': y_stdu,
-                    'y_stdu/std(y)': y_stdu_norm,
-                    'y_stdc': y_stdc,
-                    'y_stdc/std(y)': y_stdc_norm,
-                    'dist': dist,
-                    }
+            pred['y_stdu'] = y_stdu,
+            pred['y_stdu/std(y)'] = y_stdu_norm
+            pred['y_stdc'] = y_stdc
+            pred['y_stdc/std(y)'] = y_stdc_norm
 
-            dists = ['y_stdc/std(y)', 'dist']
-            methods = ['', '_bin']
-        else:
-            pred = {
-                    'y_pred': y_pred,
-                    'y_pred/std(y)': y_pred_norm,
-                    'dist': dist,
-                    }
-            dists = ['dist']
-            methods = ['']
+
+        dists = []
+        methods = ['']
+        if self.uq_model:
+            dists.append('y_stdc/std(y)')
+            methods.append('_bin')
+        if self.ds_model:
+            dists.append('dist')
 
         for i in dists:
             for j, k in zip([True, False], ['id', 'od']):
