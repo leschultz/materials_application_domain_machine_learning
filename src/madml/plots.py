@@ -48,6 +48,9 @@ def generate_plots(data_cv, ystd, bins, save):
     elif dscond:
         data_cv = data_cv.sort_values(by=['y_pred', 'dist'])
         dists = ['dist']
+    elif uqcond:
+        data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc'])
+        dists = ['y_stdc/std(y)']
     else:
         data_cv = data_cv.sort_values(by=['y_pred'])
         dists = []

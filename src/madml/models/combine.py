@@ -121,12 +121,7 @@ class domain_model:
         data['std(y)'] = [np.std(y[tr])]*te.shape[0]  # Of the data trained on
         data['splitter'] = splitter
 
-        if self.uq_model:
-            data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
-
-        if self.ds_model:
-            ds_model_cv = copy.deepcopy(ds_model)
-
+        if self.uq_model or self.ds_model:
             X_trans_tr = self.transforms(
                                          gs_model_cv,
                                          X[tr],
@@ -135,6 +130,12 @@ class domain_model:
                                          gs_model_cv,
                                          X[te],
                                          )
+
+        if self.uq_model:
+            data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
+
+        if self.ds_model:
+            ds_model_cv = copy.deepcopy(ds_model)
             ds_model_cv.fit(X_trans_tr)
 
             data['dist'] = ds_model_cv.predict(X_trans_te)
@@ -295,11 +296,10 @@ class domain_model:
             y_stdc_norm = y_stdc/self.ystd
             y_stdu_norm = y_stdu/self.ystd
 
-            pred['y_stdu'] = y_stdu,
+            pred['y_stdu'] = y_stdu
             pred['y_stdu/std(y)'] = y_stdu_norm
             pred['y_stdc'] = y_stdc
             pred['y_stdc/std(y)'] = y_stdc_norm
-
 
         dists = []
         methods = ['']
