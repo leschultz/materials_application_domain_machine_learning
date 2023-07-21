@@ -2,6 +2,11 @@
 
 Research with respect to application domain with a materials science emphasis is contained within. The GitHub repo can be found in [here](https://github.com/leschultz/application_domain.git).
 
+## Examples
+
+* Tutorial 1: Fit a single model from all data: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/materials_application_domain_machine_learning/examples/jupyter/tutorial_1.ipynb)
+
+
 ## Structure
 The structure of the code packages is as follows:
 

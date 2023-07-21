@@ -810,12 +810,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         fig.savefig(os.path.join(
                                  save,
-                                 'ground_truth.png'
+                                 'pvalues.png'
                                  ), bbox_inches='tight')
 
         fig_legend.savefig(os.path.join(
                                         save,
-                                        'ground_truth_legend.png'
+                                        'pvalues_legend.png'
                                         ), bbox_inches='tight')
 
         pl.close(fig)
@@ -829,7 +829,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         data['x_max'] = mdists_maxs.tolist()
         data['ppb'] = avg_points
 
-        jsonfile = os.path.join(save, 'ground_truth.json')
+        jsonfile = os.path.join(save, 'pvalues.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
