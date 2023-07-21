@@ -4,7 +4,7 @@ Research with respect to application domain with a materials science emphasis is
 
 ## Examples
 
-* Tutorial 1: Fit a single model from all data: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/materials_application_domain_machine_learning/examples/jupyter/tutorial_1.ipynb)
+* Tutorial 1: Fit a single model from all data: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/leschultz/materials_application_domain_machine_learning/blob/main/examples/jupyter/tutorial_1.ipynb)
 
 
 ## Structure
