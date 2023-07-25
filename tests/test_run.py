@@ -35,7 +35,7 @@ class ml_test(unittest.TestCase):
         ds_model = distance_model(dist='kde')
 
         # ML UQ function
-        uq_model = calibration_model()
+        uq_model = calibration_model(params=[0.0, 0.1])
 
         # ML
         scale = StandardScaler()
