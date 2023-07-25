@@ -12,6 +12,7 @@ def llh(std, res, x, func):
         res = The residuals.
         x = The initial fitting parameters.
         func = The type of UQ function.
+
     outputs:
         total =  The total negative log likelihood.
     '''
@@ -34,6 +35,7 @@ def set_llh(y, y_pred, y_std, x, func):
         y_std = The uncertainty of the target variable.
         x = The initial guess for UQ fitting parameters.
         func = The UQ fitting function.
+
     outputs
         params = The fit parameters for the UQ function.
     '''
@@ -62,6 +64,7 @@ def poly(c, std):
     inputs:
         c = A list for each polynomial coefficient.
         std = The UQ measure.
+
     outputs:
         total = The aggregate absolute value result from the polynomial.
     '''
@@ -80,6 +83,7 @@ def power(c, std):
     inputs:
         c = The multiplying coefficient.
         std = The power to raise the input.
+
     outputs:
         total = The multiple power of the input.
     '''
@@ -94,11 +98,17 @@ class calibration_model:
     A UQ model for calibration of uncertainties.
     '''
 
-    def __init__(self, params=[0.0, 1.0], uq_func=poly, prior=False):
+    def __init__(
+                 self,
+                 uq_func=poly,
+                 params=None,
+                 prior=None,
+                 ):
         '''
         inputs:
-            params = The fitting coefficients initial guess.
             uq_func = The type of UQ function.
+            params = The fitting coefficients initial guess.
+            prior = A prior function fit to predict values.
         '''
 
         self.params = params
@@ -115,18 +125,18 @@ class calibration_model:
             y_std = The uncertainty for the target variable.
         '''
 
-        if self.prior is False:
-            params = set_llh(
-                             y,
-                             y_pred,
-                             y_std,
-                             self.params,
-                             self.uq_func
-                             )
-
-            self.params = params
-        else:
+        if self.params is not None:
+            self.params = set_llh(
+                                  y,
+                                  y_pred,
+                                  y_std,
+                                  self.params,
+                                  self.uq_func
+                                  )
+        elif self.prior is not None:
             self.params = 'Manual'
+        else:
+            self.uq_func.fit(y_std.reshape(-1, 1), abs(y-y_pred))
 
     def predict(self, y_std):
         '''
@@ -139,9 +149,11 @@ class calibration_model:
             y_stdc = The calibrated uncertainties.
         '''
 
-        if self.prior is False:
+        if self.params is not None:
             y_stdc = self.uq_func(self.params, y_std)
-        else:
+        elif self.prior is not None:
             y_stdc = self.uq_func(y_std)
+        else:
+            y_stdc = self.uq_func.predict(y_std.reshape(-1, 1))
 
         return y_stdc

@@ -218,11 +218,11 @@ class domain_model:
         if self.uq_model:
             data_id = data_cv[data_cv['splitter'] == 'calibration']
             self.uq_model.fit(
-                              data_id['y'],
-                              data_id['y_pred'],
-                              data_id['y_stdu']
+                              data_id['y'].values,
+                              data_id['y_pred'].values,
+                              data_id['y_stdu'].values
                               )
-            data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'])
+            data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'].values)
             data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
             data_cv['z'] = data_cv['r']/data_cv['y_stdc']
 

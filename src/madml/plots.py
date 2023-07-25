@@ -1,7 +1,7 @@
 from sklearn.metrics import (
                              precision_recall_curve,
-                             confusion_matrix,
-                             auc
+                             PrecisionRecallDisplay,
+                             auc,
                              )
 
 from sklearn import metrics
@@ -157,7 +157,6 @@ def generate_plots(data_cv, ystd, bins, save):
                         )
 
             th[i][k] = thresh
-            confusion(data_cv[i], data_cv['id'], singledomainsave)
 
             if uqcond:
                 thresh_bin = pr(
@@ -167,12 +166,6 @@ def generate_plots(data_cv, ystd, bins, save):
                                 save=intervaldomainsave,
                                 )
                 th[i][k+'_bin'] = thresh_bin
-
-                confusion(
-                          data_cv_bin[i][i+'_max'],
-                          data_cv_bin[i]['id'],
-                          intervaldomainsave
-                          )
 
     return th, data_cv_bin
 
@@ -1280,9 +1273,14 @@ def pr(score, in_domain, pos_label, save=False):
         baseline = sum(baseline)/len(in_domain)
         relative_base = 1-baseline  # The amount of area to gain in PR
 
-        # AUC score
-        auc_score = auc(recall, precision)
+        # AUC score (add zero for positive format in labels)
+        if recall.shape[0] > 2:
+            auc_score = auc(recall[:-1], precision[:-1])+0
+        else:
+            # Correction for sklearn adding a 1 and a 0 to PR values
+            auc_score = baseline+0
 
+        # AUC relative to the baseline
         if relative_base == 0.0:
             auc_relative = np.nan
         else:
@@ -1292,15 +1290,13 @@ def pr(score, in_domain, pos_label, save=False):
 
         fig, ax = pl.subplots()
 
-        ax.plot(
-                recall,
-                precision,
-                color='b',
-                label='AUC: {:.2f}\nRelative AUC: {:.2f}'.format(
-                                                                 auc_score,
-                                                                 auc_relative
-                                                                 ),
-                )
+        pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
+        pr_label = 'AUC: {:.2f}\nRelative AUC: {:.2f}'.format(
+                                                              auc_score,
+                                                              auc_relative
+                                                              )
+        pr_display.plot(ax=ax, label=pr_label)
+
         ax.hlines(
                   baseline,
                   color='r',
@@ -1344,6 +1340,8 @@ def pr(score, in_domain, pos_label, save=False):
         ax_legend.spines['left'].set_visible(False)
         ax_legend.spines['right'].set_visible(False)
 
+        legend = ax.legend()
+        legend.remove()
         fig.savefig(os.path.join(save, 'pr.png'), bbox_inches='tight')
         fig_legend.savefig(os.path.join(
                                         save,
@@ -1367,85 +1365,3 @@ def pr(score, in_domain, pos_label, save=False):
             json.dump(data, handle)
 
     return custom
-
-
-def confusion(scores, in_domain, save=False):
-    '''
-    Plot the TP, TN, FP, and FN values as a function of thresholds.
-
-    inputs:
-        scores = The dissimilarity score.
-        in_domain = The domain label.
-        save = The location to save figure/data.
-    '''
-
-    if save:
-
-        # Calculate confusion matrixes
-        tps = []
-        fps = []
-        tns = []
-        fns = []
-        total = len(in_domain)
-        sort = sorted(set(scores))
-        for t in sort:
-
-            pred = scores < t
-            matrix = confusion_matrix(
-                                      in_domain,
-                                      pred,
-                                      labels=[False, True]
-                                      )
-
-            tn, fp, fn, tp = matrix.ravel()
-
-            tps.append(tp/total)
-            fps.append(fp/total)
-            tns.append(tn/total)
-            fns.append(fn/total)
-
-        fig, ax = pl.subplots()
-        ax.plot(sort, tps, label='True ID')
-        ax.plot(sort, fps, label='False ID')
-        ax.plot(sort, tns, label='True OD')
-        ax.plot(sort, fns, label='False OD')
-
-        ax.set_xlabel('Threshold')
-        ax.set_ylabel('Fraction of TP, FP, TN, or FN')
-
-        fig.tight_layout()
-
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
-
-        fig.savefig(os.path.join(save, 'confusion.png'), bbox_inches='tight')
-        fig_legend.savefig(os.path.join(
-                                        save,
-                                        'confusion_legend.png'
-                                        ), bbox_inches='tight'
-                           )
-        pl.close(fig)
-        pl.close(fig_legend)
-
-        # Repare plot data for saving
-        data = {}
-        data['True ID'] = tps
-        data['False ID'] = fps
-        data['True OD'] = tns
-        data['False OD'] = fns
-        data['Threshold'] = sort
-        data['Total'] = total
-
-        jsonfile = os.path.join(save, 'confusion.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
