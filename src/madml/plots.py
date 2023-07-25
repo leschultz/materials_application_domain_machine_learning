@@ -588,7 +588,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[in_domain],
                    zvars[in_domain],
                    marker='.',
-                   color='b',
+                   color='g',
                    label='ID '+pointlabel,
                    )
 
@@ -596,7 +596,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[out_domain],
                    zvars[out_domain],
                    marker='x',
-                   color='b',
+                   color='r',
                    label='OD '+pointlabel,
                    )
 
@@ -604,7 +604,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists_mins,
                    zvars,
                    marker='|',
-                   color='r',
+                   color='b',
                    label='Bin Start',
                    )
 
@@ -672,7 +672,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[in_domain],
                    rmses[in_domain],
                    marker='.',
-                   color='b',
+                   color='g',
                    label='ID '+pointlabel,
                    )
 
@@ -680,7 +680,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[out_domain],
                    rmses[out_domain],
                    marker='x',
-                   color='b',
+                   color='r',
                    label='OD '+pointlabel,
                    )
 
@@ -688,7 +688,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists_mins,
                    rmses,
                    marker='|',
-                   color='r',
+                   color='b',
                    label='Bin Start',
                    )
 
@@ -753,7 +753,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[in_domain],
                    pvals[in_domain],
                    marker='.',
-                   color='b',
+                   color='g',
                    label='ID '+pointlabel,
                    )
 
@@ -761,7 +761,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[out_domain],
                    pvals[out_domain],
                    marker='x',
-                   color='b',
+                   color='r',
                    label='OD '+pointlabel,
                    )
 
@@ -769,7 +769,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists_mins,
                    pvals,
                    marker='|',
-                   color='r',
+                   color='b',
                    label='Bin Start',
                    )
 
@@ -832,7 +832,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[in_domain],
                    areas[in_domain],
                    marker='.',
-                   color='b',
+                   color='g',
                    label='ID '+pointlabel,
                    )
 
@@ -840,7 +840,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists[out_domain],
                    areas[out_domain],
                    marker='x',
-                   color='b',
+                   color='r',
                    label='OD '+pointlabel,
                    )
 
@@ -848,7 +848,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                    mdists_mins,
                    areas,
                    marker='|',
-                   color='r',
+                   color='b',
                    label='Bin Start',
                    )
 
