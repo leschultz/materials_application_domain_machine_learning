@@ -1,4 +1,3 @@
-from sklearn.datasets import make_friedman1
 from madml import datasets
 import pandas as pd
 import numpy as np
@@ -69,17 +68,32 @@ def load(name, *args, **kwargs):
         '''
 
         # Dataset information
-        df = 'friedman_data.csv'
+        df = 'friedman1.csv'
         target = 'y'
 
-        X, y = make_friedman1(n_samples=1000, n_features=5)
+        return loader(df, target)
 
-        data = {}
-        data['data'] = X
-        data['target'] = y
-        data['class_name'] = np.array(['no-groups']*y.shape[0])
+    elif name == 'make_regression':
+        '''
+        Load the make_regression dataset.
+        '''
 
-        return data
+        # Dataset information
+        df = 'make_regression.csv'
+        target = 'y'
+
+        return loader(df, target)
+
+    elif name == 'fetch_california_housing':
+        '''
+        Load the fetch_california_housing dataset.
+        '''
+
+        # Dataset information
+        df = 'fetch_california_housing.csv'
+        target = 'y'
+
+        return loader(df, target)
 
     elif name == 'super_cond':
         '''
@@ -243,6 +257,8 @@ def list_data():
                  'friedman1',
                  'steel_yield_strength',
                  'fluence',
+                 'make_regression',
+                 'fetch_california_housing',
                  ]
 
     return datanames

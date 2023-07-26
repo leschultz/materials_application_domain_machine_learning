@@ -43,13 +43,13 @@ def generate_plots(data_cv, ystd, bins, save):
 
     # I can sort by these without target variable leakage
     if uqcond and dscond:
-        data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc', 'dist'])
+        data_cv = data_cv.sort_values(by=['dist', 'y_stdc', 'y_pred'])
         dists = ['y_stdc/std(y)', 'dist']
     elif dscond:
-        data_cv = data_cv.sort_values(by=['y_pred', 'dist'])
+        data_cv = data_cv.sort_values(by=['dist', 'y_pred'])
         dists = ['dist']
     elif uqcond:
-        data_cv = data_cv.sort_values(by=['y_pred', 'y_stdc'])
+        data_cv = data_cv.sort_values(by=['y_stdc', 'y_pred'])
         dists = ['y_stdc/std(y)']
     else:
         data_cv = data_cv.sort_values(by=['y_pred'])

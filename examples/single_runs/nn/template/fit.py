@@ -76,7 +76,7 @@ def main():
 
     # The grid for grid search
     grid = {}
-    grid['model__n_estimators'] = [100]
+    grid['model__n_estimators'] = [10]
 
     # The machine learning pipeline
     pipe = Pipeline(steps=[
