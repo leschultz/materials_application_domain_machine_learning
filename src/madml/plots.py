@@ -1,7 +1,7 @@
 from sklearn.metrics import (
                              precision_recall_curve,
                              PrecisionRecallDisplay,
-                             auc,
+                             average_precision_score,
                              )
 
 from sklearn import metrics
@@ -1212,6 +1212,10 @@ def pr(score, in_domain, pos_label, save=False):
 
         precision, recall, thresholds = prc_scores
 
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        auc_score = average_precision_score(in_domain, score)
+
     num = 2*recall*precision
     den = recall+precision
     f1_scores = np.divide(
@@ -1273,16 +1277,9 @@ def pr(score, in_domain, pos_label, save=False):
         baseline = sum(baseline)/len(in_domain)
         relative_base = 1-baseline  # The amount of area to gain in PR
 
-        # AUC score (add zero for positive format in labels)
-        if recall.shape[0] > 2:
-            auc_score = auc(recall[:-1], precision[:-1])+0
-        else:
-            # Correction for sklearn adding a 1 and a 0 to PR values
-            auc_score = baseline+0
-
         # AUC relative to the baseline
         if relative_base == 0.0:
-            auc_relative = np.nan
+            auc_relative = 0.0
         else:
             auc_relative = (auc_score-baseline)/relative_base
 
