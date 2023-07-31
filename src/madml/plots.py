@@ -912,7 +912,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         data_cv_bin.to_csv(os.path.join(
                                         save,
                                         'bin.csv'
-                                        ))
+                                        ), index=False)
 
     return data_cv_bin
 

@@ -125,7 +125,7 @@ class nested_cv:
                                    save,
                                    )
 
-        df.to_csv(os.path.join(save, 'single.csv'), index=False)
+        df.to_csv(os.path.join(*[save, 'single', 'single.csv']), index=False)
 
         # Save model
         print('MADML - Making Full Fit Model')
