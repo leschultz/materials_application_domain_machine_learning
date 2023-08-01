@@ -43,16 +43,12 @@ def generate_plots(data_cv, ystd, bins, save):
 
     # I can sort by these without target variable leakage
     if uqcond and dscond:
-        data_cv = data_cv.sort_values(by=['dist', 'y_stdc', 'y_pred'])
         dists = ['y_stdc/std(y)', 'dist']
     elif dscond:
-        data_cv = data_cv.sort_values(by=['dist', 'y_pred'])
         dists = ['dist']
     elif uqcond:
-        data_cv = data_cv.sort_values(by=['y_stdc', 'y_pred'])
         dists = ['y_stdc/std(y)']
     else:
-        data_cv = data_cv.sort_values(by=['y_pred'])
         dists = []
 
     th = {}
@@ -90,24 +86,6 @@ def generate_plots(data_cv, ystd, bins, save):
                     intervalsave,
                     subsave='_'+sub
                     )
-
-            # For each fold of data
-            for fold, subvalues in values.groupby(['fold']):
-
-                subsub = '{}_fold_{}'.format(split, fold)
-                parity(
-                       subvalues['y'].values,
-                       subvalues['y_pred'].values,
-                       ystd,
-                       singlesave,
-                       subsub,
-                       )
-                if uqcond:
-                    cdf(
-                        subvalues['z'],
-                        intervalsave,
-                        subsave='_'+subsub
-                        )
 
     else:
         singlesave = intervalsave = save
@@ -499,6 +477,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     # Get data for bins
     subset = [metric, 'z', 'r/std(y)']
     data_cv_bin = data_cv[subset].copy()
+    data_cv_bin = data_cv_bin.sort_values(by=subset)
 
     data_cv_bin['bin'] = pd.qcut(
                                  data_cv_bin[metric].rank(method='first'),
