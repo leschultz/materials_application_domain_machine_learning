@@ -1,7 +1,6 @@
 #!/bin/bash
 
 sets=(
-      "diffusion"
       "friedman1"
       "fluence"
       "diffusion"
