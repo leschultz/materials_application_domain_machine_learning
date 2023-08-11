@@ -60,8 +60,6 @@ class distance_model:
 
         else:
             self.model = lambda X_test: cdist(X_train, X_test, self.dist)
-            dist = self.model(X_train, self.dist)
-            dist = np.mean(dist, axis=0)
 
     def predict(self, X):
         '''
@@ -78,7 +76,7 @@ class distance_model:
             dist = self.scaler(dist)
 
         else:
-            dist = self.model(X, self.dist)
+            dist = self.model(X)
             dist = np.mean(dist, axis=0)
 
         return dist

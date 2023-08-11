@@ -26,6 +26,8 @@ class domain_model:
                  splits=[('calibration', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  save=False,
+                 gts=1.0,
+                 gtb=0.05
                  ):
 
         '''
@@ -36,6 +38,8 @@ class domain_model:
             splits = The list of splitting generators.
             bins = The number of quantailes for binning data.
             save = The location to save figures and data.
+            gts = The ground truth cutoff for residual magnitude test.
+            gtb = The ground truth cutoff for statistical test.
         '''
 
         self.gs_model = gs_model
@@ -44,6 +48,8 @@ class domain_model:
         self.bins = bins
         self.save = save
         self.splits = splits
+        self.gts = gts
+        self.gtb = gtb
 
     def transforms(self, gs_model, X):
         '''
@@ -212,7 +218,7 @@ class domain_model:
         data_cv['r/std(y)'] = data_cv['r']/data_cv['std(y)']
         data_cv['y_pred/std(y)'] = data_cv['y_pred']/data_cv['std(y)']
         data_cv['y/std(y)'] = data_cv['y']/data_cv['std(y)']
-        data_cv['id'] = abs(data_cv['r/std(y)']) < 1.0  # Ground truth
+        data_cv['id'] = abs(data_cv['r/std(y)']) < self.gts  # Ground truth
 
         # Fit on hold out data ID
         if self.uq_model:
@@ -242,7 +248,8 @@ class domain_model:
                                    data_cv,
                                    self.ystd,
                                    self.bins,
-                                   self.save
+                                   self.save,
+                                   self.gtb,
                                    )
         th, data_cv_bin = out
 

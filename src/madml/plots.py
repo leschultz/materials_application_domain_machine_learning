@@ -23,7 +23,7 @@ font = {'font.size': 16, 'lines.markersize': 10}
 matplotlib.rcParams.update(font)
 
 
-def generate_plots(data_cv, ystd, bins, save):
+def generate_plots(data_cv, ystd, bins, save, gts, gtb=0.05):
     '''
     A function that standardizes plot generation.
 
@@ -104,7 +104,7 @@ def generate_plots(data_cv, ystd, bins, save):
         else:
             singledistsave = intervaldistsave = save
 
-        single_truth(data_cv, i, singledistsave)
+        single_truth(data_cv, i, singledistsave, gts)
 
         if uqcond:
 
@@ -112,6 +112,7 @@ def generate_plots(data_cv, ystd, bins, save):
                                     data_cv,
                                     i,
                                     bins,
+                                    gtb,
                                     save=intervaldistsave,
                                     )
             data_cv_bin[i] = dist_bin
@@ -896,7 +897,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     return data_cv_bin
 
 
-def single_truth(data_cv, metric, save):
+def single_truth(data_cv, metric, save, gt):
     '''
     plot the ground truth with respect to dissimilarity metric.
 
@@ -904,6 +905,7 @@ def single_truth(data_cv, metric, save):
         data_cv = The cross validation data.
         metric = The dissimilarity metric.
         save = The location to save figures/data.
+        gt = The ground truth cutoff.
     '''
 
     res = data_cv['r/std(y)']
@@ -940,7 +942,7 @@ def single_truth(data_cv, metric, save):
                    )
 
         ax.axhline(
-                   1.0,
+                   gt,
                    color='k',
                    linestyle=':',
                    label='GT = 1',

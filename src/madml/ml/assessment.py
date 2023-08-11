@@ -115,7 +115,7 @@ class nested_cv:
         # Assess model
         df = [self.cv(i) for i in self.splits]
         df = pd.concat(df)
-        df['id'] = abs(df['r/std(y)']) < 1.0
+        df['id'] = abs(df['r/std(y)']) < self.model.gts
 
         save = os.path.join(self.save, 'assessment')
         out = plots.generate_plots(
@@ -123,6 +123,8 @@ class nested_cv:
                                    np.std(self.y),
                                    self.model.bins,
                                    save,
+                                   self.model.gts,
+                                   self.model.gtb,
                                    )
 
         df.to_csv(os.path.join(*[save, 'single', 'single.csv']), index=False)
