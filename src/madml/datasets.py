@@ -38,7 +38,7 @@ def loader(df, target, drop_cols=None, class_name=None, n=None, frac=None):
     if class_name:
         data['class_name'] = df[class_name].values
     else:
-        data['class_name'] = np.array(['no-groups']*df.shape[0])
+        data['class_name'] = np.repeat('none', df.shape[0])
 
     if drop_cols:
         data['dropped'] = df[drop_cols]
@@ -68,10 +68,37 @@ def load(name, *args, **kwargs):
         '''
 
         # Dataset information
-        df = 'friedman1.csv'
-        target = 'y'
+        np.random.seed(0)
+        n_samples = 1000
+        n_features = 5
+        X = np.random.uniform(
+                              low=0.0,
+                              high=10.0,
+                              size=(n_samples, n_features)
+                              )
+        y = (
+             10*np.sin(np.pi*X[:, 0]*X[:, 1])
+             + 20*(X[:, 2]-0.5)**2
+             + 10*X[:, 3]
+             + 5*X[:, 4]
+             )
 
-        return loader(df, target)
+        g = np.repeat('none', X.shape[0])
+
+        df = pd.DataFrame(X)
+        df['y'] = y
+        df['g'] = g
+
+        data = {}
+        data['data'] = X
+        data['target'] = y
+        data['class_name'] = np.array(['no-groups']*X.shape[0])
+        data['feature_names'] = range(X.shape[0])
+        data['target_name'] = 'y'
+        data['data_filename'] = 'None'
+        data['frame'] = df
+
+        return data
 
     elif name == 'make_regression':
         '''
