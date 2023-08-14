@@ -8,7 +8,6 @@ from sklearn import metrics
 
 from matplotlib import pyplot as pl
 from functools import reduce
-from scipy import stats
 
 import pandas as pd
 import numpy as np
@@ -67,7 +66,12 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb=0.05):
 
         if uqcond:
             intervalsave = os.path.join(save, 'intervals')
-            cdf(data_cv['z'], intervalsave, subsave='_total')
+
+            cdf(
+                data_cv['z'],
+                intervalsave,
+                subsave='_total',
+                )
 
         # For each splitter of data
         for split, values in data_cv.groupby(['splitter']):
@@ -270,7 +274,7 @@ def parity(
         json.dump(data, handle)
 
 
-def cdf(x, save=None, binsave=None, subsave=''):
+def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     '''
     Plot the quantile quantile plot for cummulative distributions.
 
@@ -279,6 +283,8 @@ def cdf(x, save=None, binsave=None, subsave=''):
         save = The location to save the figure/data.
         binsave = Adding to a directory of the saving for each bin.
         subsave = Append a name to the save file.
+        choice = Whether to compare to standard normal distribution,
+                 same mean variance of 1 for z, zero mean variance of z for z.
 
     outputs:
         y = The cummulative distribution of observed data.
@@ -287,8 +293,14 @@ def cdf(x, save=None, binsave=None, subsave=''):
     '''
 
     nx = len(x)
-    nz = 100000
-    z = np.random.normal(0, 1, nz)  # Standard normal distribution
+    nz = 10000
+
+    if choice == 'standard_normal':
+        z = np.random.normal(0, 1, nz)  # Standard normal distribution
+    elif choice == 'same_mean':
+        z = np.random.normal(np.mean(x), 1, nz)  # Shifted mean
+    elif choice == 'same_variance':
+        z = np.random.normal(0, np.var(x), nz)  # Altered variance
 
     # Need sorting
     x = sorted(x)
@@ -491,8 +503,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     binmin = bin_groups[metric].min()
     binmax = bin_groups[metric].max()
     zvar = bin_groups['z'].var()
+    counts = bin_groups['z'].count()
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
-    areas = bin_groups.apply(lambda x: cdf(
+
+    areas = []
+    for choice in ['standard_normal', 'same_mean', 'same_variance']:
+        a = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
                                            binsave='(' +
@@ -500,21 +516,16 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                                                    '_' +
                                                    str(x[metric].max()) +
                                                    ')',
+                                           choice=choice,
                                            )[2])
-    pvals = bin_groups['z'].apply(lambda x: stats.cramervonmises(
-                                                                 x,
-                                                                 'norm',
-                                                                 (0, 1)
-                                                                 ).pvalue)
-    counts = bin_groups['z'].count()
+        a = a.to_frame().rename({0: choice}, axis=1)
+        areas.append(a)
 
     distmean = distmean.to_frame().add_suffix('_mean')
     binmin = binmin.to_frame().add_suffix('_min')
     binmax = binmax.to_frame().add_suffix('_max')
     zvar = zvar.to_frame().add_suffix('_var')
     rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
-    areas = areas.to_frame().rename({0: 'area'}, axis=1)
-    pvals = pvals.to_frame().rename({'z': 'pval'}, axis=1)
     counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
     data_cv_bin = reduce(
@@ -525,9 +536,8 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                           binmax,
                           zvar,
                           rmse,
-                          areas,
-                          pvals,
                           counts,
+                          *areas,
                           ]
                          )
 
@@ -535,7 +545,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     data_cv_bin.drop('bin', axis=1, inplace=True)
 
     # Ground truth for bins
-    data_cv_bin['id'] = data_cv_bin['area'] < gt
+    data_cv_bin['id'] = data_cv_bin['standard_normal'] < gt
 
     if save:
 
@@ -556,8 +566,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         rmses = data_cv_bin['rmse/std(y)']
         mdists_mins = data_cv_bin[metric+'_min']
         mdists_maxs = data_cv_bin[metric+'_max']
-        pvals = data_cv_bin['pval']
-        areas = data_cv_bin['area']
 
         in_domain = data_cv_bin['id']
         out_domain = ~in_domain
@@ -727,172 +735,102 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
 
-        fig, ax = pl.subplots()
+        for choice in ['standard_normal', 'same_mean', 'same_variance']:
+            fig, ax = pl.subplots()
 
-        ax.scatter(
-                   mdists[in_domain],
-                   pvals[in_domain],
-                   marker='.',
-                   color='g',
-                   label='ID '+pointlabel,
-                   )
+            ax.scatter(
+                       mdists[in_domain],
+                       data_cv_bin[choice][in_domain],
+                       marker='.',
+                       color='g',
+                       label='ID '+pointlabel,
+                       )
 
-        ax.scatter(
-                   mdists[out_domain],
-                   pvals[out_domain],
-                   marker='x',
-                   color='r',
-                   label='OD '+pointlabel,
-                   )
+            ax.scatter(
+                       mdists[out_domain],
+                       data_cv_bin[choice][out_domain],
+                       marker='x',
+                       color='r',
+                       label='OD '+pointlabel,
+                       )
 
-        ax.scatter(
-                   mdists_mins,
-                   pvals,
-                   marker='|',
-                   color='b',
-                   label='Bin Start',
-                   )
+            ax.scatter(
+                       mdists_mins,
+                       data_cv_bin[choice],
+                       marker='|',
+                       color='b',
+                       label='Bin Start',
+                       )
 
-        ax.scatter(
-                   mdists_maxs,
-                   pvals,
-                   marker='|',
-                   color='k',
-                   label='Bin End',
-                   )
+            ax.scatter(
+                       mdists_maxs,
+                       data_cv_bin[choice],
+                       marker='|',
+                       color='k',
+                       label='Bin End',
+                       )
 
-        ax.set_yscale('log')
+            if choice == 'standard_normal':
+                ax.axhline(
+                           gt,
+                           color='k',
+                           linestyle=':',
+                           label='GT = {:.2f}'.format(gt),
+                           )
+                ax.set_ylabel('Miscalibration Area')
+                name = 'area_vs_uq'
+                data['ground_truth'] = gt
+            elif choice == 'same_mean':
+                ax.set_ylabel('Miscalibration of Variance')
+                name = 'variance_vs_uq'
+            elif choice == 'same_variance':
+                ax.set_ylabel('Miscalibration of Mean')
+                name = 'mean_vs_uq'
 
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel('p-value')
+            ax.set_xlabel(xlabel)
 
-        fig.tight_layout()
+            fig_legend, ax_legend = pl.subplots()
+            ax_legend.axis(False)
+            legend = ax_legend.legend(
+                                      *ax.get_legend_handles_labels(),
+                                      frameon=False,
+                                      loc='center',
+                                      bbox_to_anchor=(0.5, 0.5)
+                                      )
+            ax_legend.spines['top'].set_visible(False)
+            ax_legend.spines['bottom'].set_visible(False)
+            ax_legend.spines['left'].set_visible(False)
+            ax_legend.spines['right'].set_visible(False)
 
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
+            fig.tight_layout()
+            fig.savefig(os.path.join(
+                                     save,
+                                     '{}.png'.format(name)
+                                     ), bbox_inches='tight')
+            fig_legend.savefig(os.path.join(
+                                            save,
+                                            '{}_legend.png'.format(name)
+                                            ), bbox_inches='tight')
 
-        fig.savefig(os.path.join(
-                                 save,
-                                 'pvalues.png'
-                                 ), bbox_inches='tight')
+            pl.close(fig)
+            pl.close(fig_legend)
 
-        fig_legend.savefig(os.path.join(
-                                        save,
-                                        'pvalues_legend.png'
-                                        ), bbox_inches='tight')
+            data['x_id'] = mdists[in_domain].tolist()
+            data['y_id'] = data_cv_bin[choice][in_domain].tolist()
+            data['x_od'] = mdists[out_domain].tolist()
+            data['y_od'] = data_cv_bin[choice][out_domain].tolist()
+            data['x_min'] = mdists_mins.tolist()
+            data['x_max'] = mdists_maxs.tolist()
+            data['ppb'] = avg_points
 
-        pl.close(fig)
-        pl.close(fig_legend)
+            jsonfile = os.path.join(save, '{}.json'.format(name))
+            with open(jsonfile, 'w') as handle:
+                json.dump(data, handle)
 
-        data['x_id'] = mdists[in_domain].tolist()
-        data['y_id'] = pvals[in_domain].tolist()
-        data['x_od'] = mdists[out_domain].tolist()
-        data['y_od'] = pvals[out_domain].tolist()
-        data['x_min'] = mdists_mins.tolist()
-        data['x_max'] = mdists_maxs.tolist()
-        data['ppb'] = avg_points
-
-        jsonfile = os.path.join(save, 'pvalues.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        fig, ax = pl.subplots()
-
-        ax.scatter(
-                   mdists[in_domain],
-                   areas[in_domain],
-                   marker='.',
-                   color='g',
-                   label='ID '+pointlabel,
-                   )
-
-        ax.scatter(
-                   mdists[out_domain],
-                   areas[out_domain],
-                   marker='x',
-                   color='r',
-                   label='OD '+pointlabel,
-                   )
-
-        ax.scatter(
-                   mdists_mins,
-                   areas,
-                   marker='|',
-                   color='b',
-                   label='Bin Start',
-                   )
-
-        ax.scatter(
-                   mdists_maxs,
-                   areas,
-                   marker='|',
-                   color='k',
-                   label='Bin End',
-                   )
-
-        ax.axhline(
-                   gt,
-                   color='k',
-                   linestyle=':',
-                   label='GT = {:.2f}'.format(gt),
-                   )
-
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel('Miscalibration Area')
-
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
-
-        fig.tight_layout()
-        fig.savefig(os.path.join(
-                                 save,
-                                 'area_vs_uq.png'
-                                 ), bbox_inches='tight')
-        fig_legend.savefig(os.path.join(
-                                        save,
-                                        'area_vs_uq_legend.png'
-                                        ), bbox_inches='tight')
-
-        pl.close(fig)
-        pl.close(fig_legend)
-
-        data['x_id'] = mdists[in_domain].tolist()
-        data['y_id'] = areas[in_domain].tolist()
-        data['x_od'] = mdists[out_domain].tolist()
-        data['y_od'] = areas[out_domain].tolist()
-        data['x_min'] = mdists_mins.tolist()
-        data['x_max'] = mdists_maxs.tolist()
-        data['ppb'] = avg_points
-        data['ground_truth'] = gt
-
-        jsonfile = os.path.join(save, 'area_vs_uq.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        data_cv_bin.to_csv(os.path.join(
-                                        save,
-                                        'bin.csv'
-                                        ), index=False)
+            data_cv_bin.to_csv(os.path.join(
+                                            save,
+                                            'bin.csv'
+                                            ), index=False)
 
     return data_cv_bin
 
