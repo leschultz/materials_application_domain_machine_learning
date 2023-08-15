@@ -497,8 +497,9 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     data_cv_bin = data_cv_bin.sort_values(by=subset)
 
     data_cv_bin['bin'] = pd.qcut(
-                                 data_cv_bin[metric].rank(method='first'),
+                                 data_cv_bin[metric],
                                  bins,
+                                 duplicates='drop',
                                  )
 
     # Bin statistics
@@ -558,8 +559,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         os.makedirs(save, exist_ok=True)
 
-        avg_points = data_cv.shape[0]/bins
-        zvartot = data_cv['z'].var()
+        min_points = data_cv_bin['count'].min()
 
         mdists = data_cv_bin[metric+'_mean']
         mdists_mins = data_cv_bin[metric+'_min']
@@ -568,12 +568,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         in_domain = data_cv_bin['id']
         out_domain = ~in_domain
 
-        pointlabel = 'PPB = {:.2f}'.format(avg_points)
+        pointlabel = 'MPPB = {:.2f}'.format(min_points)
         idpointlabel = 'ID '+pointlabel
         odpointlabel = 'OD '+pointlabel
 
         zvartot = data_cv['z'].var()
-        zmeantot = data_cv['z'].mean()
+        zmeantot = data_cv['z'].mean()+0.0
 
         for choice in [
                        'standard_normal',
@@ -705,7 +705,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
             data['y_od'] = data_cv_bin[choice][out_domain].tolist()
             data['x_min'] = mdists_mins.tolist()
             data['x_max'] = mdists_maxs.tolist()
-            data['ppb'] = avg_points
+            data['mppb'] = int(min_points)
 
             jsonfile = os.path.join(save, '{}.json'.format(name))
             with open(jsonfile, 'w') as handle:
