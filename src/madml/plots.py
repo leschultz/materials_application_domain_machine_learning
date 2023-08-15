@@ -315,9 +315,10 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     y_pred = np.interp(eval_points, x, xfrac)  # Predicted
     y = np.interp(eval_points, z, zfrac)  # Standard Normal
 
-    # Area between ideal Gaussian and observed
-    area = abs(y_pred-y)
-    area = np.trapz(area, x=y, dx=0.00001)
+    # Area between ideal distribution and observed
+    absres = np.abs(y_pred-y)
+    areacdf = np.trapz(absres, x=eval_points, dx=0.00001)
+    areaparity = np.trapz(absres, x=y, dx=0.00001)
 
     if save:
 
@@ -331,7 +332,7 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
         os.makedirs(save, exist_ok=True)
 
         area_label = 'Observed Distribution'
-        area_label += '\nMiscalibration Area: {:.3f}'.format(area)
+        area_label += '\nMiscalibration Area: {:.3f}'.format(areaparity)
 
         fig, ax = pl.subplots()
 
@@ -346,8 +347,8 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
 
         # Line of best fit
         ax.plot(
-                [0, 1],
-                [0, 1],
+                y,
+                y,
                 color='k',
                 linestyle=':',
                 zorder=1,
@@ -397,12 +398,15 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
         data = {}
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
-        data['Area'] = area
+        data['Area'] = areaparity
         with open(os.path.join(
                                save,
                                '{}{}.json'.format(parity_name, subsave)
                                ), 'w') as handle:
             json.dump(data, handle)
+
+        area_label = 'Observed Distribution'
+        area_label += '\nMiscalibration Area: {:.3f}'.format(areacdf)
 
         fig, ax = pl.subplots()
 
@@ -462,14 +466,14 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
         data['x'] = list(eval_points)
         data['y'] = list(y)
         data['y_pred'] = list(y_pred)
-        data['Area'] = area
+        data['Area'] = areacdf
         with open(os.path.join(
                                save,
                                '{}{}.json'.format(cdf_name, subsave),
                                ), 'w') as handle:
             json.dump(data, handle)
 
-    return y, y_pred, area
+    return y, y_pred, areaparity, areacdf
 
 
 def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
@@ -503,11 +507,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     binmin = bin_groups[metric].min()
     binmax = bin_groups[metric].max()
     zvar = bin_groups['z'].var()
+    mean = bin_groups['z'].mean()
     counts = bin_groups['z'].count()
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
     areas = []
-    for choice in ['standard_normal', 'same_mean', 'same_variance']:
+    for choice in ['standard_normal']:
         a = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
@@ -525,6 +530,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     binmin = binmin.to_frame().add_suffix('_min')
     binmax = binmax.to_frame().add_suffix('_max')
     zvar = zvar.to_frame().add_suffix('_var')
+    mean = mean.to_frame().add_suffix('_mean')
     rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
     counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
@@ -535,6 +541,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                           binmin,
                           binmax,
                           zvar,
+                          mean,
                           rmse,
                           counts,
                           *areas,
@@ -554,16 +561,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         avg_points = data_cv.shape[0]/bins
         zvartot = data_cv['z'].var()
 
-        if 'y_stdc/std(y)' in metric:
-            xlabel = r'Mean $\sigma_{c}/\sigma_{y}$'
-        else:
-            xlabel = 'Mean D'
-
-        fig, ax = pl.subplots()
-
         mdists = data_cv_bin[metric+'_mean']
-        zvars = data_cv_bin['z_var']
-        rmses = data_cv_bin['rmse/std(y)']
         mdists_mins = data_cv_bin[metric+'_min']
         mdists_maxs = data_cv_bin[metric+'_max']
 
@@ -571,171 +569,20 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         out_domain = ~in_domain
 
         pointlabel = 'PPB = {:.2f}'.format(avg_points)
+        idpointlabel = 'ID '+pointlabel
+        odpointlabel = 'OD '+pointlabel
 
-        ax.scatter(
-                   mdists[in_domain],
-                   zvars[in_domain],
-                   marker='.',
-                   color='g',
-                   label='ID '+pointlabel,
-                   )
+        zvartot = data_cv['z'].var()
+        zmeantot = data_cv['z'].mean()
 
-        ax.scatter(
-                   mdists[out_domain],
-                   zvars[out_domain],
-                   marker='x',
-                   color='r',
-                   label='OD '+pointlabel,
-                   )
+        for choice in [
+                       'standard_normal',
+                       'z_var',
+                       'z_mean',
+                       'rmse/std(y)',
+                       ]:
 
-        ax.scatter(
-                   mdists_mins,
-                   zvars,
-                   marker='|',
-                   color='b',
-                   label='Bin Start',
-                   )
-
-        ax.scatter(
-                   mdists_maxs,
-                   zvars,
-                   marker='|',
-                   color='k',
-                   label='Bin End',
-                   )
-
-        ax.axhline(1.0, color='r', label='Ideal VAR(z) = 1.0')
-        ax.axhline(zvartot, label='Total VAR(z) = {:.1f}'.format(zvartot))
-
-        ax.set_ylim(0.0, None)
-
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(r'VAR(z)')
-
-        fig.tight_layout()
-
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
-
-        fig.savefig(os.path.join(
-                                 save,
-                                 'confidence.png'
-                                 ), bbox_inches='tight')
-
-        fig_legend.savefig(os.path.join(
-                                        save,
-                                        'confidence_legend.png'
-                                        ), bbox_inches='tight')
-
-        pl.close(fig)
-        pl.close(fig_legend)
-
-        data = {}
-        data['x_id'] = mdists[in_domain].tolist()
-        data['y_id'] = zvars[in_domain].tolist()
-        data['x_od'] = mdists[out_domain].tolist()
-        data['y_od'] = zvars[out_domain].tolist()
-        data['x_min'] = mdists_mins.tolist()
-        data['x_max'] = mdists_maxs.tolist()
-        data['ppb'] = avg_points
-        data['z_var_total'] = zvartot
-
-        jsonfile = os.path.join(save, 'confidence.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        fig, ax = pl.subplots()
-
-        ax.scatter(
-                   mdists[in_domain],
-                   rmses[in_domain],
-                   marker='.',
-                   color='g',
-                   label='ID '+pointlabel,
-                   )
-
-        ax.scatter(
-                   mdists[out_domain],
-                   rmses[out_domain],
-                   marker='x',
-                   color='r',
-                   label='OD '+pointlabel,
-                   )
-
-        ax.scatter(
-                   mdists_mins,
-                   rmses,
-                   marker='|',
-                   color='b',
-                   label='Bin Start',
-                   )
-
-        ax.scatter(
-                   mdists_maxs,
-                   rmses,
-                   marker='|',
-                   color='k',
-                   label='Bin End',
-                   )
-
-        x = np.linspace(*ax.get_xlim())
-        ax.plot(x, x, linestyle=':', color='k', label='Ideal')
-
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(r'$RMSE/\sigma_{y}$')
-
-        fig.tight_layout()
-
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
-
-        fig.savefig(os.path.join(
-                                 save,
-                                 'rmse_vs_uq.png'
-                                 ), bbox_inches='tight')
-
-        fig_legend.savefig(os.path.join(
-                                        save,
-                                        'rmse_vs_uq_legend.png'
-                                        ), bbox_inches='tight')
-
-        pl.close(fig)
-        pl.close(fig_legend)
-
-        data['x_id'] = mdists[in_domain].tolist()
-        data['y_id'] = rmses[in_domain].tolist()
-        data['x_od'] = mdists[out_domain].tolist()
-        data['y_od'] = rmses[out_domain].tolist()
-        data['x_min'] = mdists_mins.tolist()
-        data['x_max'] = mdists_maxs.tolist()
-        data['ppb'] = avg_points
-        data['z_var_total'] = zvartot
-
-        jsonfile = os.path.join(save, 'rmse_vs_uq.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        for choice in ['standard_normal', 'same_mean', 'same_variance']:
+            data = {}
             fig, ax = pl.subplots()
 
             ax.scatter(
@@ -743,7 +590,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                        data_cv_bin[choice][in_domain],
                        marker='.',
                        color='g',
-                       label='ID '+pointlabel,
+                       label=idpointlabel,
                        )
 
             ax.scatter(
@@ -751,7 +598,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                        data_cv_bin[choice][out_domain],
                        marker='x',
                        color='r',
-                       label='OD '+pointlabel,
+                       label=odpointlabel,
                        )
 
             ax.scatter(
@@ -771,6 +618,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                        )
 
             if choice == 'standard_normal':
+
                 ax.axhline(
                            gt,
                            color='k',
@@ -778,16 +626,53 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                            label='GT = {:.2f}'.format(gt),
                            )
                 ax.set_ylabel('Miscalibration Area')
-                name = 'area_vs_uq'
+                name = 'area'
                 data['ground_truth'] = gt
-            elif choice == 'same_mean':
-                ax.set_ylabel('Miscalibration of Variance')
-                name = 'variance_vs_uq'
-            elif choice == 'same_variance':
-                ax.set_ylabel('Miscalibration of Mean')
-                name = 'mean_vs_uq'
 
-            ax.set_xlabel(xlabel)
+            elif choice == 'z_var':
+
+                ax.set_ylabel('Variance z')
+                ax.axhline(1.0, color='b', label='Ideal Variance z = 1.0')
+                ax.axhline(
+                           zvartot,
+                           color='r',
+                           label='Total Variance z = {:.1f}'.format(zvartot)
+                           )
+                name = 'variance'
+                data['z_var_total'] = zvartot
+
+            elif choice == 'z_mean':
+
+                ax.set_ylabel('Mean z')
+                ax.axhline(0.0, color='b', label='Ideal Mean z = 0.0')
+                ax.axhline(
+                           zmeantot,
+                           color='r',
+                           label='Total Mean z = {:.1f}'.format(zmeantot)
+                           )
+                name = 'mean'
+                data['z_mean_total'] = zmeantot
+
+            elif choice == 'rmse/std(y)':
+
+                ax.set_ylabel(r'$RMSE/\sigma_{y}$')
+                name = 'rmse'
+
+            if ('y_stdc/std(y)' in metric) and (choice == 'rmse/std(y)'):
+
+                x = np.linspace(*ax.get_xlim())
+                ax.plot(x, x, linestyle=':', color='k', label='Ideal')
+                ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+
+            elif 'y_stdc/std(y)' in metric:
+
+                ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+
+            else:
+
+                ax.set_xlabel('Mean D')
+
+            fig.tight_layout()
 
             fig_legend, ax_legend = pl.subplots()
             ax_legend.axis(False)
@@ -802,7 +687,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
             ax_legend.spines['left'].set_visible(False)
             ax_legend.spines['right'].set_visible(False)
 
-            fig.tight_layout()
             fig.savefig(os.path.join(
                                      save,
                                      '{}.png'.format(name)
@@ -827,10 +711,10 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
             with open(jsonfile, 'w') as handle:
                 json.dump(data, handle)
 
-            data_cv_bin.to_csv(os.path.join(
-                                            save,
-                                            'bin.csv'
-                                            ), index=False)
+        data_cv_bin.to_csv(os.path.join(
+                                        save,
+                                        'bin.csv'
+                                        ), index=False)
 
     return data_cv_bin
 
@@ -846,18 +730,12 @@ def single_truth(data_cv, metric, save, gt):
         gt = The ground truth cutoff.
     '''
 
+    dist = data_cv[metric]
     res = data_cv['r/std(y)']
     absres = abs(res)
-    dist = data_cv[metric]
-
-    if 'z' in data_cv.columns:
-        zvals = data_cv['z']
-        absz = abs(zvals)
 
     in_domain = data_cv['id']
     out_domain = ~in_domain
-
-    data_cv['id'] = in_domain
 
     if save:
         os.makedirs(save, exist_ok=True)
@@ -883,7 +761,7 @@ def single_truth(data_cv, metric, save, gt):
                    gt,
                    color='k',
                    linestyle=':',
-                   label='GT = 1',
+                   label='GT = {}'.format(gt),
                    )
 
         if 'y_stdc/std(y)' in metric:
@@ -926,181 +804,11 @@ def single_truth(data_cv, metric, save, gt):
         data['y_id'] = dist[in_domain].tolist()
         data['x_od'] = absres[out_domain].tolist()
         data['y_od'] = dist[out_domain].tolist()
+        data['gt'] = gt
 
         jsonfile = os.path.join(save, 'absres_truth.json')
         with open(jsonfile, 'w') as handle:
             json.dump(data, handle)
-
-        fig, ax = pl.subplots()
-
-        ax.scatter(
-                   dist[in_domain],
-                   res[in_domain],
-                   color='g',
-                   marker='.',
-                   label='ID',
-                   )
-        ax.scatter(
-                   dist[out_domain],
-                   res[out_domain],
-                   color='r',
-                   marker='x',
-                   label='OD',
-                   )
-
-        ax.set_ylabel(r'$(y-\hat{y})/\sigma_{y}$')
-        ax.set_xlabel(xlabel)
-
-        fig_legend, ax_legend = pl.subplots()
-        ax_legend.axis(False)
-        legend = ax_legend.legend(
-                                  *ax.get_legend_handles_labels(),
-                                  frameon=False,
-                                  loc='center',
-                                  bbox_to_anchor=(0.5, 0.5)
-                                  )
-        ax_legend.spines['top'].set_visible(False)
-        ax_legend.spines['bottom'].set_visible(False)
-        ax_legend.spines['left'].set_visible(False)
-        ax_legend.spines['right'].set_visible(False)
-
-        fig.tight_layout()
-        fig.savefig(
-                    os.path.join(save, 'res_truth.png'),
-                    bbox_inches='tight'
-                    )
-        fig_legend.savefig(
-                           os.path.join(save, 'res_truth_legend.png'),
-                           bbox_inches='tight'
-                           )
-        pl.close(fig)
-        pl.close(fig_legend)
-
-        # Repare plot data for saving
-        data = {}
-        data['x_id'] = res[in_domain].tolist()
-        data['y_id'] = dist[in_domain].tolist()
-        data['x_od'] = res[out_domain].tolist()
-        data['y_od'] = dist[out_domain].tolist()
-
-        jsonfile = os.path.join(save, 'res_truth.json')
-        with open(jsonfile, 'w') as handle:
-            json.dump(data, handle)
-
-        if 'z' in data_cv.columns:
-            fig, ax = pl.subplots()
-
-            ax.scatter(
-                       dist[in_domain],
-                       zvals[in_domain],
-                       color='g',
-                       marker='.',
-                       label='ID',
-                       )
-            ax.scatter(
-                       dist[out_domain],
-                       zvals[out_domain],
-                       color='r',
-                       marker='x',
-                       label='OD',
-                       )
-
-            ax.set_ylabel('z')
-            ax.set_xlabel(xlabel)
-
-            fig.tight_layout()
-
-            fig_legend, ax_legend = pl.subplots()
-            ax_legend.axis(False)
-            legend = ax_legend.legend(
-                                      *ax.get_legend_handles_labels(),
-                                      frameon=False,
-                                      loc='center',
-                                      bbox_to_anchor=(0.5, 0.5)
-                                      )
-            ax_legend.spines['top'].set_visible(False)
-            ax_legend.spines['bottom'].set_visible(False)
-            ax_legend.spines['left'].set_visible(False)
-            ax_legend.spines['right'].set_visible(False)
-
-            fig.savefig(
-                        os.path.join(save, 'z_truth.png'),
-                        bbox_inches='tight'
-                        )
-            fig_legend.savefig(
-                               os.path.join(save, 'z_truth_legend.png'),
-                               bbox_inches='tight'
-                               )
-            pl.close(fig)
-            pl.close(fig_legend)
-
-            # Repare plot data for saving
-            data = {}
-            data['x_id'] = zvals[in_domain].tolist()
-            data['y_id'] = dist[in_domain].tolist()
-            data['x_od'] = zvals[out_domain].tolist()
-            data['y_od'] = dist[out_domain].tolist()
-
-            jsonfile = os.path.join(save, 'z_truth.json')
-            with open(jsonfile, 'w') as handle:
-                json.dump(data, handle)
-
-            fig, ax = pl.subplots()
-
-            ax.scatter(
-                       dist[in_domain],
-                       absz[in_domain],
-                       color='g',
-                       marker='.',
-                       label='ID',
-                       )
-            ax.scatter(
-                       dist[out_domain],
-                       absz[out_domain],
-                       color='r',
-                       marker='x',
-                       label='OD',
-                       )
-
-            ax.set_ylabel('|z|')
-            ax.set_xlabel(xlabel)
-
-            fig.tight_layout()
-
-            fig_legend, ax_legend = pl.subplots()
-            ax_legend.axis(False)
-            legend = ax_legend.legend(
-                                      *ax.get_legend_handles_labels(),
-                                      frameon=False,
-                                      loc='center',
-                                      bbox_to_anchor=(0.5, 0.5)
-                                      )
-            ax_legend.spines['top'].set_visible(False)
-            ax_legend.spines['bottom'].set_visible(False)
-            ax_legend.spines['left'].set_visible(False)
-            ax_legend.spines['right'].set_visible(False)
-
-            fig_legend.savefig(
-                               os.path.join(save, 'abs(z)_truth_legend.png'),
-                               bbox_inches='tight'
-                               )
-            fig.savefig(
-                        os.path.join(save, 'abs(z)_truth.png'),
-                        bbox_inches='tight'
-                        )
-            pl.close(fig)
-            pl.close(fig_legend)
-
-            # Repare plot data for saving
-            data = {}
-            data['x_id'] = absz[in_domain].tolist()
-            data['y_id'] = dist[in_domain].tolist()
-            data['x_od'] = absz[out_domain].tolist()
-            data['y_od'] = dist[out_domain].tolist()
-
-            jsonfile = os.path.join(save, 'abs(z)_truth.json')
-            with open(jsonfile, 'w') as handle:
-                json.dump(data, handle)
 
 
 def pr(score, in_domain, pos_label, save=False):
