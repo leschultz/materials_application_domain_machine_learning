@@ -19,16 +19,17 @@ from madml import datasets
 
 def keras_model(shape):
 
+    n = 100
     model = Sequential()
     model.add(Dense(
-                    1024,
+                    n,
                     input_dim=shape,
                     kernel_initializer='normal',
                     activation='relu'
                     ))
     model.add(Dropout(0.3))
     model.add(Dense(
-                    1024,
+                    n,
                     kernel_initializer='normal',
                     activation='relu'
                     ))
@@ -68,7 +69,7 @@ def main():
     model = KerasRegressor(
                            build_fn=keras_model,
                            shape=X.shape[1],
-                           epochs=250,
+                           epochs=500,
                            batch_size=100,
                            verbose=0
                            )
@@ -76,7 +77,7 @@ def main():
 
     # The grid for grid search
     grid = {}
-    grid['model__n_estimators'] = [10]
+    grid['model__n_estimators'] = [100]
 
     # The machine learning pipeline
     pipe = Pipeline(steps=[
