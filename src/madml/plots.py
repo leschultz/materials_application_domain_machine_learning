@@ -513,7 +513,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
     areas = []
-    for choice in ['standard_normal']:
+    for choice in ['standard_normal', 'same_mean', 'same_variance']:
         a = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
@@ -577,6 +577,8 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         for choice in [
                        'standard_normal',
+                       'same_mean',
+                       'same_variance',
                        'z_var',
                        'z_mean',
                        'rmse/std(y)',
