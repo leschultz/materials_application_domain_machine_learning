@@ -73,7 +73,7 @@ def load(name, *args, **kwargs):
         n_features = 5
         X = np.random.uniform(
                               low=0.0,
-                              high=10.0,
+                              high=1.0,
                               size=(n_samples, n_features)
                               )
         y = (

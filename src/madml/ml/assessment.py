@@ -63,7 +63,7 @@ class nested_cv:
                                                             self.X,
                                                             self.y,
                                                             self.g
-                                                            )):
+                                                            ), 1):
                 train, test = split
                 yield (train, test, count, splitter[0])
 

@@ -494,12 +494,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     # Get data for bins
     subset = [metric, 'z', 'r/std(y)']
     data_cv_bin = data_cv[subset].copy()
-    data_cv_bin = data_cv_bin.sort_values(by=subset)
 
+    # Sorted for the ranking in the qcut method
+    data_cv_bin = data_cv_bin.sort_values(by=subset)
     data_cv_bin['bin'] = pd.qcut(
-                                 data_cv_bin[metric],
+                                 data_cv_bin[metric].rank(method='first'),
                                  bins,
-                                 duplicates='drop',
                                  )
 
     # Bin statistics
@@ -626,8 +626,18 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                            label='GT = {:.2f}'.format(gt),
                            )
                 ax.set_ylabel('Miscalibration Area')
-                name = 'area'
+                name = 'miscalibration_area'
                 data['ground_truth'] = gt
+
+            elif choice == 'same_mean':
+
+                ax.set_ylabel('Miscalibration Area of Variance')
+                name = 'miscalibration_variance'
+
+            elif choice == 'same_variance':
+
+                ax.set_ylabel('Miscalibration Area of Mean')
+                name = 'miscalibration_mean'
 
             elif choice == 'z_var':
 
