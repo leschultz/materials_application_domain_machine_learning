@@ -4,10 +4,10 @@ from sklearn.metrics import (
                              average_precision_score,
                              )
 
-from sklearn import metrics
-
 from matplotlib import pyplot as pl
+from itertools import groupby
 from functools import reduce
+from sklearn import metrics
 
 import pandas as pd
 import numpy as np
@@ -493,84 +493,103 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         save = The location to save figures/data.
 
     outputs:
-        data_cv_bin = The statistics from bins.
+        out = The statistics from bins.
     '''
 
-    # Get data for bins
+    metric_name = metric+'_mean'
+    max_bins = 11
+
     subset = [metric, 'z', 'r/std(y)']
     data_cv_bin = data_cv[subset].copy()
+    data_cv_bin.sort_values(by=subset)
 
-    # Sorted for the ranking in the qcut method
-    data_cv_bin = data_cv_bin.sort_values(by=subset)
-    data_cv_bin['bin'] = pd.qcut(
-                                 data_cv_bin[metric].rank(method='first'),
-                                 bins,
-                                 )
+    condition = False
+    for bins in range(2, max_bins):
 
-    # Bin statistics
-    bin_groups = data_cv_bin.groupby('bin')
-    distmean = bin_groups[metric].mean()
-    binmin = bin_groups[metric].min()
-    binmax = bin_groups[metric].max()
-    zvar = bin_groups['z'].var()
-    mean = bin_groups['z'].mean()
-    counts = bin_groups['z'].count()
-    rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+        sub = data_cv_bin
+        sub['bin'] = pd.qcut(
+                             sub[metric].rank(method='first'),
+                             bins,
+                             )
 
-    areas = []
-    for choice in ['standard_normal']:
-        a = bin_groups.apply(lambda x: cdf(
-                                           x['z'],
-                                           save=save,
-                                           binsave='(' +
-                                                   str(x[metric].min()) +
-                                                   '_' +
-                                                   str(x[metric].max()) +
-                                                   ')',
-                                           choice=choice,
-                                           )[2])
-        a = a.to_frame().rename({0: choice}, axis=1)
-        areas.append(a)
+        # Bin statistics
+        bin_groups = sub.groupby('bin')
+        distmean = bin_groups[metric].mean()
+        binmin = bin_groups[metric].min()
+        binmax = bin_groups[metric].max()
+        zvar = bin_groups['z'].var()
+        mean = bin_groups['z'].mean()
+        counts = bin_groups['z'].count()
+        rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
-    distmean = distmean.to_frame().add_suffix('_mean')
-    binmin = binmin.to_frame().add_suffix('_min')
-    binmax = binmax.to_frame().add_suffix('_max')
-    zvar = zvar.to_frame().add_suffix('_var')
-    mean = mean.to_frame().add_suffix('_mean')
-    rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
-    counts = counts.to_frame().rename({'z': 'count'}, axis=1)
+        areas = []
+        for choice in ['standard_normal']:
+            a = bin_groups.apply(lambda x: cdf(
+                                               x['z'],
+                                               save=save,
+                                               binsave='(' +
+                                                       str(x[metric].min()) +
+                                                       '_' +
+                                                       str(x[metric].max()) +
+                                                       ')',
+                                               choice=choice,
+                                               )[2])
+            a = a.to_frame().rename({0: choice}, axis=1)
+            areas.append(a)
 
-    data_cv_bin = reduce(
-                         lambda x, y: pd.merge(x, y, on='bin'),
-                         [
-                          distmean,
-                          binmin,
-                          binmax,
-                          zvar,
-                          mean,
-                          rmse,
-                          counts,
-                          *areas,
-                          ]
-                         )
+        distmean = distmean.to_frame().add_suffix('_mean')
+        binmin = binmin.to_frame().add_suffix('_min')
+        binmax = binmax.to_frame().add_suffix('_max')
+        zvar = zvar.to_frame().add_suffix('_var')
+        mean = mean.to_frame().add_suffix('_mean')
+        rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
+        counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
-    data_cv_bin = data_cv_bin.reset_index()
-    data_cv_bin.drop('bin', axis=1, inplace=True)
+        sub = reduce(
+                     lambda x, y: pd.merge(x, y, on='bin'),
+                     [
+                      distmean,
+                      binmin,
+                      binmax,
+                      zvar,
+                      mean,
+                      rmse,
+                      counts,
+                      *areas,
+                      ]
+                     )
 
-    # Ground truth for bins
-    data_cv_bin['id'] = data_cv_bin['standard_normal'] < gt
+        sub = sub.reset_index()
+        sub.drop('bin', axis=1, inplace=True)
+
+        # Ground truth for bins
+        sub['id'] = sub['standard_normal'] < gt
+
+        sub.sort_values(by=metric_name, inplace=True)
+
+        grouped = [list(group) for key, group in groupby(sub['id'])]
+        ngroups = len(grouped)
+
+        if all(grouped[0]) and (ngroups == 2):
+            out = old = sub
+            condition = True
+        elif (condition is True) and (False in grouped[0]):
+            out = old
+            break
+        else:
+            out = sub
 
     if save:
 
         os.makedirs(save, exist_ok=True)
 
-        min_points = data_cv_bin['count'].min()
+        min_points = out['count'].min()
 
-        mdists = data_cv_bin[metric+'_mean']
-        mdists_mins = data_cv_bin[metric+'_min']
-        mdists_maxs = data_cv_bin[metric+'_max']
+        mdists = out[metric_name]
+        mdists_mins = out[metric+'_min']
+        mdists_maxs = out[metric+'_max']
 
-        in_domain = data_cv_bin['id']
+        in_domain = out['id']
         out_domain = ~in_domain
 
         pointlabel = 'MPPB = {:.2f}'.format(min_points)
@@ -592,7 +611,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
             ax.scatter(
                        mdists[in_domain],
-                       data_cv_bin[choice][in_domain],
+                       out[choice][in_domain],
                        marker='.',
                        color='g',
                        label=idpointlabel,
@@ -600,7 +619,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
             ax.scatter(
                        mdists[out_domain],
-                       data_cv_bin[choice][out_domain],
+                       out[choice][out_domain],
                        marker='x',
                        color='r',
                        label=odpointlabel,
@@ -608,7 +627,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
             ax.scatter(
                        mdists_mins,
-                       data_cv_bin[choice],
+                       out[choice],
                        marker='|',
                        color='b',
                        label='Bin Start',
@@ -616,7 +635,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
             ax.scatter(
                        mdists_maxs,
-                       data_cv_bin[choice],
+                       out[choice],
                        marker='|',
                        color='k',
                        label='Bin End',
@@ -715,9 +734,9 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
             pl.close(fig_legend)
 
             data['x_id'] = mdists[in_domain].tolist()
-            data['y_id'] = data_cv_bin[choice][in_domain].tolist()
+            data['y_id'] = out[choice][in_domain].tolist()
             data['x_od'] = mdists[out_domain].tolist()
-            data['y_od'] = data_cv_bin[choice][out_domain].tolist()
+            data['y_od'] = out[choice][out_domain].tolist()
             data['x_min'] = mdists_mins.tolist()
             data['x_max'] = mdists_maxs.tolist()
             data['mppb'] = int(min_points)
@@ -726,12 +745,12 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
             with open(jsonfile, 'w') as handle:
                 json.dump(data, handle)
 
-        data_cv_bin.to_csv(os.path.join(
-                                        save,
-                                        'bin.csv'
-                                        ), index=False)
+        out.to_csv(os.path.join(
+                                save,
+                                'bin.csv'
+                                ), index=False)
 
-    return data_cv_bin
+    return out
 
 
 def single_truth(data_cv, metric, save, gt):
