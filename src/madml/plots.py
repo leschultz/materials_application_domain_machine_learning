@@ -21,6 +21,12 @@ import os
 font = {'font.size': 16, 'lines.markersize': 10}
 matplotlib.rcParams.update(font)
 
+np.random.seed(0)
+
+# Standard normal distribution
+nz = 10000
+z_standard_normal = np.random.normal(0, 1, nz)
+
 
 def generate_plots(data_cv, ystd, bins, save, gts, gtb=0.05):
     '''
@@ -293,10 +299,9 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     '''
 
     nx = len(x)
-    nz = 10000
 
     if choice == 'standard_normal':
-        z = np.random.normal(0, 1, nz)  # Standard normal distribution
+        z = z_standard_normal
     elif choice == 'same_mean':
         z = np.random.normal(np.mean(x), 1, nz)  # Shifted mean
     elif choice == 'same_variance':
@@ -513,7 +518,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
     areas = []
-    for choice in ['standard_normal', 'same_mean', 'same_variance']:
+    for choice in ['standard_normal']:
         a = bin_groups.apply(lambda x: cdf(
                                            x['z'],
                                            save=save,
@@ -577,8 +582,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         for choice in [
                        'standard_normal',
-                       'same_mean',
-                       'same_variance',
                        'z_var',
                        'z_mean',
                        'rmse/std(y)',

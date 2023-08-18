@@ -81,8 +81,8 @@ def power(c, std):
     A function raised to a power and multiplied by a number.
 
     inputs:
-        c = The multiplying coefficient.
-        std = The power to raise the input.
+        c = The multiplying and power coefficients.
+        std = The UQ measure.
 
     outputs:
         total = The multiple power of the input.

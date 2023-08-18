@@ -1,3 +1,4 @@
+from sklearn import datasets as sklearn_datasets
 from madml import datasets
 import pandas as pd
 import numpy as np
@@ -105,11 +106,28 @@ def load(name, *args, **kwargs):
         Load the make_regression dataset.
         '''
 
-        # Dataset information
-        df = 'make_regression.csv'
-        target = 'y'
+        X, y = sklearn_datasets.make_regression(
+                                                n_samples=1000,
+                                                n_features=5,
+                                                noise=0,
+                                                random_state=0
+                                                )
+        g = np.repeat('none', X.shape[0])
 
-        return loader(df, target)
+        df = pd.DataFrame(X)
+        df['y'] = y
+        df['g'] = g
+
+        data = {}
+        data['data'] = X
+        data['target'] = y
+        data['class_name'] = np.array(['no-groups']*X.shape[0])
+        data['feature_names'] = range(X.shape[0])
+        data['target_name'] = 'y'
+        data['data_filename'] = 'None'
+        data['frame'] = df
+
+        return data
 
     elif name == 'fetch_california_housing':
         '''
