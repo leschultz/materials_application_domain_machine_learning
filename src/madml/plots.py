@@ -497,14 +497,13 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     '''
 
     metric_name = metric+'_mean'
-    max_bins = 11
 
     subset = [metric, 'z', 'r/std(y)']
     data_cv_bin = data_cv[subset].copy()
     data_cv_bin.sort_values(by=subset)
 
     condition = False
-    for bins in range(2, max_bins):
+    for bins in range(bins, bins+1):
 
         sub = data_cv_bin
         sub['bin'] = pd.qcut(
