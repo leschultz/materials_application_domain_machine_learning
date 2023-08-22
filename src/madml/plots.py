@@ -498,7 +498,11 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
     metric_name = metric+'_mean'
 
-    subset = [metric, 'z', 'r/std(y)']
+    if metric == 'y_stdc/std(y)':
+        subset = [metric, 'z', 'r/std(y)']
+    else:
+        subset = [metric, 'z', 'r/std(y)', 'y_stdc/std(y)']
+
     data_cv_bin = data_cv[subset].copy()
     data_cv_bin.sort_values(by=subset)
 
@@ -520,6 +524,15 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         mean = bin_groups['z'].mean()
         counts = bin_groups['z'].count()
         rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+
+        if metric != 'y_stdc/std(y)':
+            stdc = bin_groups['y_stdc/std(y)'].mean()
+            stdcmin = bin_groups['y_stdc/std(y)'].min()
+            stdcmax = bin_groups['y_stdc/std(y)'].max()
+
+            stdc = stdc.to_frame().add_suffix('_mean')
+            stdcmin = stdcmin.to_frame().add_suffix('_min')
+            stdcmax = stdcmax.to_frame().add_suffix('_max')
 
         areas = []
         for choice in ['standard_normal']:
@@ -544,19 +557,23 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
         counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
-        sub = reduce(
-                     lambda x, y: pd.merge(x, y, on='bin'),
-                     [
-                      distmean,
-                      binmin,
-                      binmax,
-                      zvar,
-                      mean,
-                      rmse,
-                      counts,
-                      *areas,
-                      ]
-                     )
+        sub = [
+               distmean,
+               binmin,
+               binmax,
+               zvar,
+               mean,
+               rmse,
+               counts,
+               *areas,
+               ]
+
+        if 'y_stdc/std(y)' != metric:
+            sub.append(stdc)
+            sub.append(stdcmin)
+            sub.append(stdcmax)
+
+        sub = reduce(lambda x, y: pd.merge(x, y, on='bin'), sub)
 
         sub = sub.reset_index()
         sub.drop('bin', axis=1, inplace=True)
@@ -603,7 +620,17 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                        'z_var',
                        'z_mean',
                        'rmse/std(y)',
+                       'y_stdc/std(y)',  # Needs to be last
                        ]:
+
+            oldchoice = choice
+            if (metric == 'y_stdc/std(y)') and (choice == 'y_stdc/std(y)'):
+                continue
+            elif (metric != 'y_stdc/std(y)') and (choice == 'y_stdc/std(y)'):
+                choice = 'rmse/std(y)'
+                mdists = out['y_stdc/std(y)_mean']
+                mdists_mins = out['y_stdc/std(y)_min']*0.0
+                mdists_maxs = out['y_stdc/std(y)_max']*0.0
 
             data = {}
             fig, ax = pl.subplots()
@@ -686,12 +713,18 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                 name = 'mean'
                 data['z_mean_total'] = zmeantot
 
-            elif choice == 'rmse/std(y)':
+            elif (choice == 'rmse/std(y)') or (oldchoice == 'y_stdc/std(y)'):
 
                 ax.set_ylabel(r'$RMSE/\sigma_{y}$')
                 name = 'rmse'
 
-            if ('y_stdc/std(y)' in metric) and (choice == 'rmse/std(y)'):
+                if oldchoice == 'y_stdc/std(y)':
+                    name += '_stdc'
+
+            if (
+                ('y_stdc/std(y)' == metric) and
+                (choice == 'rmse/std(y)')
+               ) or (oldchoice == 'y_stdc/std(y)'):
 
                 x = np.linspace(*ax.get_xlim())
                 ax.plot(x, x, linestyle=':', color='k', label='Ideal')
