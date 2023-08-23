@@ -109,8 +109,9 @@ def load(name, *args, **kwargs):
         X, y = sklearn_datasets.make_regression(
                                                 n_samples=1000,
                                                 n_features=5,
+                                                n_informative=5,
                                                 noise=0,
-                                                random_state=0
+                                                random_state=0,
                                                 )
         g = np.repeat('none', X.shape[0])
 

@@ -496,8 +496,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         out = The statistics from bins.
     '''
 
-    metric_name = metric+'_mean'
-
     if metric == 'y_stdc/std(y)':
         subset = [metric, 'z', 'r/std(y)']
     else:
@@ -515,6 +513,17 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                              bins,
                              )
 
+        # Replace bins with integer number in order
+        bin_replace = sub['bin'].unique()
+        bin_replace = sorted(bin_replace)
+        bin_replace = enumerate(bin_replace)
+        bin_replace = dict(bin_replace)
+        bin_replace = {v: k for k, v in bin_replace.items()}
+        sub['bin'].replace(
+                           bin_replace,
+                           inplace=True
+                           )
+
         # Bin statistics
         bin_groups = sub.groupby('bin')
         distmean = bin_groups[metric].mean()
@@ -525,26 +534,13 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         counts = bin_groups['z'].count()
         rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
-        if metric != 'y_stdc/std(y)':
-            stdc = bin_groups['y_stdc/std(y)'].mean()
-            stdcmin = bin_groups['y_stdc/std(y)'].min()
-            stdcmax = bin_groups['y_stdc/std(y)'].max()
-
-            stdc = stdc.to_frame().add_suffix('_mean')
-            stdcmin = stdcmin.to_frame().add_suffix('_min')
-            stdcmax = stdcmax.to_frame().add_suffix('_max')
-
         areas = []
         for choice in ['standard_normal']:
             a = bin_groups.apply(lambda x: cdf(
                                                x['z'],
-                                               save=save,
-                                               binsave='(' +
-                                                       str(x[metric].min()) +
-                                                       '_' +
-                                                       str(x[metric].max()) +
-                                                       ')',
                                                choice=choice,
+                                               save=save,
+                                               binsave=x['bin'].unique()[0],
                                                )[2])
             a = a.to_frame().rename({0: choice}, axis=1)
             areas.append(a)
@@ -568,10 +564,10 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                *areas,
                ]
 
-        if 'y_stdc/std(y)' != metric:
-            sub.append(stdc)
-            sub.append(stdcmin)
-            sub.append(stdcmax)
+        if metric != 'y_stdc/std(y)':
+            ystdc = bin_groups['y_stdc/std(y)'].mean()
+            ystdc = ystdc.to_frame()
+            sub.append(ystdc)
 
         sub = reduce(lambda x, y: pd.merge(x, y, on='bin'), sub)
 
@@ -581,7 +577,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         # Ground truth for bins
         sub['id'] = sub['standard_normal'] < gt
 
-        sub.sort_values(by=metric_name, inplace=True)
+        sub.sort_values(by=metric+'_mean', inplace=True)
 
         grouped = [list(group) for key, group in groupby(sub['id'])]
         ngroups = len(grouped)
@@ -601,10 +597,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
 
         min_points = out['count'].min()
 
-        mdists = out[metric_name]
-        mdists_mins = out[metric+'_min']
-        mdists_maxs = out[metric+'_max']
-
         in_domain = out['id']
         out_domain = ~in_domain
 
@@ -615,167 +607,179 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         zvartot = data_cv['z'].var()
         zmeantot = data_cv['z'].mean()+0.0
 
-        for choice in [
-                       'standard_normal',
-                       'z_var',
-                       'z_mean',
-                       'rmse/std(y)',
-                       'y_stdc/std(y)',  # Needs to be last
-                       ]:
+        xchoices = [metric, 'standard_normal']
+        if metric != 'y_stdc/std(y)':
+            xchoices.append('y_stdc/std(y)')
 
-            oldchoice = choice
-            if (metric == 'y_stdc/std(y)') and (choice == 'y_stdc/std(y)'):
-                continue
-            elif (metric != 'y_stdc/std(y)') and (choice == 'y_stdc/std(y)'):
-                choice = 'rmse/std(y)'
-                mdists = out['y_stdc/std(y)_mean']
-                mdists_mins = out['y_stdc/std(y)_min']*0.0
-                mdists_maxs = out['y_stdc/std(y)_max']*0.0
+        ychoices = [
+                    'standard_normal',
+                    'z_var',
+                    'z_mean',
+                    'rmse/std(y)',
+                    ]
 
-            data = {}
-            fig, ax = pl.subplots()
+        for xchoice in xchoices:
 
-            ax.scatter(
-                       mdists[in_domain],
-                       out[choice][in_domain],
-                       marker='.',
-                       color='g',
-                       label=idpointlabel,
-                       )
+            if xchoice == metric:
+                xmean = xchoice+'_mean'
+                xmin = xchoice+'_min'
+                xmax = xchoice+'_max'
 
-            ax.scatter(
-                       mdists[out_domain],
-                       out[choice][out_domain],
-                       marker='x',
-                       color='r',
-                       label=odpointlabel,
-                       )
+            for ychoice in ychoices:
+                name = xchoice
 
-            ax.scatter(
-                       mdists_mins,
-                       out[choice],
-                       marker='|',
-                       color='b',
-                       label='Bin Start',
-                       )
+                data = {}
+                fig, ax = pl.subplots()
 
-            ax.scatter(
-                       mdists_maxs,
-                       out[choice],
-                       marker='|',
-                       color='k',
-                       label='Bin End',
-                       )
-
-            if choice == 'standard_normal':
-
-                ax.axhline(
-                           gt,
-                           color='k',
-                           linestyle=':',
-                           label='GT = {:.2f}'.format(gt),
+                ax.scatter(
+                           out[xmean][in_domain],
+                           out[ychoice][in_domain],
+                           marker='.',
+                           color='g',
+                           label=idpointlabel,
                            )
-                ax.set_ylabel('Miscalibration Area')
-                name = 'miscalibration_area'
-                data['ground_truth'] = gt
 
-            elif choice == 'same_mean':
-
-                ax.set_ylabel('Miscalibration Area of Variance')
-                name = 'miscalibration_variance'
-
-            elif choice == 'same_variance':
-
-                ax.set_ylabel('Miscalibration Area of Mean')
-                name = 'miscalibration_mean'
-
-            elif choice == 'z_var':
-
-                ax.set_ylabel('Variance z')
-                ax.axhline(1.0, color='b', label='Ideal Variance z = 1.0')
-                ax.axhline(
-                           zvartot,
+                ax.scatter(
+                           out[xmean][out_domain],
+                           out[ychoice][out_domain],
+                           marker='x',
                            color='r',
-                           label='Total Variance z = {:.1f}'.format(zvartot)
+                           label=odpointlabel,
                            )
-                name = 'variance'
-                data['z_var_total'] = zvartot
 
-            elif choice == 'z_mean':
+                if xchoice == metric:
+                    ax.scatter(
+                               out[xmin],
+                               out[ychoice],
+                               marker='|',
+                               color='b',
+                               label='Bin Start',
+                               )
 
-                ax.set_ylabel('Mean z')
-                ax.axhline(0.0, color='b', label='Ideal Mean z = 0.0')
-                ax.axhline(
-                           zmeantot,
-                           color='r',
-                           label='Total Mean z = {:.1f}'.format(zmeantot)
-                           )
-                name = 'mean'
-                data['z_mean_total'] = zmeantot
+                    ax.scatter(
+                               out[xmax],
+                               out[ychoice],
+                               marker='|',
+                               color='k',
+                               label='Bin End',
+                               )
 
-            elif (choice == 'rmse/std(y)') or (oldchoice == 'y_stdc/std(y)'):
+                if (ychoice == 'standard_normal') and (metric == choice):
 
-                ax.set_ylabel(r'$RMSE/\sigma_{y}$')
-                name = 'rmse'
+                    ax.axhline(
+                               gt,
+                               color='k',
+                               linestyle=':',
+                               label='GT = {:.2f}'.format(gt),
+                               )
+                    ax.set_ylabel('Miscalibration Area')
+                    name += '_miscalibration_area'
+                    data['ground_truth'] = gt
 
-                if oldchoice == 'y_stdc/std(y)':
-                    name += '_stdc'
+                elif ychoice == 'standard_normal':
+                    ax.set_ylabel('Miscalibration Area')
+                    name += '_miscalibration_area'
 
-            if (
-                ('y_stdc/std(y)' == metric) and
-                (choice == 'rmse/std(y)')
-               ) or (oldchoice == 'y_stdc/std(y)'):
+                elif ychoice == 'same_mean':
 
-                x = np.linspace(*ax.get_xlim())
-                ax.plot(x, x, linestyle=':', color='k', label='Ideal')
-                ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+                    ax.set_ylabel('Miscalibration Area of Variance')
+                    name += '_miscalibration_variance'
 
-            elif 'y_stdc/std(y)' in metric:
+                elif ychoice == 'same_variance':
 
-                ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+                    ax.set_ylabel('Miscalibration Area of Mean')
+                    name += '_miscalibration_mean'
 
-            else:
+                elif ychoice == 'z_var':
 
-                ax.set_xlabel('Mean D')
+                    label = 'Total Variance z = {:.1f}'.format(zvartot)
+                    ax.set_ylabel('Variance z')
+                    ax.axhline(1.0, color='b', label='Ideal Variance z = 1.0')
+                    ax.axhline(
+                               zvartot,
+                               color='r',
+                               label=label
+                               )
+                    name += '_variance'
+                    data['z_var_total'] = zvartot
 
-            fig.tight_layout()
+                elif ychoice == 'z_mean':
 
-            fig_legend, ax_legend = pl.subplots()
-            ax_legend.axis(False)
-            legend = ax_legend.legend(
-                                      *ax.get_legend_handles_labels(),
-                                      frameon=False,
-                                      loc='center',
-                                      bbox_to_anchor=(0.5, 0.5)
-                                      )
-            ax_legend.spines['top'].set_visible(False)
-            ax_legend.spines['bottom'].set_visible(False)
-            ax_legend.spines['left'].set_visible(False)
-            ax_legend.spines['right'].set_visible(False)
+                    ax.set_ylabel('Mean z')
+                    ax.axhline(0.0, color='b', label='Ideal Mean z = 0.0')
+                    ax.axhline(
+                               zmeantot,
+                               color='r',
+                               label='Total Mean z = {:.1f}'.format(zmeantot)
+                               )
+                    name += '_mean'
+                    data['z_mean_total'] = zmeantot
 
-            fig.savefig(os.path.join(
-                                     save,
-                                     '{}.png'.format(name)
-                                     ), bbox_inches='tight')
-            fig_legend.savefig(os.path.join(
-                                            save,
-                                            '{}_legend.png'.format(name)
-                                            ), bbox_inches='tight')
+                elif ychoice == 'rmse/std(y)':
 
-            pl.close(fig)
-            pl.close(fig_legend)
+                    ax.set_ylabel(r'$RMSE/\sigma_{y}$')
+                    name += '_rmse'
 
-            data['x_id'] = mdists[in_domain].tolist()
-            data['y_id'] = out[choice][in_domain].tolist()
-            data['x_od'] = mdists[out_domain].tolist()
-            data['y_od'] = out[choice][out_domain].tolist()
-            data['x_min'] = mdists_mins.tolist()
-            data['x_max'] = mdists_maxs.tolist()
-            data['mppb'] = int(min_points)
+                if ('y_stdc/std(y)' == xchoice) and (ychoice == 'rmse/std(y)'):
 
-            jsonfile = os.path.join(save, '{}.json'.format(name))
-            with open(jsonfile, 'w') as handle:
-                json.dump(data, handle)
+                    x = np.linspace(*ax.get_xlim())
+                    ax.plot(x, x, linestyle=':', color='k', label='Ideal')
+                    ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+
+                elif 'y_stdc/std(y)' == xchoice:
+
+                    ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+
+                elif 'standard_normal' == xchoice:
+
+                    ax.set_xlabel('Miscalibration Area')
+
+                elif metric == xchoice:
+
+                    ax.set_xlabel('Mean D')
+
+                name = name.replace('/', '_')
+                fig.tight_layout()
+
+                fig_legend, ax_legend = pl.subplots()
+                ax_legend.axis(False)
+                legend = ax_legend.legend(
+                                          *ax.get_legend_handles_labels(),
+                                          frameon=False,
+                                          loc='center',
+                                          bbox_to_anchor=(0.5, 0.5)
+                                          )
+                ax_legend.spines['top'].set_visible(False)
+                ax_legend.spines['bottom'].set_visible(False)
+                ax_legend.spines['left'].set_visible(False)
+                ax_legend.spines['right'].set_visible(False)
+
+                fig.savefig(os.path.join(
+                                         save,
+                                         '{}.png'.format(name)
+                                         ), bbox_inches='tight')
+                fig_legend.savefig(os.path.join(
+                                                save,
+                                                '{}_legend.png'.format(name)
+                                                ), bbox_inches='tight')
+
+                pl.close(fig)
+                pl.close(fig_legend)
+
+                data['x_id'] = out[xmean][in_domain].tolist()
+                data['y_id'] = out[ychoice][in_domain].tolist()
+                data['x_od'] = out[xmean][out_domain].tolist()
+                data['y_od'] = out[ychoice][out_domain].tolist()
+
+                if metric == xchoice:
+                    data['x_min'] = out[xmin].tolist()
+                    data['x_max'] = out[xmax].tolist()
+
+                data['mppb'] = int(min_points)
+
+                jsonfile = os.path.join(save, '{}.json'.format(name))
+                with open(jsonfile, 'w') as handle:
+                    json.dump(data, handle)
 
         out.to_csv(os.path.join(
                                 save,
