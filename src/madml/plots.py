@@ -28,7 +28,7 @@ nz = 10000
 z_standard_normal = np.random.normal(0, 1, nz)
 
 
-def generate_plots(data_cv, ystd, bins, save, gts, gtb=0.05):
+def generate_plots(data_cv, ystd, bins, save, gts, gtb):
     '''
     A function that standardizes plot generation.
 

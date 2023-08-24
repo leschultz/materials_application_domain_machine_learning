@@ -249,6 +249,7 @@ class domain_model:
                                    self.ystd,
                                    self.bins,
                                    self.save,
+                                   self.gts,
                                    self.gtb,
                                    )
         th, data_cv_bin = out
