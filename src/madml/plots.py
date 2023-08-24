@@ -497,10 +497,9 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         out = The statistics from bins.
     '''
 
-    if metric == 'y_stdc/std(y)':
-        subset = [metric, 'z', 'r/std(y)']
-    else:
-        subset = [metric, 'z', 'r/std(y)', 'y_stdc/std(y)']
+    subset = [metric, 'z', 'r/std(y)']
+    if metric != 'y_stdc/std(y)':
+        subset.append('y_stdc/std(y)')
 
     data_cv_bin = data_cv[subset].copy()
     data_cv_bin.sort_values(by=subset)
@@ -613,9 +612,6 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         resmeantot = data_cv['r/std(y)'].mean()+0.0
 
         xchoices = [metric, 'standard_normal']
-        if metric != 'y_stdc/std(y)':
-            xchoices.append('y_stdc/std(y)')
-
         ychoices = [
                     'standard_normal',
                     'z_var',
@@ -623,6 +619,10 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                     'r/std(y)_mean',
                     'rmse/std(y)',
                     ]
+
+        if metric != 'y_stdc/std(y)':
+            xchoices.append('y_stdc/std(y)')
+            ychoices.append('y_stdc/std(y)')
 
         for xchoice in xchoices:
 
@@ -739,6 +739,11 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                     name = 'residuals_vs_'
                     data['residual_mean_total'] = resmeantot
 
+                if ychoice == 'y_stdc/std(y)':
+
+                    ax.set_ylabel(r'Mean $\sigma_{c}/\sigma_{y}$')
+                    name = 'ystdc_vs_'
+
                 if (xchoice == 'y_stdc/std(y)') and (ychoice == 'rmse/std(y)'):
 
                     x = np.linspace(*ax.get_xlim())
@@ -821,7 +826,10 @@ def single_truth(data_cv, metric, save, gt):
     '''
 
     xchoices = [metric]
-    ychoices = ['r/std(y)', 'z']
+    ychoices = ['r/std(y)', 'y', 'y_pred']
+
+    if 'z' in data_cv.columns:
+        ychoices.append('z')
 
     df = data_cv[xchoices+ychoices+['id']].copy()
     df['|r/std(y)|'] = df['r/std(y)'].abs()

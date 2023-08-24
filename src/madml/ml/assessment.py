@@ -192,7 +192,7 @@ class nested_cv:
             handle.write(env.stdout)
 
         if push_container:
-            print('MADML -Pushing model')
+            print('MADML - Pushing model')
             docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:
