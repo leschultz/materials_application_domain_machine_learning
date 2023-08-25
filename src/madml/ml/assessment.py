@@ -125,7 +125,14 @@ class nested_cv:
                                    save,
                                    self.model.gts,
                                    self.model.gtb,
+                                   self.model.dists,
                                    )
+
+        # Some nan values from concatenating on thresholds that do not exist
+        df.fillna(False, inplace=True)
+
+        if save:
+            plots.generate_confusion(df, save)
 
         df.to_csv(os.path.join(*[save, 'single', 'single.csv']), index=False)
 

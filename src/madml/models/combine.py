@@ -51,6 +51,14 @@ class domain_model:
         self.gts = gts
         self.gtb = gtb
 
+        self.dists = []
+        self.methods = ['']
+        if self.uq_model:
+            self.dists.append('y_stdc/std(y)')
+            self.methods.append('_bin')
+        if self.ds_model:
+            self.dists.append('dist')
+
     def transforms(self, gs_model, X):
         '''
         Apply all steps from a pipeline before the final prediction.
@@ -178,6 +186,34 @@ class domain_model:
 
         return do_pred
 
+    def domain_preds(self, pred):
+        '''
+        The domain predictor based on thresholds.
+
+        inputs:
+            pred = Previous data for predictions.
+        outputs:
+            pred = The predictions of domain.
+        '''
+
+        for i in self.dists:
+            for j, k in zip([True, False], ['id', 'od']):
+                for method in self.methods:
+                    k += method
+                    for key, value in self.thresholds[i][k].items():
+                        do_pred = self.domain_pred(
+                                                   pred[i],
+                                                   value['Threshold'],
+                                                   j,
+                                                   )
+
+                        name = '{} by {} for {}'.format(k.upper(), i, key)
+                        pred[name] = do_pred
+
+        pred = pd.DataFrame(pred)
+
+        return pred
+
     def fit(self, X, y, g):
         '''
         Fit all models. Thresholds for domain classification are also set.
@@ -251,6 +287,7 @@ class domain_model:
                                    self.save,
                                    self.gts,
                                    self.gtb,
+                                   self.dists,
                                    )
         th, data_cv_bin = out
 
@@ -267,6 +304,12 @@ class domain_model:
                 json.dump(th, handle)
 
         self.thresholds = th
+
+        data_cv = self.domain_preds(data_cv)
+
+        if self.save:
+            plots.generate_confusion(data_cv, self.save)
+
         return data_cv, data_cv_bin
 
     def predict(self, X):
@@ -309,29 +352,6 @@ class domain_model:
             pred['y_stdc'] = y_stdc
             pred['y_stdc/std(y)'] = y_stdc_norm
 
-        dists = []
-        methods = ['']
-        if self.uq_model:
-            dists.append('y_stdc/std(y)')
-            methods.append('_bin')
-        if self.ds_model:
-            dists.append('dist')
-
-        for i in dists:
-            for j, k in zip([True, False], ['id', 'od']):
-                for method in methods:
-                    k += method
-                    for key, value in self.thresholds[i][k].items():
-                        thr = value['Threshold']
-                        do_pred = self.domain_pred(
-                                                   pred[i],
-                                                   thr,
-                                                   j,
-                                                   )
-
-                        name = '{} by {} for {}'.format(k.upper(), i, key)
-                        pred[name] = do_pred
-
-        pred = pd.DataFrame(pred)
+        pred = self.domain_preds(pred)
 
         return pred

@@ -2,6 +2,8 @@ from sklearn.metrics import (
                              precision_recall_curve,
                              PrecisionRecallDisplay,
                              average_precision_score,
+                             confusion_matrix,
+                             ConfusionMatrixDisplay,
                              )
 
 from matplotlib import pyplot as pl
@@ -28,7 +30,7 @@ nz = 10000
 z_standard_normal = np.random.normal(0, 1, nz)
 
 
-def generate_plots(data_cv, ystd, bins, save, gts, gtb):
+def generate_plots(data_cv, ystd, bins, save, gts, gtb, dists):
     '''
     A function that standardizes plot generation.
 
@@ -45,16 +47,6 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb):
 
     uqcond = 'z' in data_cv.columns  # Condition to do UQ
     dscond = 'dist' in data_cv.columns  # Condition for distance
-
-    # I can sort by these without target variable leakage
-    if uqcond and dscond:
-        dists = ['y_stdc/std(y)', 'dist']
-    elif dscond:
-        dists = ['dist']
-    elif uqcond:
-        dists = ['y_stdc/std(y)']
-    else:
-        dists = []
 
     th = {}
     data_cv_bin = {}
@@ -155,6 +147,7 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb):
                                 j,
                                 save=intervaldomainsave,
                                 )
+
                 th[i][k+'_bin'] = thresh_bin
 
     return th, data_cv_bin
@@ -1136,3 +1129,81 @@ def pr(score, in_domain, pos_label, save=False):
             json.dump(data, handle)
 
     return custom
+
+
+def confusion(y_true, y_pred, pos_label, save='.'):
+
+    if pos_label == 'id':
+        labels = ['OD', 'ID']
+    else:
+        labels = ['ID', 'OD']
+        y_true = ~y_true
+
+    conf = confusion_matrix(y_true, y_pred)
+
+    # In case only one class exists
+    if conf.shape == (1, 1):
+
+        t = list(set(y_true))[0]
+        p = list(set(y_pred))[0]
+
+        if (t == p) and (t == 0):
+            conf = np.array([[conf[0, 0], 0], [0, 0]])
+        elif (t == p) and (t == 1):
+            conf = np.array([[0, 0], [0, conf[0, 0]]])
+        else:
+            raise 'You done fucked up'
+
+    fig, ax = pl.subplots()
+    disp = ConfusionMatrixDisplay(conf, display_labels=labels)
+    disp.plot(ax=ax)
+    fig_data = conf.tolist()
+
+    disp.figure_.savefig(
+                         save+'_confusion.png',
+                         bbox_inches='tight'
+                         )
+    pl.close(fig)
+
+    jsonfile = save+'_confusion.json'
+    with open(jsonfile, 'w') as handle:
+        json.dump(fig_data, handle)
+
+
+def generate_confusion(df, save=None):
+
+    print(df)
+
+    def ds(x):
+        return [i for i in df.columns if x in i]
+
+    ids = ds('ID')
+    ods = ds('OD')
+    ds = ids+ods
+
+    for i in ds:
+
+        if 'BIN' in i:
+            newsave = os.path.join(save, 'intervals')
+        else:
+            newsave = os.path.join(save, 'single')
+
+        if 'y_stdc/std(y)' in i:
+            newsave = os.path.join(newsave, 'y_stdc_std(y)')
+        elif 'dist' in i:
+            newsave = os.path.join(newsave, 'dist')
+
+        if 'ID' in i:
+            newsave = os.path.join(newsave, 'id')
+            pos_label = 'id'
+        elif 'OD' in i:
+            newsave = os.path.join(newsave, 'od')
+            pos_label = 'od'
+
+        if 'Max F1' in i:
+            th = 'Max_F1'
+        else:
+            th = i.split(' ')[-1]
+
+        newsave = os.path.join(newsave, th)
+        confusion(df['id'], df[i], pos_label, newsave)
