@@ -13,6 +13,75 @@ import copy
 import os
 
 
+def domain_pred(dist, dist_cut, domain):
+    '''
+    Predict the domain based on thresholds.
+
+    inputs:
+        dist = The score.
+        dist_cut = The threshold.
+        domain = In domain (True) or out of domain (False) class label.
+
+    outputs:
+        do_pred = The domain prediction.
+    '''
+
+    do_pred = []
+    for i in dist:
+        if domain is True:
+            if i < dist_cut:
+                do_pred.append(True)
+            else:
+                do_pred.append(False)
+        elif domain is False:
+            if i >= dist_cut:
+                do_pred.append(True)
+            else:
+                do_pred.append(False)
+
+    return do_pred
+
+
+def domain_preds(pred, dists, methods, thresholds, suffix=''):
+    '''
+    The domain predictor based on thresholds.
+
+    inputs:
+        pred = Previous data for predictions.
+        dists = The dissimilarity measures used.
+        methods = Whether data are binned and use single predictions.
+        thresholds = The thresholds from PR curve.
+        suffix = Whether a column needs a suffix.
+
+    outputs:
+        pred = The predictions of domain.
+    '''
+
+    for i in dists:
+
+        if suffix:
+            col = i+suffix
+        else:
+            col = i
+
+        for j, k in zip([True, False], ['id', 'od']):
+            for method in methods:
+                k += method
+                for key, value in thresholds[i][k].items():
+
+                    name = '{} by {} for {}'.format(k.upper(), i, key)
+
+                    do_pred = domain_pred(
+                                          pred[col],
+                                          value['Threshold'],
+                                          j,
+                                          )
+
+                    pred[name] = do_pred
+
+    return pred
+
+
 class domain_model:
     '''
     Combine distance, UQ, and ensemble regression models.
@@ -158,62 +227,6 @@ class domain_model:
 
         return data
 
-    def domain_pred(self, dist, dist_cut, domain):
-        '''
-        Predict the domain based on thresholds.
-
-        inputs:
-            dist = The score.
-            dist_cut = The threshold.
-            domain = In domain (True) or out of domain (False) class label.
-
-        outputs:
-            do_pred = The domain prediction.
-        '''
-
-        do_pred = []
-        for i in dist:
-            if domain is True:
-                if i < dist_cut:
-                    do_pred.append(True)
-                else:
-                    do_pred.append(False)
-            elif domain is False:
-                if i >= dist_cut:
-                    do_pred.append(True)
-                else:
-                    do_pred.append(False)
-
-        return do_pred
-
-    def domain_preds(self, pred):
-        '''
-        The domain predictor based on thresholds.
-
-        inputs:
-            pred = Previous data for predictions.
-        outputs:
-            pred = The predictions of domain.
-        '''
-
-        for i in self.dists:
-            for j, k in zip([True, False], ['id', 'od']):
-                for method in self.methods:
-                    k += method
-                    for key, value in self.thresholds[i][k].items():
-                        do_pred = self.domain_pred(
-                                                   pred[i],
-                                                   value['Threshold'],
-                                                   j,
-                                                   )
-
-                        name = '{} by {} for {}'.format(k.upper(), i, key)
-                        pred[name] = do_pred
-
-        pred = pd.DataFrame(pred)
-
-        return pred
-
     def fit(self, X, y, g):
         '''
         Fit all models. Thresholds for domain classification are also set.
@@ -289,7 +302,7 @@ class domain_model:
                                    self.gtb,
                                    self.dists,
                                    )
-        th, data_cv_bin = out
+        self.thresholds, data_cv_bin = out
 
         if self.save:
             data_cv.to_csv(os.path.join(
@@ -301,14 +314,29 @@ class domain_model:
                                     'thresholds.json'
                                     )
             with open(jsonfile, 'w') as handle:
-                json.dump(th, handle)
+                json.dump(self.thresholds, handle)
 
-        self.thresholds = th
+        data_cv = domain_preds(
+                               data_cv,
+                               self.dists,
+                               self.methods,
+                               self.thresholds,
+                               )
 
-        data_cv = self.domain_preds(data_cv)
+        data = {}
+        for i in ['y_stdc/std(y)', 'dist']:
+            data[i] = domain_preds(
+                                   data_cv_bin[i],
+                                   [i],
+                                   ['_bin'],
+                                   self.thresholds,
+                                   '_max',
+                                   )
+
+        data_cv_bin = data
 
         if self.save:
-            plots.generate_confusion(data_cv, self.save)
+            plots.generate_confusion(data_cv, data_cv_bin, self.save)
 
         return data_cv, data_cv_bin
 
@@ -352,6 +380,12 @@ class domain_model:
             pred['y_stdc'] = y_stdc
             pred['y_stdc/std(y)'] = y_stdc_norm
 
-        pred = self.domain_preds(pred)
+        pred = pd.DataFrame(pred)
+        pred = domain_preds(
+                            pred,
+                            self.dists,
+                            self.methods,
+                            self.thresholds,
+                            )
 
         return pred

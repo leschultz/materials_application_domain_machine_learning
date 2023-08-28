@@ -84,6 +84,8 @@ def load(name, *args, **kwargs):
              + 5*X[:, 4]
              )
 
+        y = y+np.random.normal(0.0, 0.05*np.std(y), n_samples)*0.0
+
         g = np.repeat('none', X.shape[0])
 
         df = pd.DataFrame(X)

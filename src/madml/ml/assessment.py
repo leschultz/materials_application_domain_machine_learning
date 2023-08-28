@@ -1,3 +1,4 @@
+from madml.models.combine import domain_preds
 from madml.hosting import docker
 from madml import plots
 
@@ -127,12 +128,20 @@ class nested_cv:
                                    self.model.gtb,
                                    self.model.dists,
                                    )
+        _, df_bin = out
+        for i in ['y_stdc/std(y)', 'dist']:
+            iname = 'intervals_{}.csv'.format(i.replace('/', '_'))
+            df_bin[i].to_csv(os.path.join(*[
+                                            save,
+                                            'intervals',
+                                            iname,
+                                            ]), index=False)
 
         # Some nan values from concatenating on thresholds that do not exist
         df.fillna(False, inplace=True)
 
         if save:
-            plots.generate_confusion(df, save)
+            plots.generate_confusion(df, df_bin, save)
 
         df.to_csv(os.path.join(*[save, 'single', 'single.csv']), index=False)
 

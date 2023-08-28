@@ -1170,9 +1170,15 @@ def confusion(y_true, y_pred, pos_label, save='.'):
         json.dump(fig_data, handle)
 
 
-def generate_confusion(df, save=None):
+def generate_confusion(df, dfbin, save=None):
+    '''
+    Generate confusion matrix for predictions compared to ground truth.
 
-    print(df)
+    inputs:
+        df = Dataframe for single predictions.
+        dfbin = Dataframe for statistical predictions.
+        save = The location to save figures.
+    '''
 
     def ds(x):
         return [i for i in df.columns if x in i]
@@ -1206,4 +1212,9 @@ def generate_confusion(df, save=None):
             th = i.split(' ')[-1]
 
         newsave = os.path.join(newsave, th)
-        confusion(df['id'], df[i], pos_label, newsave)
+
+        # Cannot assign ground truth prior to observation for statistical test
+        if 'BIN' in i:
+            continue
+        else:
+            confusion(df['id'], df[i], pos_label, newsave)
