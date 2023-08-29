@@ -1,4 +1,3 @@
-from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import RepeatedKFold
 from sklearn.linear_model import LinearRegression
@@ -56,10 +55,6 @@ def main():
 
     # Types of sampling to test
     splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
-
-    # If there are explicit groups
-    if any([i == data_name for i in ['friedman1', 'make_regression']]):
-        splits.append(('LGO', LeaveOneGroupOut()))
 
     # Boostrap, cluster data, and generate splits
     for i in [2, 3]:

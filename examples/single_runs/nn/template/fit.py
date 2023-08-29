@@ -2,7 +2,6 @@ from keras.layers import Dense, Dropout, BatchNormalization
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.models import Sequential
 
-from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -95,10 +94,6 @@ def main():
 
     # Types of sampling to test
     splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
-
-    # If there are explicit groups
-    if any([i == data_name for i in ['friedman1', 'make_regression']]):
-        splits.append(('LGO', LeaveOneGroupOut()))
 
     # Boostrap, cluster data, and generate splits
     for i in [2, 3]:
