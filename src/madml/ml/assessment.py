@@ -128,7 +128,7 @@ class nested_cv:
                                    self.model.gtb,
                                    self.model.dists,
                                    )
-        _, df_bin = out
+        thresholds, df_bin = out
         for i in ['y_stdc/std(y)', 'dist']:
             iname = 'intervals_{}.csv'.format(i.replace('/', '_'))
             df_bin[i].to_csv(os.path.join(*[

@@ -65,28 +65,49 @@ def load(name, *args, **kwargs):
 
     if name == 'friedman1':
         '''
-        Load the Friedman dataset.
+        Load the Friedman1 dataset.
         '''
 
         # Dataset information
-        np.random.seed(0)
-        n_samples = 1000
+        n_samples = 500
         n_features = 5
-        X = np.random.uniform(
-                              low=0.0,
-                              high=1.0,
-                              size=(n_samples, n_features)
-                              )
-        y = (
-             10*np.sin(np.pi*X[:, 0]*X[:, 1])
-             + 20*(X[:, 2]-0.5)**2
-             + 10*X[:, 3]
-             + 5*X[:, 4]
-             )
 
-        y = y+np.random.normal(0.0, 0.05*np.std(y), n_samples)*0.0
+        g = [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]]
 
-        g = np.repeat('none', X.shape[0])
+        gs = []
+        for i in g:
+
+            # Data are sampled from [start, end)
+            X = np.random.uniform(
+                                  low=i[0],
+                                  high=i[1],
+                                  size=(n_samples, n_features)
+                                  )
+            y = (
+                 10*np.sin(np.pi*X[:, 0]*X[:, 1])
+                 + 20*(X[:, 2]-0.5)**2
+                 + 10*X[:, 3]
+                 + 5*X[:, 4]
+                 )
+
+            if i[0] == 0.0:
+                Xs = X
+                ys = y
+            else:
+                Xs = np.concatenate((Xs, X))
+                ys = np.concatenate((ys, y))
+
+            gs += ['[{},{})'.format(*i)]*y.shape[0]
+
+        X, y = sklearn_datasets.make_friedman1(n_samples, n_features)
+        gs += ['[0.0,1.0)']*y.shape[0]
+
+        Xs = np.concatenate((Xs, X))
+        ys = np.concatenate((ys, y))
+
+        X = Xs
+        y = ys
+        g = np.array(gs)
 
         df = pd.DataFrame(X)
         df['y'] = y
@@ -95,7 +116,7 @@ def load(name, *args, **kwargs):
         data = {}
         data['data'] = X
         data['target'] = y
-        data['class_name'] = np.array(['no-groups']*X.shape[0])
+        data['class_name'] = g
         data['feature_names'] = range(X.shape[0])
         data['target_name'] = 'y'
         data['data_filename'] = 'None'
@@ -108,14 +129,49 @@ def load(name, *args, **kwargs):
         Load the make_regression dataset.
         '''
 
-        X, y = sklearn_datasets.make_regression(
-                                                n_samples=1000,
-                                                n_features=5,
-                                                n_informative=5,
-                                                noise=0,
-                                                random_state=0,
-                                                )
-        g = np.repeat('none', X.shape[0])
+        n_samples = 500
+        n_features = 5
+
+        g = [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]]
+
+        gs = []
+        for i in g:
+
+            # Data are sampled from [start, end)
+            X = np.random.uniform(
+                                  low=i[0],
+                                  high=i[1],
+                                  size=(n_samples, n_features)
+                                  )
+
+            if i[0] == 0.0:
+                Xs = X
+            else:
+                Xs = np.concatenate((Xs, X))
+
+            gs += ['[{},{})'.format(*i)]*X.shape[0]
+
+        X = np.random.uniform(
+                              low=0.0,
+                              high=1.0,
+                              size=(n_samples, n_features)
+                              )
+
+        Xs = np.concatenate((Xs, X))
+
+        ground_truth = np.zeros((n_features, 1))
+        ground_truth[:n_features, :] = 100*np.random.uniform(size=(
+                                                                   n_features,
+                                                                   1
+                                                                   ))
+
+        gs += ['[0.0,1.0)']*X.shape[0]
+
+        X = Xs
+        y = np.dot(X, ground_truth)
+        y = np.squeeze(y)
+
+        g = np.array(gs)
 
         df = pd.DataFrame(X)
         df['y'] = y
@@ -124,24 +180,13 @@ def load(name, *args, **kwargs):
         data = {}
         data['data'] = X
         data['target'] = y
-        data['class_name'] = np.array(['no-groups']*X.shape[0])
+        data['class_name'] = g
         data['feature_names'] = range(X.shape[0])
         data['target_name'] = 'y'
         data['data_filename'] = 'None'
         data['frame'] = df
 
         return data
-
-    elif name == 'fetch_california_housing':
-        '''
-        Load the fetch_california_housing dataset.
-        '''
-
-        # Dataset information
-        df = 'fetch_california_housing.csv'
-        target = 'y'
-
-        return loader(df, target)
 
     elif name == 'super_cond':
         '''
