@@ -23,7 +23,7 @@ def main():
     X = data['data']
     y = data['target']
     g = data['class_name']
-    n_repeats = 1
+    n_repeats = 5
 
     # ML Distance model
     ds_model = distance_model(dist='kde')

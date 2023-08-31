@@ -518,7 +518,7 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                            )
 
         # Bin statistics
-        bin_groups = sub.groupby('bin')
+        bin_groups = sub.groupby('bin', observed=False)
         distmean = bin_groups[metric].mean()
         binmin = bin_groups[metric].min()
         binmax = bin_groups[metric].max()
