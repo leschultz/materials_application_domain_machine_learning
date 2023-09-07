@@ -92,11 +92,11 @@ class domain_model:
                  gs_model,
                  ds_model=None,
                  uq_model=None,
-                 splits=[('calibration', RepeatedKFold(n_repeats=2))],
+                 splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  save=False,
                  gts=1.0,
-                 gtb=0.05
+                 gtb=0.25
                  ):
 
         '''
@@ -129,9 +129,9 @@ class domain_model:
             # Add a splitter to calibrate UQ and prevent overfitting
             uqsplits = []
             for i in self.splits:
-                if 'calibration' == i[0]:
+                if 'fit' == i[0]:
                     i = copy.deepcopy(i)
-                    i = ('fit', i[1])
+                    i = ('calibration', i[1])
                     uqsplits.append(i)
 
             self.splits += uqsplits
@@ -282,14 +282,14 @@ class domain_model:
 
         # Fit UQ on hold out data ID
         if self.uq_model:
-            data_id = data_cv[data_cv['splitter'] == 'fit']
+            data_id = data_cv[data_cv['splitter'] == 'calibration']
             self.uq_model.fit(
                               data_id['y'].values,
                               data_id['y_pred'].values,
                               data_id['y_stdu'].values
                               )
 
-            data_cv = data_cv[data_cv['splitter'] != 'fit']
+            data_cv = data_cv[data_cv['splitter'] != 'calibration']
             data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'].values)
             data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
             data_cv['z'] = data_cv['r']/data_cv['y_stdc']

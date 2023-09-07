@@ -494,98 +494,92 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
     if metric != 'y_stdc/std(y)':
         subset.append('y_stdc/std(y)')
 
-    data_cv_bin = data_cv[subset].copy()
-    data_cv_bin.sort_values(by=subset)
+    out = data_cv[subset].copy()
+    out = out.sample(frac=1)
 
-    condition = False
-    for bins in range(bins, bins+1):
+    out['bin'] = pd.qcut(
+                         out[metric].rank(method='first'),
+                         bins,
+                         )
 
-        sub = data_cv_bin
-        sub['bin'] = pd.qcut(
-                             sub[metric].rank(method='first'),
-                             bins,
-                             )
+    # Replace bins with integer number in order
+    bin_replace = out['bin'].unique()
+    bin_replace = sorted(bin_replace)
+    bin_replace = enumerate(bin_replace)
+    bin_replace = dict(bin_replace)
+    bin_replace = {v: k for k, v in bin_replace.items()}
+    out['bin'].replace(
+                       bin_replace,
+                       inplace=True
+                       )
 
-        # Replace bins with integer number in order
-        bin_replace = sub['bin'].unique()
-        bin_replace = sorted(bin_replace)
-        bin_replace = enumerate(bin_replace)
-        bin_replace = dict(bin_replace)
-        bin_replace = {v: k for k, v in bin_replace.items()}
-        sub['bin'].replace(
-                           bin_replace,
-                           inplace=True
-                           )
+    # Bin statistics
+    bin_groups = out.groupby('bin', observed=False)
+    distmean = bin_groups[metric].mean()
+    binmin = bin_groups[metric].min()
+    binmax = bin_groups[metric].max()
+    zvar = bin_groups['z'].var()
+    zmean = bin_groups['z'].mean()
+    res = bin_groups['r/std(y)'].mean()
+    counts = bin_groups['z'].count()
+    rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
-        # Bin statistics
-        bin_groups = sub.groupby('bin', observed=False)
-        distmean = bin_groups[metric].mean()
-        binmin = bin_groups[metric].min()
-        binmax = bin_groups[metric].max()
-        zvar = bin_groups['z'].var()
-        zmean = bin_groups['z'].mean()
-        res = bin_groups['r/std(y)'].mean()
-        counts = bin_groups['z'].count()
-        rmse = bin_groups['r/std(y)'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+    areas = []
+    for choice in ['standard_normal']:
+        a = bin_groups.apply(lambda x: cdf(
+                                           x['z'],
+                                           choice=choice,
+                                           save=save,
+                                           binsave=x['bin'].unique()[0],
+                                           )[2:])
 
-        areas = []
-        for choice in ['standard_normal']:
-            a = bin_groups.apply(lambda x: cdf(
-                                               x['z'],
-                                               choice=choice,
-                                               save=save,
-                                               binsave=x['bin'].unique()[0],
-                                               )[2])
-            a = a.to_frame().rename({0: choice}, axis=1)
-            areas.append(a)
+        b = a.apply(lambda x: x[1])
+        a = a.apply(lambda x: x[0])
 
-        distmean = distmean.to_frame().add_suffix('_mean')
-        binmin = binmin.to_frame().add_suffix('_min')
-        binmax = binmax.to_frame().add_suffix('_max')
-        zvar = zvar.to_frame().add_suffix('_var')
-        zmean = zmean.to_frame().add_suffix('_mean')
-        res = res.to_frame().add_suffix('_mean')
-        rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
-        counts = counts.to_frame().rename({'z': 'count'}, axis=1)
+        a = a.to_frame().rename({0: choice+'_cdf_parity'}, axis=1)
+        b = b.to_frame().rename({0: choice+'_cdf'}, axis=1)
 
-        sub = [
-               distmean,
-               binmin,
-               binmax,
-               zvar,
-               zmean,
-               res,
-               rmse,
-               counts,
-               *areas,
-               ]
+        areas.append(a)
+        areas.append(b)
 
-        if metric != 'y_stdc/std(y)':
-            ystdc = bin_groups['y_stdc/std(y)'].mean()
-            ystdc = ystdc.to_frame()
-            sub.append(ystdc)
+    distmean = distmean.to_frame().add_suffix('_mean')
+    binmin = binmin.to_frame().add_suffix('_min')
+    binmax = binmax.to_frame().add_suffix('_max')
+    zvar = zvar.to_frame().add_suffix('_var')
+    zmean = zmean.to_frame().add_suffix('_mean')
+    res = res.to_frame().add_suffix('_mean')
+    rmse = rmse.to_frame().rename({'r/std(y)': 'rmse/std(y)'}, axis=1)
+    counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
-        sub = reduce(lambda x, y: pd.merge(x, y, on='bin'), sub)
+    out = [
+           distmean,
+           binmin,
+           binmax,
+           zvar,
+           zmean,
+           res,
+           rmse,
+           counts,
+           *areas,
+           ]
 
-        sub = sub.reset_index()
-        sub.drop('bin', axis=1, inplace=True)
+    if metric != 'y_stdc/std(y)':
+        ystdc = bin_groups['y_stdc/std(y)'].mean()
+        ystdc = ystdc.to_frame()
+        out.append(ystdc)
 
-        # Ground truth for bins
-        sub['id'] = sub['standard_normal'] < gt
+    out = reduce(lambda x, y: pd.merge(x, y, on='bin'), out)
 
-        sub.sort_values(by=metric+'_mean', inplace=True)
+    out = out.reset_index()
+    out.drop('bin', axis=1, inplace=True)
 
-        grouped = [list(group) for key, group in groupby(sub['id'])]
-        ngroups = len(grouped)
+    # Ground truth for bins
+    out['id'] = out['standard_normal_cdf'] < gt
 
-        if all(grouped[0]) and (ngroups == 2):
-            out = old = sub
-            condition = True
-        elif (condition is True) and (False in grouped[0]):
-            out = old
-            break
-        else:
-            out = sub
+    out.sort_values(by=metric+'_mean', inplace=True)
+
+    grouped = [list(group) for key, group in groupby(out['id'])]
+    ngroups = len(grouped)
 
     if save:
 
@@ -604,9 +598,14 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
         zmeantot = data_cv['z'].mean()+0.0
         resmeantot = data_cv['r/std(y)'].mean()+0.0
 
-        xchoices = [metric, 'standard_normal']
+        xchoices = [
+                    metric,
+                    'standard_normal_cdf',
+                    'standard_normal_cdf_parity'
+                    ]
         ychoices = [
-                    'standard_normal',
+                    'standard_normal_cdf',
+                    'standard_normal_cdf_parity',
                     'z_var',
                     'z_mean',
                     'r/std(y)_mean',
@@ -666,7 +665,10 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                                label='Bin End',
                                )
 
-                if (ychoice == 'standard_normal') and (xchoice == metric):
+                if (
+                    ychoice == 'standard_normal_cdf' and
+                    xchoice == metric
+                   ):
 
                     ax.axhline(
                                gt,
@@ -675,9 +677,13 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                                )
                     data['ground_truth'] = gt
 
-                if ychoice == 'standard_normal':
-                    ax.set_ylabel('Miscalibration Area')
-                    name = 'miscalibration_area_vs_'
+                if ychoice == 'standard_normal_cdf':
+                    ax.set_ylabel('Miscalibration Area from CDF')
+                    name = 'miscalibration_area_cdf_vs_'
+
+                elif ychoice == 'standard_normal_cdf_parity':
+                    ax.set_ylabel('Miscalibration Area from CDF Parity')
+                    name = 'miscalibration_area_cdf_parity_vs_'
 
                 elif ychoice == 'same_mean':
 
@@ -747,10 +753,15 @@ def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
                     ax.set_xlabel(r'Mean $\sigma_{c}/\sigma_{y}$')
                     name += 'ystdc'
 
-                elif xchoice == 'standard_normal':
+                elif xchoice == 'standard_normal_cdf':
 
-                    ax.set_xlabel('Miscalibration Area')
-                    name += 'miscalibration_area'
+                    ax.set_xlabel('Miscalibration Area from CDF')
+                    name += 'miscalibration_area_cdf'
+
+                elif xchoice == 'standard_normal_cdf_parity':
+
+                    ax.set_xlabel('Miscalibration Area from CDF Parity')
+                    name += 'miscalibration_area_cdf_parity'
 
                 elif xchoice == 'dist':
 
