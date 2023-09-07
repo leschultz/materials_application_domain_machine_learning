@@ -475,7 +475,7 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     return y, y_pred, areaparity, areacdf
 
 
-def binned_truth(data_cv, metric, bins, gt=0.05, save=False):
+def binned_truth(data_cv, metric, bins, gt, save=False):
     '''
     Do analysis on binned data.
 

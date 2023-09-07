@@ -19,6 +19,7 @@ def main():
 
         if not data_name in [
                              'diffusion',
+                             'make_regression',
                              'friedman1',
                              'steel_yield_strength',
                              'fluence',
@@ -64,7 +65,7 @@ def main():
                                 )
 
         # Types of sampling to test
-        splits = [('calibration', RepeatedKFold(n_repeats=n_repeats))]
+        splits = [('fit', RepeatedKFold(n_repeats=n_repeats))]
 
         # Boostrap, cluster data, and generate splits
         for i in [2, 3]:
