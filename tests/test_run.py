@@ -61,7 +61,7 @@ class ml_test(unittest.TestCase):
                                 )
 
         # Types of sampling to test
-        splits = [('calibration', RepeatedKFold(n_repeats=1))]
+        splits = [('fit', RepeatedKFold(n_repeats=1))]
 
         # Fit models
         model = domain_model(gs_model, ds_model, uq_model, splits)
