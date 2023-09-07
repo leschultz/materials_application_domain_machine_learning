@@ -72,7 +72,7 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb, dists):
                 )
 
         # For each splitter of data
-        for split, values in data_cv.groupby(['splitter']):
+        for split, values in data_cv.groupby('splitter'):
 
             sub = '{}'.format(split)
             parity(

@@ -71,7 +71,6 @@ def main():
     model = domain_model(gs_model, ds_model, uq_model, splits, gts, gtb)
     cv = nested_cv(X, y, g, model, splits, save=run_name)
     cv.assess()
-    cv.push('leschultz/cmg:{}'.format(data_name))
 
 
 if __name__ == '__main__':
