@@ -2,5 +2,5 @@
 
 export PYTHONPATH=$(pwd)/../../src:$PYTHONPATH
 
-rm -rf run
+rm -rf runs
 python3 fit.py

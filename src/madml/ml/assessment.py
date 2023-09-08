@@ -204,6 +204,7 @@ class nested_cv:
                              capture_output=True,
                              text=True
                              )
+
         with open('requirements.txt', 'w') as handle:
             handle.write(env.stdout)
 
@@ -216,12 +217,15 @@ class nested_cv:
 
         data = data.replace('replace', name)
 
+        with open('user_predict.py', 'w') as handle:
+            handle.write(data)
+
         with open('user_predict.ipynb', 'r') as handle:
             data = handle.read()
 
         data = data.replace('replace', name)
 
-        with open('user_predict.py', 'w') as handle:
+        with open('user_predict.ipynb', 'w') as handle:
             handle.write(data)
 
         os.chdir(old)
