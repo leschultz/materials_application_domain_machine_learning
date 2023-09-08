@@ -181,7 +181,7 @@ class nested_cv:
         Push docker container with full fit model.
 
         inputs:
-            name = The name of the container <account>/<repository_name>/<tag>
+            name = The name of the container <account>/<repository_name>:<tag>
             push_container = Whether to build and push a container with model.
         '''
 
@@ -212,6 +212,11 @@ class nested_cv:
             docker.build_and_push_container(name)
 
         with open('user_predict.py', 'r') as handle:
+            data = handle.read()
+
+        data = data.replace('replace', name)
+
+        with open('user_predict.ipynb', 'r') as handle:
             data = handle.read()
 
         data = data.replace('replace', name)

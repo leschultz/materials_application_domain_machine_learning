@@ -28,7 +28,7 @@ def main():
             continue
 
         print(data_name)
-        run_name = 'run/{}'.format(data_name)
+        run_name = 'runs/{}'.format(data_name)
 
         # Load data
         data = datasets.load(data_name)
@@ -82,10 +82,11 @@ def main():
         # Fit models
         model = domain_model(gs_model, ds_model, uq_model, splits)
         cv = nested_cv(X, y, g, model, splits, save=run_name)
-        _, model = cv.assess()
-        df = model.predict(X)
-        print(df)
-        cv.push('leschultz/cmg:{}'.format(data_name))
+        data, model = cv.assess()
+        cv.push(
+                'leschultz/cmg-rf-{}:latest'.format(data_name),
+                push_container=True
+                )
 
 
 if __name__ == '__main__':
