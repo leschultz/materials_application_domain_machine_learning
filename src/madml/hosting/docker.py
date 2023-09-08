@@ -1,6 +1,7 @@
 import pandas as pd
 import subprocess
 import docker
+import os
 
 
 def build_and_push_container(container_name):
@@ -38,9 +39,10 @@ def predict(df, container_name):
     '''
 
     df = pd.DataFrame(df)
-    df.to_csv('/tmp/test.csv', index=False)
+    df.to_csv('./test.csv', index=False)
 
-    command = 'udocker --allow-root run -v $(pwd):/mnt '
+    command = 'udocker --allow-root run -v '
+    command += '{}:/mnt '.format(os.getcwd())
     command += container_name
 
     subprocess.check_output(
@@ -48,6 +50,9 @@ def predict(df, container_name):
                             shell=True
                             )
 
-    df = pd.read_csv('/tmp/prediction.csv')
+    df = pd.read_csv('./prediction.csv')
+
+    os.remove('./test.csv')
+    os.remove('./prediction.csv')
 
     return df
