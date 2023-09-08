@@ -1,4 +1,5 @@
 import pandas as pd
+import subprocess
 import docker
 
 
@@ -38,12 +39,14 @@ def predict(df, container_name):
 
     df = pd.DataFrame(df)
     df.to_csv('/tmp/test.csv', index=False)
-    client = docker.from_env()
-    x = client.containers.run(
-                              container_name,
-                              '/bin/python3 model_predict.py',
-                              volumes=['/tmp:/mnt'],
-                              )
+
+    command = 'udocker --allow-root run -v $(pwd):/mnt '
+    command += container_name
+
+    subprocess.check_output(
+                            command,
+                            shell=True
+                            )
 
     df = pd.read_csv('/tmp/prediction.csv')
 

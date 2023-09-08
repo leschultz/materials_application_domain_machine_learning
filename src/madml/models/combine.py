@@ -1,4 +1,5 @@
 from sklearn.model_selection import RepeatedKFold
+from madml.plots import binned_truth
 from madml.utils import parallel
 from sklearn.base import clone
 from sklearn import metrics
@@ -282,14 +283,16 @@ class domain_model:
 
         # Fit UQ on hold out data ID
         if self.uq_model:
+
             data_id = data_cv[data_cv['splitter'] == 'calibration']
+            data_cv = data_cv[data_cv['splitter'] != 'calibration']
+
             self.uq_model.fit(
                               data_id['y'].values,
                               data_id['y_pred'].values,
                               data_id['y_stdu'].values
                               )
 
-            data_cv = data_cv[data_cv['splitter'] != 'calibration']
             data_cv['y_stdc'] = self.uq_model.predict(data_cv['y_stdu'].values)
             data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
             data_cv['z'] = data_cv['r']/data_cv['y_stdc']

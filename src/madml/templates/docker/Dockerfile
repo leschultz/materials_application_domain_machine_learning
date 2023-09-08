@@ -7,7 +7,7 @@ WORKDIR /home
 RUN apt update
 RUN apt upgrade -y
 
-RUN apt install python3-pip git -y
+RUN apt install python3-pip -y
 RUN pip install -U pip
 RUN pip install madml
 
@@ -16,5 +16,6 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY model.dill .
-
 COPY model_predict.py .
+
+CMD ["python3", "model_predict.py"]
