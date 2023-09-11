@@ -29,30 +29,35 @@ def build_and_push_container(container_name):
     client.images.remove(image.id)
 
 
-def predict(df, container_name):
-    '''
-    A prediction function for a container.
+class dockerhub_model:
 
-    inputs:
-        df = Tabular data.
-        container_name = The name with the tag for the container to run.
-    '''
+    def __init__(self, container):
+        self.container = container
 
-    df = pd.DataFrame(df)
-    df.to_csv('./test.csv', index=False)
+    def predict(self, df):
+        '''
+        A prediction function for a container.
 
-    command = 'udocker --allow-root run -v '
-    command += '{}:/mnt '.format(os.getcwd())
-    command += container_name
+        inputs:
+            df = Tabular data.
+            container_name = The name with the tag for the container to run.
+        '''
 
-    subprocess.check_output(
-                            command,
-                            shell=True
-                            )
+        df = pd.DataFrame(df)
+        df.to_csv('./test.csv', index=False)
 
-    df = pd.read_csv('./prediction.csv')
+        command = 'udocker --allow-root run -v '
+        command += '{}:/mnt '.format(os.getcwd())
+        command += self.container
 
-    os.remove('./test.csv')
-    os.remove('./prediction.csv')
+        subprocess.check_output(
+                                command,
+                                shell=True
+                                )
 
-    return df
+        df = pd.read_csv('./prediction.csv')
+
+        os.remove('./test.csv')
+        os.remove('./prediction.csv')
+
+        return df
