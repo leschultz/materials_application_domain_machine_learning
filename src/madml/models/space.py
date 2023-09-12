@@ -6,11 +6,40 @@ from scipy.spatial.distance import cdist
 import numpy as np
 
 
+class weighted_model:
+
+    def __init__(self, bandwidth, weights, kernel):
+        self.bandwidths = bandwidth*weights
+        self.kernel = kernel
+
+    def fit(self, X_train):
+        self.models = []
+        for b in range(self.bandwidths.shape[0]):
+            self.model = KernelDensity(
+                                       kernel=self.kernel,
+                                       bandwidth=self.bandwidths[b],
+                                       ).fit(X_train[:, b:b+1])
+
+            self.models.append(self.model)
+
+    def score_samples(self, X):
+        scores = []
+        for b in range(self.bandwidths.shape[0]):
+            score = self.models[b].score_samples(X[:, b:b+1])
+            scores.append(score)
+
+        return np.sum(scores, axis=0)
+
+    def return_bandwidths(self):
+        return self.bandwidths
+
+
 class distance_model:
 
-    def __init__(self, dist='kde', *args, **kwargs):
+    def __init__(self, dist='kde', weights=None, *args, **kwargs):
 
         self.dist = dist
+        self.weights = weights
         self.args = args
         self.kwargs = kwargs
 
@@ -42,16 +71,26 @@ class distance_model:
                 self.bandwidth = estimate_bandwidth(X_train)
 
             # If the estimated bandwidth is zero
-            if self.bandwidth > 0.0:
+            if (self.weights is None) and (self.bandwidth == 0.0):
+                self.model = KernelDensity(
+                                           kernel=self.kernel,
+                                           ).fit(X_train)
+                self.bandwidth = self.model.bandwidth  # Update
+
+            elif (self.weights is None) and (self.bandwidth > 0.0):
                 self.model = KernelDensity(
                                            kernel=self.kernel,
                                            bandwidth=self.bandwidth,
                                            ).fit(X_train)
             else:
-                self.model = KernelDensity(
-                                           kernel=self.kernel,
-                                           ).fit(X_train)
-                self.bandwidth = self.model.bandwidth  # Update
+
+                self.model = weighted_model(
+                                            self.bandwidth,
+                                            self.weights,
+                                            self.kernel
+                                            )
+                self.model.fit(X_train)
+                self.bandwidth = self.model.bandwidths
 
             dist = self.model.score_samples(X_train)
             m = max(dist)

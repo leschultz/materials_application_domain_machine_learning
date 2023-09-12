@@ -97,7 +97,8 @@ class domain_model:
                  bins=10,
                  save=False,
                  gts=1.0,
-                 gtb=0.25
+                 gtb=0.25,
+                 weigh=None,
                  ):
 
         '''
@@ -110,6 +111,7 @@ class domain_model:
             save = The location to save figures and data.
             gts = The ground truth cutoff for residual magnitude test.
             gtb = The ground truth cutoff for statistical test.
+            weigh = Whether to weight distance features.
         '''
 
         self.gs_model = gs_model
@@ -120,6 +122,7 @@ class domain_model:
         self.splits = copy.deepcopy(splits)
         self.gts = gts
         self.gtb = gtb
+        self.weigh = weigh
 
         self.dists = []
         self.methods = ['']
@@ -230,7 +233,17 @@ class domain_model:
             data['y_stdu'] = self.std_pred(gs_model_cv, X_trans_te)
 
         if self.ds_model:
+
             ds_model_cv = copy.deepcopy(ds_model)
+
+            mod_attr = gs_model_cv.best_estimator_.named_steps['model']
+            attr = dir(mod_attr)
+
+            condition = (any([i in attr for i in ['feature_importances_']]))
+            condition = condition and (self.weigh is True)
+            if condition:
+                ds_model_cv.weights = mod_attr.feature_importances_
+
             ds_model_cv.fit(X_trans_tr)
 
             data['dist'] = ds_model_cv.predict(X_trans_te)
@@ -307,6 +320,14 @@ class domain_model:
                                       )
 
             # Fit distance model
+            mod_attr = self.gs_model.best_estimator_.named_steps['model']
+            attr = dir(mod_attr)
+
+            condition = (any([i in attr for i in ['feature_importances_']]))
+            condition = condition and (self.weigh is True)
+            if condition:
+                self.ds_model.weights = mod_attr.feature_importances_
+
             self.ds_model.fit(X_trans)
 
         out = plots.generate_plots(

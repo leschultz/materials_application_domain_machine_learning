@@ -11,6 +11,7 @@ from itertools import groupby
 from functools import reduce
 from sklearn import metrics
 
+import seaborn as sns
 import pandas as pd
 import numpy as np
 
@@ -323,10 +324,12 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
 
         cdf_name = 'cdf'
         parity_name = 'cdf_parity'
+        dist_name = 'distribution'
         if binsave is not None:
             save = os.path.join(save, 'each_bin')
             cdf_name = '{}_{}'.format(cdf_name, binsave)
             parity_name = '{}_{}'.format(parity_name, binsave)
+            dist_name = '{}_{}'.format(dist_name, binsave)
 
         os.makedirs(save, exist_ok=True)
 
@@ -454,6 +457,71 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
                                         save,
                                         '{}{}_legend.png'.format(
                                                                  cdf_name,
+                                                                 subsave
+                                                                 ),
+                                        ), bbox_inches='tight')
+
+        pl.close(fig)
+        pl.close(fig_legend)
+
+        data = {}
+        data['x'] = list(eval_points)
+        data['y'] = list(y)
+        data['y_pred'] = list(y_pred)
+        data['Area'] = areacdf
+        with open(os.path.join(
+                               save,
+                               '{}{}.json'.format(cdf_name, subsave),
+                               ), 'w') as handle:
+            json.dump(data, handle)
+
+        fig, ax = pl.subplots()
+
+        sns.histplot(
+                     z,
+                     kde=True,
+                     stat='density',
+                     color='g',
+                     ax=ax,
+                     label='Standard Normal Distribution',
+                     )
+
+        sns.histplot(
+                     x,
+                     kde=True,
+                     stat='density',
+                     color='r',
+                     ax=ax,
+                     label='Observed Distribution',
+                     )
+
+        ax.set_xlabel('z')
+        ax.set_ylabel('Fraction')
+
+        fig.tight_layout()
+
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
+
+        fig.savefig(os.path.join(
+                                 save,
+                                 '{}{}.png'.format(dist_name, subsave),
+                                 ), bbox_inches='tight')
+
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        '{}{}_legend.png'.format(
+                                                                 dist_name,
                                                                  subsave
                                                                  ),
                                         ), bbox_inches='tight')
