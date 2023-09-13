@@ -1,5 +1,4 @@
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
@@ -8,24 +7,48 @@ import numpy as np
 
 class weighted_model:
 
-    def __init__(self, bandwidth, weights, kernel):
-        self.bandwidths = bandwidth*weights
+    def __init__(self, kernel, bandwidth=None, weights=None):
+
+        self.bandwidth = bandwidth
+        self.weights = weights
         self.kernel = kernel
 
     def fit(self, X_train):
-        self.models = []
-        for b in range(self.bandwidths.shape[0]):
-            self.model = KernelDensity(
-                                       kernel=self.kernel,
-                                       bandwidth=self.bandwidths[b],
-                                       ).fit(X_train[:, b:b+1])
 
-            self.models.append(self.model)
+        self.counts = range(X_train.shape[1])
+        self.models = []
+        self.bandwidths = []
+
+        for b in self.counts:
+
+            cut = b+1
+
+            if self.bandwidth is None:
+                model = KernelDensity(
+                                      kernel=self.kernel,
+                                      ).fit(X_train[:, b:cut])
+                bandwidth = model.bandwidth
+
+            else:
+                bandwidth = self.bandwidth
+
+                model = KernelDensity(
+                                      kernel=self.kernel,
+                                      bandwidth=bandwidth,
+                                      ).fit(X_train[:, b:cut])
+
+            self.models.append(model)
+            self.bandwidths.append(bandwidth)
 
     def score_samples(self, X):
+
         scores = []
-        for b in range(self.bandwidths.shape[0]):
+        for b in self.counts:
             score = self.models[b].score_samples(X[:, b:b+1])
+
+            if self.weights is not None:
+                score = score*self.weights[b]
+
             scores.append(score)
 
         return np.sum(scores, axis=0)
@@ -68,29 +91,15 @@ class distance_model:
             if 'bandwidth' in self.kwargs.keys():
                 self.bandwidth = self.kwargs['bandwidth']
             else:
-                self.bandwidth = estimate_bandwidth(X_train)
+                self.bandwidth = None
 
-            # If the estimated bandwidth is zero
-            if (self.weights is None) and (self.bandwidth == 0.0):
-                self.model = KernelDensity(
-                                           kernel=self.kernel,
-                                           ).fit(X_train)
-                self.bandwidth = self.model.bandwidth  # Update
-
-            elif (self.weights is None) and (self.bandwidth > 0.0):
-                self.model = KernelDensity(
-                                           kernel=self.kernel,
-                                           bandwidth=self.bandwidth,
-                                           ).fit(X_train)
-            else:
-
-                self.model = weighted_model(
-                                            self.bandwidth,
-                                            self.weights,
-                                            self.kernel
-                                            )
-                self.model.fit(X_train)
-                self.bandwidth = self.model.bandwidths
+            self.model = weighted_model(
+                                        self.kernel,
+                                        weights=self.weights,
+                                        bandwidth=self.bandwidth,
+                                        )
+            self.model.fit(X_train)
+            self.bandwidth = self.model.bandwidths
 
             dist = self.model.score_samples(X_train)
             m = max(dist)
