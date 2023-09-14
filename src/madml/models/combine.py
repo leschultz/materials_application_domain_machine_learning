@@ -242,6 +242,7 @@ class domain_model:
                 ds_model_cv.weights = shap.Explainer(best, X[tr])
                 ds_model_cv.weights = ds_model_cv.weights.shap_values(X[tr])
                 ds_model_cv.weights = abs(ds_model_cv.weights).mean(axis=0)
+                ds_model_cv.weigh = self.weigh
 
             ds_model_cv.fit(X_trans_tr)
 
@@ -324,6 +325,7 @@ class domain_model:
                 self.ds_model.weights = shap.Explainer(best, X)
                 self.ds_model.weights = self.ds_model.weights.shap_values(X)
                 self.ds_model.weights = abs(self.ds_model.weights).mean(axis=0)
+                self.ds_model.weigh = self.weigh
 
             self.ds_model.fit(X_trans)
 

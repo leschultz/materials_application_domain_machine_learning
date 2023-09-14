@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist
 import numpy as np
 
 
-class weighted_model:
+class weighted_kde:
 
     def __init__(
                  self,
@@ -31,9 +31,6 @@ class weighted_model:
         self.counts = range(X_train.shape[1])
         self.models = []
         self.bandwidths = []
-
-        if self.weigh == 'features':
-            X_train = X_train*self.weights
 
         for b in self.counts:
 
@@ -66,9 +63,6 @@ class weighted_model:
         inputs:
             X = The features and cases.
         '''
-
-        if self.weigh == 'features':
-            X = X*self.weights
 
         scores = []
         for b in self.counts:
@@ -121,6 +115,9 @@ class distance_model:
             dists = A dictionary of distances.
         '''
 
+        if self.weigh == 'features':
+            X_train = X_train*self.weights
+
         if self.dist == 'kde':
 
             if 'kernel' in self.kwargs.keys():
@@ -133,11 +130,12 @@ class distance_model:
             else:
                 self.bandwidth = None
 
-            self.model = weighted_model(
-                                        self.kernel,
-                                        weights=self.weights,
-                                        bandwidth=self.bandwidth,
-                                        )
+            self.model = weighted_kde(
+                                      self.kernel,
+                                      weigh=self.weigh,
+                                      weights=self.weights,
+                                      bandwidth=self.bandwidth,
+                                      )
             self.model.fit(X_train)
             self.bandwidth = self.model.bandwidths
 
@@ -158,6 +156,9 @@ class distance_model:
         outputs:
             dist = The distance array.
         '''
+
+        if self.weigh == 'features':
+            X = X*self.weights
 
         if self.dist == 'kde':
             dist = self.model.score_samples(X)
