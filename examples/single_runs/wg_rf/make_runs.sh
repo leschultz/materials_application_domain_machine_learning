@@ -13,6 +13,7 @@ wtgrid=(
 	features
 	bandwidth
 	scores
+	none
         )
 
 for i in "${sets[@]}"

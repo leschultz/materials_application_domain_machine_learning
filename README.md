@@ -7,7 +7,6 @@ Research with respect to application domain with a materials science emphasis is
 * Tutorial 1: Assess and fit a single model from all data: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/leschultz/materials_application_domain_machine_learning/blob/main/examples/jupyter/tutorial_1.ipynb)
 * Tutorial 2: Use model hosted on Docker Hub: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/leschultz/materials_application_domain_machine_learning/blob/main/examples/jupyter/tutorial_2.ipynb)
 
-
 ## Structure
 The structure of the code packages is as follows:
 
@@ -15,60 +14,25 @@ The structure of the code packages is as follows:
 materials_application_domain_machine_learning/
 ├── examples
 │   ├── auto_push
-│   │   ├── fit.py
-│   │   ├── run.sh
-│   │   └── submit.sh
+│   ├── jupyter
 │   └── single_runs
-│       ├── make_runs.sh
-│       ├── submit_jobs.sh
-│       └── template
-│           ├── fit.py
-│           ├── run.sh
-│           └── submit.sh
-├── LICENSE
-├── pyproject.toml
-├── README.md
-├── setup.py
+│       ├── bw_rf
+│       ├── gt_rf
+│       ├── kernel_rf
+│       ├── nn
+│       ├── ols
+│       ├── rf
+│       ├── svm
+│       └── wg_rf
 ├── src
 │   └── madml
 │       ├── data
-│       │   ├── citrine_thermal_conductivity_simplified.xlsx
-│       │   ├── Dataset_electromigration.xlsx
-│       │   ├── Dataset_Perovskite_Opband_simplified.xlsx
-│       │   ├── dielectric_constant_simplified.xlsx
-│       │   ├── diffusion.csv
-│       │   ├── double_perovskites_gap.xlsx
-│       │   ├── elastic_tensor_2015_simplified.xlsx
-│       │   ├── fluence.csv
-│       │   ├── heusler_magnetic_simplified.xlsx
-│       │   ├── Perovskite_stability_Wei_updated_forGlenn.xlsx
-│       │   ├── perovskite_workfunctions_AO_simplified.xlsx
-│       │   ├── piezoelectric_tensor.xlsx
-│       │   ├── steel_strength.csv
-│       │   └── Supercon_data_features_selected.xlsx
-│       ├── datasets.py
 │       ├── hosting
-│       │   └─── docker.py
-│       ├── __init__.py
 │       ├── ml
-│       │   ├── assessment.py
-│       │   ├── __init__.py
-│       │   └── splitters.py
 │       ├── models
-│       │   ├── combine.py
-│       │   ├── __init__.py
-│       │   ├── space.py
-│       │   └── uq.py
-│       ├── plots.py
-│       ├── templates
-│       │   └── docker
-│       │       ├── Dockerfile
-│       │       ├── model_predict.py
-│       │       └── user_predict.py
-│       └── utils.py
+│       └── templates
+│           └── docker
 └── tests
-    ├── test_load_data.py
-    └── test_run.py
 ```
 
 ## Coding Style
