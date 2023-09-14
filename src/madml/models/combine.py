@@ -9,6 +9,7 @@ from madml import plots
 import pandas as pd
 import numpy as np
 
+import shap
 import json
 import copy
 import os
@@ -98,7 +99,7 @@ class domain_model:
                  save=False,
                  gts=1.0,
                  gtb=0.25,
-                 weigh=None,
+                 weigh=False,
                  ):
 
         '''
@@ -236,13 +237,11 @@ class domain_model:
 
             ds_model_cv = copy.deepcopy(ds_model)
 
-            mod_attr = gs_model_cv.best_estimator_.named_steps['model']
-            attr = dir(mod_attr)
-
-            condition = (any([i in attr for i in ['feature_importances_']]))
-            condition = condition and (self.weigh is True)
-            if condition:
-                ds_model_cv.weights = mod_attr.feature_importances_
+            best = gs_model_cv.best_estimator_.named_steps['model']
+            if self.weigh:
+                ds_model_cv.weights = shap.Explainer(best, X[tr])
+                ds_model_cv.weights = ds_model_cv.weights.shap_values(X[tr])
+                ds_model_cv.weights = abs(ds_model_cv.weights).mean(axis=0)
 
             ds_model_cv.fit(X_trans_tr)
 
@@ -320,13 +319,11 @@ class domain_model:
                                       )
 
             # Fit distance model
-            mod_attr = self.gs_model.best_estimator_.named_steps['model']
-            attr = dir(mod_attr)
-
-            condition = (any([i in attr for i in ['feature_importances_']]))
-            condition = condition and (self.weigh is True)
-            if condition:
-                self.ds_model.weights = mod_attr.feature_importances_
+            best = self.gs_model.best_estimator_.named_steps['model']
+            if self.weigh:
+                self.ds_model.weights = shap.Explainer(best, X)
+                self.ds_model.weights = self.ds_model.weights.shap_values(X)
+                self.ds_model.weights = abs(self.ds_model.weights).mean(axis=0)
 
             self.ds_model.fit(X_trans)
 

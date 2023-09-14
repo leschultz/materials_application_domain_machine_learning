@@ -29,6 +29,7 @@ install_requires = [
                     'udocker',
                     'scikeras',
                     'seaborn',
+                    'shap',
                     ]
 
 long_description = open('README.md').read()

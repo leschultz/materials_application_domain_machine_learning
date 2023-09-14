@@ -1,4 +1,4 @@
-from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
@@ -7,46 +7,78 @@ import numpy as np
 
 class weighted_model:
 
-    def __init__(self, kernel, bandwidth=None, weights=None):
+    def __init__(
+                 self,
+                 kernel,
+                 bandwidth=None,
+                 weigh=False,
+                 weights=None,
+                 ):
 
         self.bandwidth = bandwidth
         self.weights = weights
+        self.weigh = weigh
         self.kernel = kernel
 
     def fit(self, X_train):
+        '''
+        Build kernel density estimate models for each feature.
+
+        inputs:
+            X_train: The training space of the model.
+        '''
 
         self.counts = range(X_train.shape[1])
         self.models = []
         self.bandwidths = []
+
+        if self.weigh == 'features':
+            X_train = X_train*self.weights
 
         for b in self.counts:
 
             cut = b+1
 
             if self.bandwidth is None:
-                model = KernelDensity(
-                                      kernel=self.kernel,
-                                      ).fit(X_train[:, b:cut])
-                bandwidth = model.bandwidth
-
+                bandwidth = estimate_bandwidth(X_train[:, b:cut])
             else:
                 bandwidth = self.bandwidth
+
+            if self.weigh == 'bandwidth':
+                bandwidth = self.weights[b]*bandwidth
+
+            if bandwidth > 0.0:
 
                 model = KernelDensity(
                                       kernel=self.kernel,
                                       bandwidth=bandwidth,
                                       ).fit(X_train[:, b:cut])
+            else:
+                model = None
 
             self.models.append(model)
             self.bandwidths.append(bandwidth)
 
     def score_samples(self, X):
+        '''
+        A method to use each feature KDE model to predict on new data.
+
+        inputs:
+            X = The features and cases.
+        '''
+
+        if self.weigh == 'features':
+            X = X*self.weights
 
         scores = []
         for b in self.counts:
+
+            if self.models[b] is None:
+                continue
+
             score = self.models[b].score_samples(X[:, b:b+1])
 
-            if self.weights is not None:
+            if self.weigh == 'scores':
                 score = score*self.weights[b]
 
             scores.append(score)
@@ -59,9 +91,17 @@ class weighted_model:
 
 class distance_model:
 
-    def __init__(self, dist='kde', weights=None, *args, **kwargs):
+    def __init__(
+                 self,
+                 dist='kde',
+                 weigh=False,
+                 weights=None,
+                 *args,
+                 **kwargs
+                 ):
 
         self.dist = dist
+        self.weigh = weigh
         self.weights = weights
         self.args = args
         self.kwargs = kwargs
@@ -102,7 +142,7 @@ class distance_model:
             self.bandwidth = self.model.bandwidths
 
             dist = self.model.score_samples(X_train)
-            m = max(dist)
+            m = np.max(dist)
             cut = 0.0  # No likelihood should be greater than that trained on
             self.scaler = lambda x: np.maximum(cut, 1-np.exp(x-m))
 
@@ -124,7 +164,6 @@ class distance_model:
             dist = self.scaler(dist)
 
         else:
-            dist = self.model(X)
-            dist = np.mean(dist, axis=0)
+            dist = np.mean(self.model(X), axis=0)
 
         return dist
