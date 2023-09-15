@@ -41,7 +41,7 @@ class weighted_kde:
             else:
                 bandwidth = self.bandwidth
 
-            if self.weigh == 'bandwidth':
+            if self.weigh == 'bandwidths':
                 bandwidth = self.weights[b]*bandwidth
 
             if bandwidth > 0.0:
@@ -73,7 +73,8 @@ class weighted_kde:
             score = self.models[b].score_samples(X[:, b:b+1])
 
             if self.weigh == 'scores':
-                score = score*self.weights[b]
+                indx = score != -np.inf
+                score[indx] = score[indx]*self.weights[b]
 
             scores.append(score)
 
