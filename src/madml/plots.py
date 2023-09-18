@@ -1122,22 +1122,23 @@ def pr(score, in_domain, pos_label, save=False):
         baseline = [1 if i == pos_label else 0 for i in in_domain]
         baseline = sum(baseline)/len(in_domain)
         relative_base = 1-baseline  # The amount of area to gain in PR
+        diff = auc_score-baseline
 
         # AUC relative to the baseline
         if relative_base == 0.0:
             auc_relative = 0.0
         else:
-            auc_relative = (auc_score-baseline)/relative_base
+            auc_relative = (diff)/relative_base
 
         os.makedirs(save, exist_ok=True)
 
         fig, ax = pl.subplots()
 
         pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
-        pr_label = 'AUC: {:.2f}\nRelative AUC: {:.2f}'.format(
-                                                              auc_score,
-                                                              auc_relative
-                                                              )
+        pr_label = 'AUC: {:.2f}\n'.format(auc_score)
+        pr_label += 'Relative AUC: {:.2f}\n'.format(auc_relative)
+        pr_label += 'AUC-Baseline: {:.2f}'.format(diff)
+
         pr_display.plot(ax=ax, label=pr_label)
 
         ax.hlines(

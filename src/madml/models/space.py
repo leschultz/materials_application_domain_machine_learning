@@ -48,24 +48,43 @@ class distance_model:
                 self.kernel = 'epanechnikov'
 
             if 'bandwidth' in self.kwargs.keys():
-                self.bandwidth = self.kwargs['bandwidth']
+                bandwidth = self.kwargs['bandwidth']
             else:
-                self.bandwidth = estimate_bandwidth(X_train)
+                bandwidth = estimate_bandwidth(X_train)
 
-            self.model = KernelDensity(
-                                       kernel=self.kernel,
-                                       bandwidth=self.bandwidth,
-                                       )
+            if bandwidth > 0.0:
+                model = KernelDensity(
+                                      kernel=self.kernel,
+                                      bandwidth=bandwidth,
+                                      )
 
-            self.model.fit(X_train)
+                model.fit(X_train)
+                self.bandwidth = model.bandwidth_
 
-            dist = self.model.score_samples(X_train)
-            m = np.max(dist)
-            cut = 0.0  # No likelihood should be greater than that trained on
-            self.scaler = lambda x: np.maximum(cut, 1-np.exp(x-m))
+                dist = model.score_samples(X_train)
+                m = np.max(dist)
+
+                def pred(X):
+                    out = model.score_samples(X)
+                    out = out-m
+                    out = np.exp(out)
+                    out = 1-out
+                    out = np.maximum(0.0, out)
+                    return out
+
+                self.model = pred
+
+            else:
+                self.model = lambda x: np.repeat(1.0, len(x))
 
         else:
-            self.model = lambda X_test: cdist(X_train, X_test, self.dist)
+
+            def pred(X):
+                out = cdist(X_train, X, self.dist)
+                out = np.mean(out, axis=0)
+                return out
+
+            self.model = pred
 
     def predict(self, X):
         '''
@@ -80,11 +99,6 @@ class distance_model:
         if self.weigh == 'features':
             X = X*self.weights
 
-        if self.dist == 'kde':
-            dist = self.model.score_samples(X)
-            dist = self.scaler(dist)
-
-        else:
-            dist = np.mean(self.model(X), axis=0)
+        dist = self.model(X)
 
         return dist

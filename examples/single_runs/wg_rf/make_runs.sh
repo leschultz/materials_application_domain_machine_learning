@@ -11,8 +11,6 @@ sets=(
 
 wtgrid=(
 	features
-	bandwidths
-	scores
 	none
         )
 
