@@ -9,7 +9,6 @@ from madml import plots
 import pandas as pd
 import numpy as np
 
-import shap
 import json
 import copy
 import os
@@ -99,7 +98,6 @@ class domain_model:
                  save=False,
                  gts=1.0,
                  gtb=0.25,
-                 weigh=False,
                  ):
 
         '''
@@ -112,7 +110,6 @@ class domain_model:
             save = The location to save figures and data.
             gts = The ground truth cutoff for residual magnitude test.
             gtb = The ground truth cutoff for statistical test.
-            weigh = Whether to weight distance features.
         '''
 
         self.gs_model = gs_model
@@ -123,7 +120,6 @@ class domain_model:
         self.splits = copy.deepcopy(splits)
         self.gts = gts
         self.gtb = gtb
-        self.weigh = weigh
 
         self.dists = []
         self.methods = ['']
@@ -236,14 +232,6 @@ class domain_model:
         if self.ds_model:
 
             ds_model_cv = copy.deepcopy(ds_model)
-
-            best = gs_model_cv.best_estimator_.named_steps['model']
-            if self.weigh:
-                ds_model_cv.weights = shap.Explainer(best, X[tr])
-                ds_model_cv.weights = ds_model_cv.weights.shap_values(X[tr])
-                ds_model_cv.weights = abs(ds_model_cv.weights).mean(axis=0)
-                ds_model_cv.weigh = self.weigh
-
             ds_model_cv.fit(X_trans_tr)
 
             data['dist'] = ds_model_cv.predict(X_trans_te)
@@ -318,15 +306,6 @@ class domain_model:
                                       self.gs_model,
                                       X,
                                       )
-
-            # Fit distance model
-            best = self.gs_model.best_estimator_.named_steps['model']
-            if self.weigh:
-                self.ds_model.weights = shap.Explainer(best, X)
-                self.ds_model.weights = self.ds_model.weights.shap_values(X)
-                self.ds_model.weights = abs(self.ds_model.weights).mean(axis=0)
-                self.ds_model.weigh = self.weigh
-
             self.ds_model.fit(X_trans)
 
         out = plots.generate_plots(

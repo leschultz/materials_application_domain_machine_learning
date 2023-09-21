@@ -24,7 +24,8 @@ def parallel(func, x, message=None, *args, **kwargs):
         print(message)
 
     part_func = partial(func, *args, **kwargs)
-    with Pool(os.cpu_count()) as pool:
+    cores = os.cpu_count()
+    with Pool(cores) as pool:
         data = list(tqdm(
                          pool.imap(part_func, x),
                          total=len(x),
