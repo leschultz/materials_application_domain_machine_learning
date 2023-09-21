@@ -30,9 +30,13 @@ class ShapFeatureSelector:
         explainer = shap.Explainer(self.model, X)
         self.scores = explainer(X, check_additivity=False)
         self.scores = np.abs(self.scores.values).mean(axis=0)
+        self.scores /= np.sum(self.scores)
         self.scores = np.argsort(self.scores)[::-1][:self.num_features]
 
         return self
+
+    def get_scores(self):
+        return self.scores
 
     def transform(self, X):
         '''

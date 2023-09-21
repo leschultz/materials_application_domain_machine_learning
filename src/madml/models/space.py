@@ -3,7 +3,80 @@ from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
 import numpy as np
-import shap
+
+
+class weighted_kde:
+
+    def __init__(
+                 self,
+                 kernel,
+                 bandwidth=None,
+                 weigh=False,
+                 weights=None,
+                 ):
+
+        self.bandwidth = bandwidth
+        self.weights = weights
+        self.weigh = weigh
+        self.kernel = kernel
+
+    def fit(self, X_train):
+        '''
+        Build kernel density estimate models for each feature.
+        inputs:
+            X_train: The training space of the model.
+        '''
+
+        self.counts = range(X_train.shape[1])
+        self.models = []
+        self.bandwidths = []
+
+        for b in self.counts:
+
+            cut = b+1
+
+            if self.bandwidth is None:
+                bandwidth = estimate_bandwidth(X_train[:, b:cut])
+            else:
+                bandwidth = self.bandwidth
+
+            if bandwidth > 0.0:
+
+                model = KernelDensity(
+                                      kernel=self.kernel,
+                                      bandwidth=bandwidth,
+                                      ).fit(X_train[:, b:cut])
+            else:
+                model = None
+
+            self.models.append(model)
+            self.bandwidths.append(bandwidth)
+
+    def score_samples(self, X):
+        '''
+        A method to use each feature KDE model to predict on new data.
+        inputs:
+            X = The features and cases.
+        '''
+
+        scores = []
+        for b in self.counts:
+
+            if self.models[b] is None:
+                continue
+
+            score = self.models[b].score_samples(X[:, b:b+1])
+
+            if self.weigh == 'scores':
+                indx = score != -np.inf
+                score[indx] = score[indx]*self.weights[b]
+
+            scores.append(score)
+
+        return np.sum(scores, axis=0)
+
+    def return_bandwidths(self):
+        return self.bandwidths
 
 
 class distance_model:
@@ -13,11 +86,13 @@ class distance_model:
                  dist='kde',
                  kernel='epanechnikov',
                  bandwidth=None,
+                 weights=None,
                  ):
 
         self.dist = dist
         self.kernel = kernel
         self.bandwidth = bandwidth
+        self.weights = weights
 
     def fit(
             self,
@@ -43,10 +118,20 @@ class distance_model:
 
             if self.bandwidth > 0.0:
 
-                model = KernelDensity(
-                                      kernel=self.kernel,
-                                      bandwidth=self.bandwidth,
-                                      )
+                if self.weights is not None:
+                    model = weighted_kde(
+                                         self.kernel,
+                                         self.bandwidth,
+                                         weigh='scores',
+                                         weights=self.weights,
+                                         )
+                else:
+
+                    model = KernelDensity(
+                                          kernel=self.kernel,
+                                          bandwidth=self.bandwidth,
+                                          )
+
                 model.fit(X_train)
 
                 dist = model.score_samples(X_train)
@@ -63,7 +148,7 @@ class distance_model:
                 self.model = pred
 
             else:
-                self.model = lambda x: np.repeat(1.0, len(x))
+                self.model = lambda x: np.repeat(0.0, len(x))
 
         else:
 
@@ -84,6 +169,4 @@ class distance_model:
             dist = The distance array.
         '''
 
-        dist = self.model(X)
-
-        return dist
+        return self.model(X)
