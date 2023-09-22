@@ -148,7 +148,7 @@ class distance_model:
                 self.model = pred
 
             else:
-                self.model = lambda x: np.repeat(0.0, len(x))
+                self.model = lambda x: np.repeat(1.0, len(x))
 
         else:
 

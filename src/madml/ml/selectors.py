@@ -1,3 +1,4 @@
+from kneed import KneeLocator
 import numpy as np
 import copy
 import shap
@@ -8,7 +9,7 @@ class ShapFeatureSelector:
     A feature selector that uses SHapley Additive exPlanations.
     '''
 
-    def __init__(self, model, num_features):
+    def __init__(self, model, num_features=None):
         '''
         inputs:
             model = The estimator of interest.
@@ -31,7 +32,20 @@ class ShapFeatureSelector:
         self.scores = explainer(X, check_additivity=False)
         self.scores = np.abs(self.scores.values).mean(axis=0)
         self.scores /= np.sum(self.scores)
-        self.scores = np.argsort(self.scores)[::-1][:self.num_features]
+        sort = np.argsort(self.scores)[::-1]
+
+        if self.num_features is None:
+            x = range(len(self.scores))
+
+            knee = KneeLocator(
+                               x,
+                               self.scores[sort],
+                               curve='convex',
+                               direction='decreasing'
+                               )
+            self.num_features = knee.knee+1
+
+        self.scores = sort[:self.num_features]
 
         return self
 

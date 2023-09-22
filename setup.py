@@ -2,7 +2,7 @@ import setuptools
 
 # Package information
 name = 'madml'
-version = '0.8.3'  # Need to increment every time to push to PyPI
+version = '0.8.4'  # Need to increment every time to push to PyPI
 description = 'Application domain of machine learning in materials science.'
 url = 'https://github.com/leschultz/'\
       'materials_application_domain_machine_learning.git'
@@ -30,6 +30,7 @@ install_requires = [
                     'scikeras',
                     'seaborn',
                     'shap',
+                    'kneed',
                     ]
 
 long_description = open('README.md').read()
