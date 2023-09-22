@@ -147,3 +147,49 @@ class BootstrappedLeaveClusterOut:
                 test = np.array(test)
 
                 yield train, test
+
+
+class LeaveTargetQuantileOut:
+    '''
+    Group the target variable into a number of quantiles to leave out.
+    '''
+
+    def __init__(self, n_splits, *args, **kwargs):
+        '''
+        inputs:
+            n_repeats = The number of times to apply splitting.
+            groups =  np.array of group classes for the dataset.
+        '''
+
+        self.n_splits = n_splits
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        '''
+        A method to return the number of splits.
+        '''
+
+        return self.n_splits
+
+    def split(self, X=None, y=None, groups=None):
+        '''
+        Grab the target varaible, bin into self.n_splits, and then leave
+        one of the bins out while training on the rest.
+        '''
+
+        indx = np.arange(X.shape[0])
+
+        df = pd.DataFrame()
+        df['indx'] = indx
+        df['y'] = y
+        df['bin'] = pd.qcut(
+                            df['y'].rank(method='first'),
+                            self.n_splits
+                            )
+
+        for group, values in df.groupby('bin'):
+
+            test = values['indx'].values
+            train = [i for i in df['indx'].values if i not in test]
+            train = np.array(train)
+
+            yield train, test
