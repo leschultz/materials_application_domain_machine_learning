@@ -1,82 +1,176 @@
 from sklearn.cluster import estimate_bandwidth
-from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 
 import numpy as np
 
 
-class weighted_kde:
+class KDE:
+    '''
+    Much of the implementation was inspired by the package statsmodels.
+    The implementation in this code expands the types of usable kernels.
 
-    def __init__(
-                 self,
-                 kernel,
-                 bandwidth=None,
-                 weigh=False,
-                 weights=None,
-                 ):
+    @inproceedings{seabold2010statsmodels,
+      title={statsmodels: Econometric and statistical modeling with python},
+      author={Seabold, Skipper and Perktold, Josef},
+      booktitle={9th Python in Science Conference},
+      year={2010},
+    }
+    '''
 
-        self.bandwidth = bandwidth
-        self.weights = weights
-        self.weigh = weigh
-        self.kernel = kernel
+    def __init__(self, bandwidths, kernel):
+
+        self.bandwidths = bandwidths
+        self.kernel_name = kernel
+
+        # Select the kernel function
+        if kernel == 'gaussian':
+            self.kernel = self.gaussian
+        elif kernel == 'epanechnikov':
+            self.kernel = self.epanechnikov
+        elif kernel == 'tophat':
+            self.kernel = self.tophat
+        elif kernel == 'linear':
+            self.kernel = self.linear
+        elif kernel == 'cosine':
+            self.kernel = self.cosine
+        elif kernel == 'exponential':
+            self.kernel = self.exponential
+        else:
+            raise "Non supported kernel type."
+
+    def gaussian(self, bandwidth, x_train_col, x):
+        '''
+        Gaussian kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        k = (2.0*np.pi)**-0.5
+        k *= np.exp(-0.5*a**2.0)
+
+        return k
+
+    def epanechnikov(self, bandwidth, x_train_col, x):
+        '''
+        Epanechnikov kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        indx = (-1 <= a) & (a <= 1)
+
+        k = np.zeros_like(x_train_col)
+        k[indx] = 0.75*(1.0-a[indx]**2.0)
+
+        return k
+
+    def tophat(self, bandwidth, x_train_col, x):
+        '''
+        Tophat kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        indx = (-1 <= a) & (a <= 1)
+
+        k = np.zeros_like(x_train_col)
+        k[indx] = 0.5
+
+        return k
+
+    def linear(self, bandwidth, x_train_col, x):
+        '''
+        Triangular (linear) kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        indx = (-1 <= a) & (a <= 1)
+
+        k = np.zeros_like(x_train_col)
+        k[indx] = 1-np.abs(a[indx])
+
+        return k
+
+    def cosine(self, bandwidth, x_train_col, x):
+        '''
+        Cosine kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        indx = (-1 <= a) & (a <= 1)
+
+        k = np.zeros_like(x_train_col)
+        k[indx] = 0.25*np.pi*np.cos(0.5*np.pi*a[indx])
+
+        return k
+
+    def exponential(self, bandwidth, x_train_col, x):
+        '''
+        Exponential kernel function.
+        '''
+
+        a = x_train_col-x
+        a /= bandwidth
+
+        k = 0.5*np.exp(-np.abs(a))
+
+        return k
 
     def fit(self, X_train):
         '''
-        Build kernel density estimate models for each feature.
-        inputs:
-            X_train: The training space of the model.
+        Store the data that the KDE space is defined in.
         '''
 
-        self.counts = range(X_train.shape[1])
-        self.models = []
-        self.bandwidths = []
+        self.X_train = X_train
 
-        for b in self.counts:
-
-            cut = b+1
-
-            if self.bandwidth is None:
-                bandwidth = estimate_bandwidth(X_train[:, b:cut])
-            else:
-                bandwidth = self.bandwidth
-
-            if bandwidth > 0.0:
-
-                model = KernelDensity(
-                                      kernel=self.kernel,
-                                      bandwidth=bandwidth,
-                                      ).fit(X_train[:, b:cut])
-            else:
-                model = None
-
-            self.models.append(model)
-            self.bandwidths.append(bandwidth)
-
-    def score_samples(self, X):
+    def compute(self, x_row):
         '''
-        A method to use each feature KDE model to predict on new data.
-        inputs:
-            X = The features and cases.
+        Calculate the kernel of a sample's ith element to the training
+        space's ith dimension.
         '''
 
-        scores = []
-        for b in self.counts:
+        K = np.empty(self.X_train.shape)
+        for i in range(self.X_train.shape[1]):
+            K[:, i] = self.kernel(
+                                  self.bandwidths[i],
+                                  self.X_train[:, i],
+                                  x_row[i],
+                                  )
 
-            if self.models[b] is None:
-                continue
+        K = K.prod(axis=1)/np.prod(self.bandwidths)
+        K = K.sum()
+        K /= self.X_train.shape[0]
 
-            score = self.models[b].score_samples(X[:, b:b+1])
+        return K
 
-            if self.weigh == 'scores':
-                indx = score != -np.inf
-                score[indx] = score[indx]*self.weights[b]
+    def score(self, X):
+        '''
+        Compute the probability density function (PDF) estimate
+        for each case.
+        '''
 
-            scores.append(score)
+        pdfs = np.empty(X.shape[0])
+        for i in range(X.shape[0]):
+            pdfs[i] = self.compute(X[i, :])
 
-        return np.sum(scores, axis=0)
+        return pdfs
 
-    def return_bandwidths(self):
-        return self.bandwidths
+    def predict(self, X):
+        '''
+        Transform the outputs to conform to a standard.
+        '''
+
+        pdfs = self.score(X)
+        pdfs *= -1.0
+
+        return pdfs
 
 
 class distance_model:
@@ -118,37 +212,28 @@ class distance_model:
 
             if self.bandwidth > 0.0:
 
-                if self.weights is not None:
-                    model = weighted_kde(
-                                         self.kernel,
-                                         self.bandwidth,
-                                         weigh='scores',
-                                         weights=self.weights,
-                                         )
-                else:
-
-                    model = KernelDensity(
-                                          kernel=self.kernel,
-                                          bandwidth=self.bandwidth,
-                                          )
+                bandwidths = np.repeat(
+                                       self.bandwidth,
+                                       X_train.shape[1],
+                                       )
+                model = KDE(
+                            kernel=self.kernel,
+                            bandwidths=bandwidths,
+                            )
 
                 model.fit(X_train)
 
-                dist = model.score_samples(X_train)
+                dist = model.predict(X_train)
                 m = np.max(dist)
 
                 def pred(X):
-                    out = model.score_samples(X)
-                    out = out-m
-                    out = np.exp(out)
-                    out = 1-out
-                    out = np.maximum(0.0, out)
+                    out = model.predict(X)
                     return out
 
                 self.model = pred
 
             else:
-                self.model = lambda x: np.repeat(1.0, len(x))
+                self.model = lambda x: np.repeat(0.0, len(x))
 
         else:
 
