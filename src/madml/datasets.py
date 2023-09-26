@@ -221,6 +221,22 @@ def load(name, *args, **kwargs):
 
         return loader(df, target, drop_cols, class_name, **kwargs)
 
+    elif name == 'diffusion_all_features':
+        '''
+        Load the diffusion data set.
+        '''
+
+        # Dataset information
+        df = 'diffusion_all_features.csv'
+        target = 'E_regression_shift'
+        class_name = 'group'
+        drop_cols = [
+                     'mat',
+                     'group'
+                     ]
+
+        return loader(df, target, drop_cols, class_name, **kwargs)
+
     elif name == 'perovskite_stability':
         '''
         Load the perovskite stability dataset.
@@ -317,6 +333,20 @@ def load(name, *args, **kwargs):
         '''
 
         df = 'steel_strength.csv'
+        target = 'yield_strength'
+        drop_cols = [
+                     'mat',
+                     'group'
+                     ]
+
+        return loader(df, target, drop_cols, **kwargs)
+
+    elif name == 'steel_yield_strength_all_features':
+        '''
+        Load the steel yield strength dataset.
+        '''
+
+        df = 'steel_strength_all_features.csv'
         target = 'yield_strength'
         drop_cols = [
                      'mat',

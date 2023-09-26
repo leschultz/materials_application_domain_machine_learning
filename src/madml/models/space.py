@@ -210,30 +210,34 @@ class distance_model:
             if self.bandwidth is None:
                 self.bandwidth = estimate_bandwidth(X_train)
 
-            if self.bandwidth > 0.0:
-
-                bandwidths = np.repeat(
-                                       self.bandwidth,
-                                       X_train.shape[1],
-                                       )
-                model = KDE(
-                            kernel=self.kernel,
-                            bandwidths=bandwidths,
-                            )
-
-                model.fit(X_train)
-
-                dist = model.predict(X_train)
-                m = np.max(dist)
-
-                def pred(X):
-                    out = model.predict(X)
-                    return out
-
-                self.model = pred
-
+            if self.weights is not None:
+                self.bandwidths = self.weights*self.bandwidth
             else:
-                self.model = lambda x: np.repeat(0.0, len(x))
+                self.bandwidths = np.repeat(
+                                            self.bandwidth,
+                                            X_train.shape[1],
+                                            )
+
+            self.non_zero = self.bandwidths > 0.0
+            X_train = X_train[:, self.non_zero]
+            self.bandwidths = self.bandwidths[self.non_zero]
+
+            model = KDE(
+                        kernel=self.kernel,
+                        bandwidths=self.bandwidths,
+                        )
+
+            model.fit(X_train)
+
+            dist = model.predict(X_train)
+            m = np.max(dist)
+
+            def pred(X):
+                X = X[:, self.non_zero]
+                out = model.predict(X)
+                return out
+
+            self.model = pred
 
         else:
 

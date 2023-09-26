@@ -309,10 +309,11 @@ class domain_model:
             data_cv['y_stdc/std(y)'] = data_cv['y_stdc']/data_cv['std(y)']
             data_cv['z'] = data_cv['r']/data_cv['y_stdc']
 
-        # Build the model
+        # Build the model.
         self.gs_model.fit(X, y)
 
         if self.ds_model:
+
             X_trans = self.transforms(
                                       self.gs_model,
                                       X,
@@ -358,14 +359,15 @@ class domain_model:
                                )
 
         data = {}
-        for i in ['y_stdc/std(y)', 'dist']:
-            data[i] = domain_preds(
-                                   data_cv_bin[i],
-                                   [i],
-                                   ['_bin'],
-                                   self.thresholds,
-                                   '_max',
-                                   )
+        if 'y_stdc/std(y)' in self.dists:
+            for i in self.dists:
+                data[i] = domain_preds(
+                                       data_cv_bin[i],
+                                       [i],
+                                       ['_bin'],
+                                       self.thresholds,
+                                       '_max',
+                                       )
 
         data_cv_bin = data
 

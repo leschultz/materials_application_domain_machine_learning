@@ -35,17 +35,15 @@ class ShapFeatureSelector:
         sort = np.argsort(self.scores)[::-1]
 
         if self.num_features is None:
-            x = range(len(self.scores))
-
             knee = KneeLocator(
-                               x,
+                               range(len(self.scores)),
                                self.scores[sort],
                                curve='convex',
                                direction='decreasing'
                                )
             self.num_features = knee.knee+1
 
-        self.scores = sort[:self.num_features]
+        self.indx = sort[:self.num_features]
 
         return self
 
@@ -58,6 +56,6 @@ class ShapFeatureSelector:
             X_selected = The subselected features
         '''
 
-        X_selected = X[:, self.scores]
+        X_selected = X[:, self.indx]
 
         return X_selected
