@@ -59,9 +59,9 @@ class KDE:
         a = x_train_col-x
         a /= bandwidth
 
-        indx = (-1 <= a) & (a <= 1)
+        indx = (-1.0 <= a) & (a <= 1.0)
 
-        k = np.zeros_like(x_train_col)
+        k = np.zeros_like(x_train_col, dtype=float)
         k[indx] = 0.75*(1.0-a[indx]**2.0)
 
         return k
@@ -74,9 +74,9 @@ class KDE:
         a = x_train_col-x
         a /= bandwidth
 
-        indx = (-1 <= a) & (a <= 1)
+        indx = (-1.0 <= a) & (a <= 1.0)
 
-        k = np.zeros_like(x_train_col)
+        k = np.zeros_like(x_train_col, dtype=float)
         k[indx] = 0.5
 
         return k
@@ -89,10 +89,10 @@ class KDE:
         a = x_train_col-x
         a /= bandwidth
 
-        indx = (-1 <= a) & (a <= 1)
+        indx = (-1.0 <= a) & (a <= 1.0)
 
-        k = np.zeros_like(x_train_col)
-        k[indx] = 1-np.abs(a[indx])
+        k = np.zeros_like(x_train_col, dtype=float)
+        k[indx] = 1.0-np.abs(a[indx])
 
         return k
 
@@ -104,9 +104,9 @@ class KDE:
         a = x_train_col-x
         a /= bandwidth
 
-        indx = (-1 <= a) & (a <= 1)
+        indx = (-1.0 <= a) & (a <= 1.0)
 
-        k = np.zeros_like(x_train_col)
+        k = np.zeros_like(x_train_col, dtype=float)
         k[indx] = 0.25*np.pi*np.cos(0.5*np.pi*a[indx])
 
         return k
@@ -144,7 +144,8 @@ class KDE:
                                   x_row[i],
                                   )
 
-        K = K.prod(axis=1)/np.prod(self.bandwidths)
+        K = K.prod(axis=1)
+        K /= np.prod(self.bandwidths)
         K = K.sum()
         K /= self.X_train.shape[0]
 
@@ -178,7 +179,7 @@ class distance_model:
     def __init__(
                  self,
                  dist='kde',
-                 kernel='epanechnikov',
+                 kernel='linear',
                  bandwidth=None,
                  weights=None,
                  ):
@@ -228,9 +229,6 @@ class distance_model:
                         )
 
             model.fit(X_train)
-
-            dist = model.predict(X_train)
-            m = np.max(dist)
 
             def pred(X):
                 X = X[:, self.non_zero]
