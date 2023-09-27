@@ -7,6 +7,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+
 from itertools import groupby
 from functools import reduce
 from sklearn import metrics
@@ -847,6 +848,8 @@ def binned_truth(data_cv, metric, bins, gt, save=False):
 
                     ax.set_xlabel('Mean D')
                     name += 'dist'
+
+                ax.tick_params(axis='x', rotation=45)
 
                 fig.tight_layout()
 

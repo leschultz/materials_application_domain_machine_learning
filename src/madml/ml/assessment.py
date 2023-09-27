@@ -39,8 +39,8 @@ class nested_cv:
 
         self.X = X  # Features
         self.y = y  # Target
-        self.splitters = splitters  # Splitter
-        self.model = model
+        self.splitters = copy.deepcopy(splitters)  # Splitter
+        self.model = copy.deepcopy(model)
         self.save = save
 
         # Grouping

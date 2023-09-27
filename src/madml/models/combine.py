@@ -134,8 +134,8 @@ class domain_model:
             uqsplits = []
             for i in self.splits:
                 if 'fit' == i[0]:
-                    i = copy.deepcopy(i)
-                    i = ('calibration', i[1])
+                    i = copy.deepcopy(i[1])
+                    i = ('calibration', i)
                     uqsplits.append(i)
 
             self.splits += uqsplits

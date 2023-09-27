@@ -130,6 +130,9 @@ class KDE:
 
         self.X_train = X_train
 
+        scores = self.score(X_train)
+        self.max = np.max(scores)
+
     def compute(self, x_row):
         '''
         Calculate the kernel of a sample's ith element to the training
@@ -169,7 +172,9 @@ class KDE:
         '''
 
         pdfs = self.score(X)
-        pdfs *= -1.0
+        pdfs /= -self.max
+        pdfs += 1.0
+        pdfs = np.maximum(0.0, pdfs)
 
         return pdfs
 
