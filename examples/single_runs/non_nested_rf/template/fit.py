@@ -1,3 +1,4 @@
+from sklearn.feature_selection import SelectFromModel
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
@@ -11,6 +12,8 @@ from madml.models.combine import domain_model
 from madml.models.uq import calibration_model
 from madml.ml.assessment import nested_cv
 from madml import datasets
+
+import numpy as np
 
 
 def main():
@@ -34,6 +37,7 @@ def main():
     # ML
     scale = StandardScaler()
     model = RandomForestRegressor()
+    select = SelectFromModel(model, threshold=-np.inf, max_features=30)
 
     # The grid for grid search
     grid = {}
@@ -42,6 +46,7 @@ def main():
     # The machine learning pipeline
     pipe = Pipeline(steps=[
                            ('scaler', scale),
+                           ('select', select),
                            ('model', model),
                            ])
 
@@ -68,15 +73,8 @@ def main():
         splits.append(('agglo_{}'.format(i), top_split))
 
     # Fit models
-    model = domain_model(
-                         gs_model,
-                         ds_model,
-                         uq_model,
-                         splits,
-                         weigh_replace,
-                         )
-    cv = nested_cv(X, y, g, model, splits, save=run_name)
-    cv.assess()
+    model = domain_model(gs_model, ds_model, uq_model, splits, save='run')
+    model.fit(X, y, g)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,9 @@ from keras.layers import Dense, Dropout, BatchNormalization
 from scikeras.wrappers import KerasRegressor
 from keras.models import Sequential
 
+from sklearn.feature_selection import SelectFromModel
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -74,6 +76,11 @@ def main():
                            verbose=0
                            )
     model = BaggingRegressor(model)
+    select = SelectFromModel(
+                             RandomForestRegressor(),
+                             threshold=-np.inf,
+                             max_features=30,
+                             )
 
     # The grid for grid search
     grid = {}
@@ -82,6 +89,7 @@ def main():
     # The machine learning pipeline
     pipe = Pipeline(steps=[
                            ('scaler', scale),
+                           ('select', select),
                            ('model', model),
                            ])
 

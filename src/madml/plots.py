@@ -135,8 +135,8 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb, dists):
                 singledomainsave = intervaldomainsave = save
 
             thresh = pr(
-                        data_cv[i],
-                        data_cv['id'],
+                        data_cv[i].values,
+                        data_cv['id'].values,
                         j,
                         save=singledomainsave,
                         )
@@ -145,8 +145,8 @@ def generate_plots(data_cv, ystd, bins, save, gts, gtb, dists):
 
             if uqcond:
                 thresh_bin = pr(
-                                data_cv_bin[i][i+'_max'],
-                                data_cv_bin[i]['id'],
+                                data_cv_bin[i][i+'_max'].values,
+                                data_cv_bin[i]['id'].values,
                                 j,
                                 save=intervaldomainsave,
                                 )
@@ -1061,6 +1061,11 @@ def pr(score, in_domain, pos_label, save=False):
 
     if pos_label is True:
         score = -score
+
+    # Sometimes values are not valid because of std(y) = 0.0
+    valid_indx = (score != np.inf) & (score != -np.inf)
+    score = score[valid_indx]
+    in_domain = in_domain[valid_indx]
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')

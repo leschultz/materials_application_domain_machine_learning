@@ -1,3 +1,4 @@
+from sklearn.feature_selection import SelectFromModel
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
@@ -34,6 +35,7 @@ def main():
     # ML
     scale = StandardScaler()
     model = RandomForestRegressor()
+    select = SelectFromModel(model, threshold=-np.inf, max_features=30)
 
     # The grid for grid search
     grid = {}
@@ -42,6 +44,7 @@ def main():
     # The machine learning pipeline
     pipe = Pipeline(steps=[
                            ('scaler', scale),
+                           ('select', select),
                            ('model', model),
                            ])
 

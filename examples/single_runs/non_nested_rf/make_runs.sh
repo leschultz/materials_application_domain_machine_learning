@@ -5,32 +5,21 @@ sets=(
       "friedman1"
       "fluence"
       "diffusion"
+      "diffusion_all_features"
       "steel_yield_strength"
+      "steel_yield_strength_all_features"
       "super_cond"
       )
 
-wtgrid=(
-	features
-	none
-        )
-
+mkdir -p runs
 for i in "${sets[@]}"
 do
 
-for j in "${wtgrid[@]}"
-do
+    echo ${i}
+    cp -r template "runs/${i}"
+    cd "runs/${i}"
 
-    run="runs/${i}/wt_${j}"
-    echo ${run}
-
-    mkdir -p ${run}
-    cp -r template/* ${run}
-
-    cd ${run}
     sed -i "s/replace_data/'${i}'/g" fit.py
-    sed -i "s/weigh_replace/weigh='${j}'/g" fit.py
 
     cd - > /dev/null
-
-done
 done

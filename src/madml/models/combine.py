@@ -99,7 +99,6 @@ class domain_model:
                  save=False,
                  gts=1.0,
                  gtb=0.25,
-                 weigh=None,
                  ):
 
         '''
@@ -122,7 +121,6 @@ class domain_model:
         self.splits = copy.deepcopy(splits)
         self.gts = gts
         self.gtb = gtb
-        self.weigh = weigh
 
         self.dists = []
         self.methods = ['']
@@ -204,7 +202,7 @@ class domain_model:
 
         count, splitter, tr, te = split
 
-        if tr.shape[0] < 1:
+        if (tr.shape[0] < 1) | (te.shape[0] < 1):
             return pd.DataFrame()
 
         gs_model_cv = clone(gs_model)
@@ -235,14 +233,6 @@ class domain_model:
         if self.ds_model:
 
             ds_model_cv = copy.deepcopy(ds_model)
-
-            if self.weigh:
-                best = gs_model_cv.best_estimator_.named_steps['model']
-                weights = ShapFeatureSelector(best, X_trans_tr.shape[1])
-                weights.fit(X_trans_tr, y[tr])
-                weights = weights.get_scores()
-                ds_model_cv.weights = weights
-
             ds_model_cv.fit(X_trans_tr)
 
             data['dist'] = ds_model_cv.predict(X_trans_te)
@@ -318,13 +308,6 @@ class domain_model:
                                       self.gs_model,
                                       X,
                                       )
-
-            if self.weigh:
-                best = self.gs_model.best_estimator_.named_steps['model']
-                weights = ShapFeatureSelector(best, X_trans.shape[1])
-                weights.fit(X_trans, y)
-                weights = weights.get_scores()
-                self.ds_model.weights = weights
 
             self.ds_model.fit(X_trans)
 

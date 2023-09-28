@@ -5,7 +5,9 @@ sets=(
       "friedman1"
       "fluence"
       "diffusion"
+      "diffusion_all_features"
       "steel_yield_strength"
+      "steel_yield_strength_all_features"
       "super_cond"
       )
 
