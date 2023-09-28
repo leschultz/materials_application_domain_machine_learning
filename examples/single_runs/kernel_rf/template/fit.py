@@ -35,7 +35,16 @@ def main():
     # ML
     scale = StandardScaler()
     model = RandomForestRegressor()
-    select = SelectFromModel(model, threshold=-np.inf, max_features=30)
+
+    max_features = 30
+    if max_features > X.shape[1]:
+        max_features = X.shape[1]
+
+    select = SelectFromModel(
+                             RandomForestRegressor(),
+                             threshold=-np.inf, 
+                             max_features=max_features
+                             )
 
     # The grid for grid search
     grid = {}
