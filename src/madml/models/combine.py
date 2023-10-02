@@ -44,7 +44,14 @@ def domain_pred(dist, dist_cut, domain):
     return do_pred
 
 
-def domain_preds(pred, dists, methods, thresholds, suffix=''):
+def domain_preds(
+                 pred,
+                 dists=None,
+                 methods=None,
+                 thresholds=None,
+                 suffix='',
+                 manual_th=None,
+                 ):
     '''
     The domain predictor based on thresholds.
 
@@ -59,27 +66,46 @@ def domain_preds(pred, dists, methods, thresholds, suffix=''):
         pred = The predictions of domain.
     '''
 
-    for i in dists:
+    if manual_th is not None:
+        for i in manual_th:
 
-        if suffix:
-            col = i+suffix
-        else:
-            col = i
+            dist, domain_type, th = i
 
-        for j, k in zip([True, False], ['id', 'od']):
-            for method in methods:
-                k += method
-                for key, value in thresholds[i][k].items():
+            if 'id' in domain_type:
+                domain = True
+            elif 'od' in domain_type:
+                domain = False
 
-                    name = '{} by {} for {}'.format(k.upper(), i, key)
+            name = '{} by {} for {}'.format(domain_type.upper(), dist, th)
+            do_pred = domain_pred(
+                                  pred[dist],
+                                  th,
+                                  domain,
+                                  )
 
-                    do_pred = domain_pred(
-                                          pred[col],
-                                          value['Threshold'],
-                                          j,
-                                          )
+            pred[name] = do_pred
+    else:
+        for i in dists:
 
-                    pred[name] = do_pred
+            if suffix:
+                col = i+suffix
+            else:
+                col = i
+
+            for j, k in zip([True, False], ['id', 'od']):
+                for method in methods:
+                    k += method
+                    for key, value in thresholds[i][k].items():
+
+                        name = '{} by {} for {}'.format(k.upper(), i, key)
+
+                        do_pred = domain_pred(
+                                              pred[col],
+                                              value['Threshold'],
+                                              j,
+                                              )
+
+                        pred[name] = do_pred
 
     return pred
 
@@ -359,12 +385,13 @@ class domain_model:
 
         return data_cv, data_cv_bin
 
-    def predict(self, X):
+    def predict(self, X, manual_th=None):
         '''
         Give domain classification along with other regression predictions.
 
         inputs:
             X = The features.
+            manual_th = Manual thresholds.
 
         outputs:
            pred = A pandas dataframe containing prediction data.
@@ -400,11 +427,19 @@ class domain_model:
             pred['y_stdc/std(y)'] = y_stdc_norm
 
         pred = pd.DataFrame(pred)
-        pred = domain_preds(
-                            pred,
-                            self.dists,
-                            self.methods,
-                            self.thresholds,
-                            )
+
+        if manual_th is None:
+            pred = domain_preds(
+                                pred,
+                                self.dists,
+                                self.methods,
+                                self.thresholds,
+                                )
+        else:
+
+            pred = domain_preds(
+                                pred,
+                                manual_th=manual_th
+                                )
 
         return pred
