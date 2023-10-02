@@ -1,5 +1,4 @@
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -37,16 +36,6 @@ def main():
     scale = StandardScaler()
     model = BaggingRegressor(SVR())
 
-    max_features = 30
-    if max_features > X.shape[1]:
-        max_features = X.shape[1]
-
-    select = SelectFromModel(
-                             RandomForestRegressor(),
-                             threshold=-np.inf, 
-                             max_features=max_features
-                             )
-
     # The grid for grid search
     grid = {}
     grid['model__n_estimators'] = [100]
@@ -54,7 +43,6 @@ def main():
     # The machine learning pipeline
     pipe = Pipeline(steps=[
                            ('scaler', scale),
-                           ('select', select),
                            ('model', model),
                            ])
 

@@ -45,27 +45,24 @@ class distance_model:
                                       kernel=self.kernel,
                                       bandwidth=self.bandwidth,
                                       )
+
+                model.fit(X_train)
+
+                dist = model.score_samples(X_train)
+                m = np.max(dist)
+
+                def pred(X):
+                    out = model.score_samples(X)
+                    out = out-m
+                    out = np.exp(out)
+                    out = 1-out
+                    out = np.maximum(0.0, out)
+                    return out
+
+                self.model = pred
+
             else:
-                model = KernelDensity(
-                                      kernel=self.kernel,
-                                      bandwidth='silverman',
-                                      )
-
-            model.fit(X_train)
-            self.bandwidth = model.bandwidth_
-
-            dist = model.score_samples(X_train)
-            m = np.max(dist)
-
-            def pred(X):
-                out = model.score_samples(X)
-                out = out-m
-                out = np.exp(out)
-                out = 1-out
-                out = np.maximum(0.0, out)
-                return out
-
-            self.model = pred
+                self.model = lambda x: np.repeat(1.0, len(x))
 
         else:
 
@@ -86,4 +83,6 @@ class distance_model:
             dist = The distance array.
         '''
 
-        return self.model(X)
+        dist = self.model(X)
+
+        return dist
