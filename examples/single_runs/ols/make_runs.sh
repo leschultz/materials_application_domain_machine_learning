@@ -1,7 +1,6 @@
 #!/bin/bash
 
 sets=(
-      "make_regression"
       "friedman1"
       "fluence"
       "diffusion"
