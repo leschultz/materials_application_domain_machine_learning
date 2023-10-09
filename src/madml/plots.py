@@ -1221,6 +1221,7 @@ def pr(score, in_domain, pos_label, save=False):
         data['precision'] = list(precision)
         data['baseline'] = baseline
         data['auc'] = auc_score
+        data['auc-baseline'] = diff
         data['auc_relative'] = auc_relative
         data.update(custom)
 
