@@ -1,11 +1,7 @@
 #!/bin/bash
 
 sets=(
-      "friedman1"
-      "fluence"
       "diffusion"
-      "steel_yield_strength"
-      "super_cond"
       )
 
 grid=(0.001 0.01 0.1 1.0 10.0 100.0 1000.0 False)

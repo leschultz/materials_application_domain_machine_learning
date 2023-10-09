@@ -1,11 +1,7 @@
 #!/bin/bash
 
 sets=(
-      "friedman1"
-      "fluence"
       "diffusion"
-      "steel_yield_strength"
-      "super_cond"
       )
 
 grid=("gaussian" "tophat" "epanechnikov" "exponential" "linear" "cosine")
