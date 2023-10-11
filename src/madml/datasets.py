@@ -194,13 +194,12 @@ def load(name, *args, **kwargs):
         '''
 
         # Dataset information
-        df = 'Supercon_data_features_selected.xlsx'
-        target = 'Tc'
+        df = 'super_cond.csv'
+        target = 'ln(Tc)'
         class_name = 'group'
         drop_cols = [
-                     'name',
+                     'mat',
                      'group',
-                     'ln(Tc)',
                      ]
 
         return loader(df, target, drop_cols, class_name, **kwargs)
