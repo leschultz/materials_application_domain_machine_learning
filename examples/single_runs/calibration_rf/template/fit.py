@@ -12,8 +12,6 @@ from madml.models.uq import calibration_model
 from madml.ml.assessment import nested_cv
 from madml import datasets
 
-import numpy as np
-
 
 def main():
 

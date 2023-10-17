@@ -195,7 +195,7 @@ def load(name, *args, **kwargs):
 
         # Dataset information
         df = 'super_cond.csv'
-        target = 'ln(Tc)'
+        target = 'Tc'
         class_name = 'group'
         drop_cols = [
                      'mat',
