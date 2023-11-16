@@ -125,7 +125,7 @@ class calibration_model:
             y_std = The uncertainty for the target variable.
         '''
 
-        if self.params is not None:
+        if (self.params is not None) and (self.prior is None):
             self.params = set_llh(
                                   y,
                                   y_pred,
@@ -133,9 +133,7 @@ class calibration_model:
                                   self.params,
                                   self.uq_func
                                   )
-        elif self.prior is not None:
-            self.params = 'Manual'
-        else:
+        elif self.prior is None:
             self.uq_func.fit(y_std.reshape(-1, 1), abs(y-y_pred))
 
     def predict(self, y_std):
