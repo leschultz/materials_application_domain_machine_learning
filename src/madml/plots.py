@@ -317,9 +317,6 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     y_pred = np.interp(eval_points, x, xfrac)  # Predicted
     y = np.interp(eval_points, z, zfrac)  # Standard Normal
 
-    # Cramer–von Mises test
-    pvalue = stats.cramervonmises(x, 'norm').pvalue
-
     # Area between ideal distribution and observed
     absres = np.abs(y_pred-y)
     areacdf = np.trapz(absres, x=eval_points, dx=0.00001)
@@ -480,7 +477,7 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
                                ), 'w') as handle:
             json.dump(data, handle)
 
-    return y, y_pred, areaparity, areacdf, pvalue
+    return y, y_pred, areaparity, areacdf
 
 
 def binned_truth(data_cv, metric, bins, gt, save=False):
@@ -541,17 +538,14 @@ def binned_truth(data_cv, metric, bins, gt, save=False):
                                            binsave=x['bin'].unique()[0],
                                            )[2:])
 
-        c = a.apply(lambda x: x[2])
         b = a.apply(lambda x: x[1])
         a = a.apply(lambda x: x[0])
 
         a = a.to_frame().rename({0: choice+'_cdf_parity'}, axis=1)
         b = b.to_frame().rename({0: choice+'_cdf'}, axis=1)
-        c = c.to_frame().rename({0: choice+'_pvalue'}, axis=1)
 
         areas.append(a)
         areas.append(b)
-        areas.append(c)
 
     distmean = distmean.to_frame().add_suffix('_mean')
     binmin = binmin.to_frame().add_suffix('_min')
@@ -621,7 +615,6 @@ def binned_truth(data_cv, metric, bins, gt, save=False):
                     'z_mean',
                     'r/std(y)_mean',
                     'rmse/std(y)',
-                    'standard_normal_pvalue',
                     ]
 
         if metric != 'y_stdc/std(y)':
@@ -749,10 +742,6 @@ def binned_truth(data_cv, metric, bins, gt, save=False):
                                )
                     name = 'residuals_vs_'
                     data['residual_mean_total'] = resmeantot
-
-                elif ychoice == 'standard_normal_pvalue':
-                    ax.set_ylabel('P-Value')
-                    name = 'pvalue_vs_'
 
                 if ychoice == 'y_stdc/std(y)':
 
