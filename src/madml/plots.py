@@ -1004,7 +1004,11 @@ def pr(score, in_domain, pos_label, save=False):
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        auc_score = average_precision_score(in_domain, score)
+        auc_score = average_precision_score(
+                                            in_domain,
+                                            score,
+                                            pos_label=pos_label,
+                                            )
 
     num = 2*recall*precision
     den = recall+precision
