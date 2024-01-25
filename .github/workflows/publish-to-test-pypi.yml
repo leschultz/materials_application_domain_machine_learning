@@ -1,5 +1,10 @@
 name: Publish Python package to PyPI
-on: push
+
+on:
+  push:
+      branches: [main]
+  pull_request:
+      branches: [main]
 
 jobs:
   build-n-publish:
