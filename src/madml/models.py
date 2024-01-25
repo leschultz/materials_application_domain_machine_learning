@@ -19,50 +19,9 @@ import numpy as np
 import warnings
 import copy
 
-np.random.seed(0)
-
 # Standard normal distribution
 nz = 10000
 z_standard_normal = np.random.normal(0, 1, nz)
-
-
-def cdf(x, save=None, binsave=None, subsave=''):
-    '''
-    Plot the quantile quantile plot for cummulative distributions.
-
-    inputs:
-        x = The residuals normalized by the calibrated uncertainties.
-        save = The location to save the figure/data.
-        binsave = Adding to a directory of the saving for each bin.
-        subsave = Append a name to the save file.
-
-    outputs:
-        y = The cummulative distribution of observed data.
-        y_pred = The cummulative distribution of standard normal distribution.
-        area = The area between y and y_pred.
-    '''
-
-    nx = len(x)
-
-    # Need sorting
-    x = sorted(x)
-    z = sorted(z_standard_normal)
-
-    # Cummulative fractions
-    xfrac = np.arange(nx)/(nx-1)
-    zfrac = np.arange(nz)/(nz-1)
-
-    # Interpolation to compare cdf
-    eval_points = sorted(list(set(x+z)))
-    y_pred = np.interp(eval_points, x, xfrac)  # Predicted
-    y = np.interp(eval_points, z, zfrac)  # Standard Normal
-
-    # Area between ideal distribution and observed
-    absres = np.abs(y_pred-y)
-    areacdf = np.trapz(absres, x=eval_points, dx=0.00001)
-    areaparity = np.trapz(absres, x=y, dx=0.00001)
-
-    return y, y_pred, areaparity, areacdf
 
 
 def llh(std, res, x, func):
@@ -286,12 +245,18 @@ class dissimilarity:
 
 
 class domain:
+    '''
+    Domain classification model.
+    '''
 
     def __init__(self, precs=[0.95]):
 
         self.precs = precs
 
     def train(self, d, labels):
+        '''
+        Train the domain model on dissimilarity scores by finding thresholds.
+        '''
 
         d = -d  # Because lowest d is more likely ID
 
@@ -412,7 +377,7 @@ def predict_std(model, X):
 
     inputs:
         model = The gridsearch pipeline model.
-        X_test = The featues.
+        X = The featues.
 
     outputs:
         std = The standard deviation between models from ensemble model.
@@ -429,6 +394,113 @@ def predict_std(model, X):
     std = np.std(std, axis=0)
 
     return std
+
+
+def cdf(x):
+    '''
+    Plot the quantile quantile plot for cummulative distributions.
+
+    inputs:
+        x = The residuals normalized by the calibrated uncertainties.
+
+    outputs:
+        y = The cummulative distribution of observed data.
+        y_pred = The cummulative distribution of standard normal distribution.
+        area = The area between y and y_pred.
+    '''
+
+    nx = len(x)
+
+    # Need sorting
+    x = sorted(x)
+    z = sorted(z_standard_normal)
+
+    # Cummulative fractions
+    xfrac = np.arange(nx)/(nx-1)
+    zfrac = np.arange(nz)/(nz-1)
+
+    # Interpolation to compare cdf
+    eval_points = sorted(list(set(x+z)))
+    y_pred = np.interp(eval_points, x, xfrac)  # Predicted
+    y = np.interp(eval_points, z, zfrac)  # Standard Normal
+
+    # Area between ideal distribution and observed
+    absres = np.abs(y_pred-y)
+    areacdf = np.trapz(absres, x=eval_points, dx=0.00001)
+    areaparity = np.trapz(absres, x=y, dx=0.00001)
+
+    return y, y_pred, areaparity, areacdf
+
+
+def bin_data(data_cv, bins, by):
+
+    # Correct for cases were many cases are at the same value
+    indx = data_cv[by] < 1.0
+
+    # Bin data by our dissimilarity
+    data_cv['bin'] = 'last'
+    sub_bin = pd.qcut(
+                      data_cv[indx][by].rank(method='first'),
+                      bins-1,
+                      )
+
+    data_cv.loc[indx, 'bin'] = sub_bin
+
+    # Calculate statistics
+    bin_groups = data_cv.groupby('bin', observed=False)
+    distmean = bin_groups[by].mean()
+    binmin = bin_groups[by].min()
+    binmax = bin_groups[by].max()
+    counts = bin_groups['z'].count()
+    rmse = bin_groups['r/std_y'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+
+    area = bin_groups.apply(lambda x: cdf(
+                                          x['z'],
+                                          )[-1])
+
+    area = area.to_frame().rename({0: 'cdf_area'}, axis=1)
+
+    distmean = distmean.to_frame().add_suffix('_mean')
+    binmin = binmin.to_frame().add_suffix('_min')
+    binmax = binmax.to_frame().add_suffix('_max')
+    rmse = rmse.to_frame().rename({'r/std_y': 'rmse/std_y'}, axis=1)
+    counts = counts.to_frame().rename({'z': 'count'}, axis=1)
+
+    # Combine data for each bin
+    bin_cv = [
+              distmean,
+              binmin,
+              binmax,
+              counts,
+              rmse,
+              area,
+              ]
+
+    bin_cv = reduce(lambda x, y: pd.merge(x, y, on='bin'), bin_cv)
+
+    bin_cv = bin_cv.reset_index()
+
+    return bin_cv
+
+
+def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
+
+    bin_cv['domain_rmse/sigma_y'] = bin_cv['rmse/std_y'] <= gt_rmse
+    bin_cv['domain_cdf_area'] = bin_cv['cdf_area'] <= gt_area
+
+    data_cv['domain_rmse/sigma_y'] = False
+    data_cv['domain_cdf_area'] = False
+    for i in bin_cv.bin:
+
+        # Ground labels based on rmse
+        gt = bin_cv.loc[bin_cv['bin'] == i]['domain_rmse/sigma_y']
+        gt = gt.values[-1]
+        data_cv.loc[data_cv['bin'] == i, 'domain_rmse/sigma_y'] = gt
+
+        # Ground labels based on uq quality
+        gt = bin_cv.loc[bin_cv['bin'] == i]['domain_cdf_area']
+        gt = gt.values[-1]
+        data_cv.loc[data_cv['bin'] == i, 'domain_cdf_area'] = gt
 
 
 class combine:
@@ -473,7 +545,7 @@ class combine:
 
         self.splits += uqsplits
 
-    def cv(self, split, gs_model, ds_model, X, y, g):
+    def cv(self, split, gs_model, ds_model, X, y, g=None):
         '''
         Do cross validation.
 
@@ -513,8 +585,7 @@ class combine:
         # Starting values
         data['index'] = te.astype(int)
         data['splitter'] = splitter
-        data['fold'] = [count]*te.shape[0]
-        data['g'] = g[te]
+        data['fold'] = count
         data['y'] = y[te]
 
         # Statistics from training data
@@ -533,61 +604,7 @@ class combine:
 
         return data
 
-    def bin_data(self, data_cv):
-
-        # Bin data by our dissimilarity
-        data_cv['bin'] = pd.qcut(
-                                 data_cv['d'].rank(method='first'),
-                                 self.bins,
-                                 )
-
-        # Replace bins with integer number in order
-        bin_replace = data_cv['bin'].unique()
-        bin_replace = sorted(bin_replace)
-        bin_replace = enumerate(bin_replace)
-        bin_replace = dict(bin_replace)
-        bin_replace = {v: k for k, v in bin_replace.items()}
-        data_cv['bin'].replace(
-                               bin_replace,
-                               inplace=True
-                               )
-
-        # Calculate statistics
-        bin_groups = data_cv.groupby('bin', observed=False)
-        distmean = bin_groups['d'].mean()
-        binmin = bin_groups['d'].min()
-        binmax = bin_groups['d'].max()
-        counts = bin_groups['z'].count()
-        rmse = bin_groups['r/std_y'].apply(lambda x: (sum(x**2)/len(x))**0.5)
-
-        area = bin_groups.apply(lambda x: cdf(
-                                              x['z'],
-                                              )[-1])
-
-        area = area.to_frame().rename({0: 'cdf_area'}, axis=1)
-
-        distmean = distmean.to_frame().add_suffix('_mean')
-        binmin = binmin.to_frame().add_suffix('_min')
-        binmax = binmax.to_frame().add_suffix('_max')
-        rmse = rmse.to_frame().rename({'r/std_y': 'rmse/std_y'}, axis=1)
-        counts = counts.to_frame().rename({'z': 'count'}, axis=1)
-
-        bin_cv = [
-                  distmean,
-                  binmin,
-                  binmax,
-                  rmse,
-                  counts,
-                  area,
-                  ]
-
-        bin_cv = reduce(lambda x, y: pd.merge(x, y, on='bin'), bin_cv)
-
-        bin_cv = bin_cv.reset_index()
-
-        return bin_cv
-
-    def fit(self, X, y, g):
+    def fit(self, X, y, g=None):
         '''
         Fit all models. Thresholds for domain classification are also set.
 
@@ -649,30 +666,15 @@ class combine:
         data_cv = data_cv[data_cv['splitter'] != 'calibration']
 
         # Get binned data from alternate forms of sampling
-        bin_id = self.bin_data(data_id)
-        bin_cv = self.bin_data(data_cv)
+        bin_id = bin_data(data_id, self.bins, 'd')
+        bin_cv = bin_data(data_cv, self.bins, 'd')
 
         # Acquire ground truths
         self.gt_rmse = bin_id['rmse/std_y'].max()
-        self.gt_area = bin_id['cdf_area'].max()
+        self.gt_area = bin_id[bin_id['bin'] != 'last']['cdf_area'].max()
 
         # Classify ground truth labels
-        bin_cv['domain_rmse/sigma_y'] = bin_cv['rmse/std_y'] <= self.gt_rmse
-        bin_cv['domain_cdf_area'] = bin_cv['cdf_area'] <= self.gt_area
-
-        data_cv['domain_rmse/sigma_y'] = False
-        data_cv['domain_cdf_area'] = False
-        for i in bin_cv.bin:
-
-            # Ground labels based on rmse
-            gt = bin_cv.loc[bin_cv['bin'] == i]['domain_rmse/sigma_y']
-            gt = gt.values[-1]
-            data_cv.loc[data_cv['bin'] == i, 'domain_rmse/sigma_y'] = gt
-
-            # Ground labels based on uq quality
-            gt = bin_cv.loc[bin_cv['bin'] == i]['domain_cdf_area']
-            gt = gt.values[-1]
-            data_cv.loc[data_cv['bin'] == i, 'domain_cdf_area'] = gt
+        assign_ground_truth(data_cv, bin_cv, self.gt_rmse, self.gt_area)
 
         # Fit domain classifiers
         self.domain_rmse = domain(self.precs)
@@ -685,7 +687,11 @@ class combine:
         self.data_cv = data_cv
         self.bin_cv = bin_cv
 
-    def combine_domains(self, d):
+    def combine_domains_preds(self, d):
+        '''
+        Combine domain classifiers that were fit for RMSE
+        and miscalibration area.
+        '''
 
         # Predict domains on training data
         data_rmse_dom_pred = self.domain_rmse.predict(d)
@@ -702,6 +708,9 @@ class combine:
         return dom_pred
 
     def predict(self, X):
+        '''
+        Aggregate all predictions from models.
+        '''
 
         # Transform data
         X_trans = pipe_transforms(self.gs_model, X)
@@ -709,13 +718,13 @@ class combine:
         # Predict from each model
         pred = pd.DataFrame()
         pred['y_pred'] = self.gs_model.predict(X)
-        pred['dis_pred'] = self.ds_model.predict(X_trans)
+        pred['d_pred'] = self.ds_model.predict(X_trans)
         pred['y_stdu_pred'] = predict_std(self.gs_model, X_trans)
         pred['y_stdc_pred'] = self.uq_model.predict(pred['y_stdu_pred'])
 
         pred = pd.concat([
                           pred,
-                          self.combine_domains(pred['dis_pred']),
+                          self.combine_domains_preds(pred['d_pred']),
                           ], axis=1)
 
         return pred

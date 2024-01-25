@@ -1,6 +1,7 @@
-from madml.models.combine import domain_preds
+from madml.models import bin_data, assign_ground_truth
 from madml.hosting import docker
 from madml import plots
+from scipy import stats
 
 import pandas as pd
 import numpy as np
@@ -20,10 +21,10 @@ class nested_cv:
 
     def __init__(
                  self,
+                 model,
                  X,
                  y,
                  g=None,
-                 model=None,
                  splitters=None,
                  save=None,
                  ):
@@ -43,22 +44,13 @@ class nested_cv:
         self.model = copy.deepcopy(model)
         self.save = save
 
-        # Grouping
         if g is None:
-            self.g = np.array(['no-groups']*self.X.shape[0])
+            self.g = np.repeat('not_provided', y.shape[0])
         else:
             self.g = g
 
-        # Generate the splits
-        splits = self.split()
-        self.splits = list(splits)
-
-    def split(self):
-        '''
-        Generate the splits.
-        '''
-
         # Train, test splits
+        self.splits = []
         for splitter in self.splitters:
             for count, split in enumerate(splitter[1].split(
                                                             self.X,
@@ -66,7 +58,7 @@ class nested_cv:
                                                             self.g
                                                             ), 1):
                 train, test = split
-                yield (train, test, count, splitter[0])
+                self.splits.append((train, test, count, splitter[0]))
 
     def cv(self, split):
         '''
@@ -75,48 +67,62 @@ class nested_cv:
 
         train, test, count, name = split  # train/test
 
+        if (train.shape[0] < 1) | (test.shape[0] < 1):
+            return pd.DataFrame()
+
         # Fit models
         print('MADMl - Nested CV {} Fold: {}'.format(name, count))
         model = copy.deepcopy(self.model)
         model.fit(self.X[train], self.y[train], self.g[train])
-        data_test = model.predict(self.X[test])
 
-        data_test['y'] = self.y[test]
-        data_test['g'] = self.g[test]
-        data_test['std(y)'] = model.ystd
-        data_test['index'] = test
-        data_test['fold'] = count
-        data_test['split'] = 'test'
-        data_test['splitter'] = name
-        data_test['index'] = data_test['index'].astype(int)
-        data_test['r'] = data_test['y']-data_test['y_pred']
+        # Gather predictions on test set
+        data = model.predict(self.X[test])
 
-        # z score
-        if 'y_stdu' in data_test.columns:
-            data_test['z'] = data_test['r']/data_test['y_stdc']
+        # Starting values
+        data['index'] = test.astype(int)
+        data['splitter'] = name
+        data['fold'] = count
+        data['y'] = self.y[test]
 
-            calc = data_test['y_stdc']/data_test['std(y)']
-            data_test['y_stdc/std(y)'] = calc
+        # Statistics from training data
+        data['range_y'] = np.ptp(self.y[train])
+        data['iqr_y'] = stats.iqr(self.y[train])
+        data['var_y'] = np.var(self.y[train])
+        data['std_y'] = np.std(self.y[train])
+        data['mad_y'] = stats.median_abs_deviation(self.y[train])
 
-            calc = data_test['y_stdu']/data_test['std(y)']
-            data_test['y_stdu/std(y)'] = calc
+        # Predictions
+        data['r'] = self.y[test]-data['y_pred']
+        data['z'] = data['r']/data['y_stdc_pred']
+        data['r/std_y'] = data['r']/data['std_y']
 
-        # Normalized
-        data_test['r/std(y)'] = data_test['r']/data_test['std(y)']
-        data_test['y_pred/std(y)'] = data_test['y_pred']/data_test['std(y)']
-        data_test['y/std(y)'] = data_test['y']/data_test['std(y)']
+        return data
 
-        return data_test
-
-    def assess(self):
+    def test(self):
         '''
         Gather assessment data and plot results.
         '''
 
         # Assess model
         df = [self.cv(i) for i in self.splits]
-        df = pd.concat(df)
-        df['id'] = abs(df['r/std(y)']) < self.model.gts
+        df = pd.concat(df)  # Combine data
+
+        # Determine ground truth from test data
+        df_id = df[df['splitter'] == 'fit']
+        bin_id = bin_data(df_id, self.model.bins, 'd_pred')
+        df_bin = bin_data(df, self.model.bins, 'd_pred')
+
+        gt_rmse = bin_id['rmse/std_y'].max()
+        gt_area = bin_id[bin_id['cdf_area'] < bin_id['cdf_area'].max()].max()
+        gt_area = bin_id[bin_id['bin'] != 'last']['cdf_area'].max()
+
+        # Classify ground truth labels
+        assign_ground_truth(
+                            df,
+                            df_bin,
+                            gt_rmse,
+                            gt_area,
+                            )
 
         save = os.path.join(self.save, 'assessment')
         out = plots.generate_plots(
