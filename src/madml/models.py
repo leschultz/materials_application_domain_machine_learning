@@ -489,19 +489,24 @@ def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
     bin_cv['domain_rmse/sigma_y'] = bin_cv['rmse/std_y'] <= gt_rmse
     bin_cv['domain_cdf_area'] = bin_cv['cdf_area'] <= gt_area
 
-    data_cv['domain_rmse/sigma_y'] = False
-    data_cv['domain_cdf_area'] = False
+    cols = [
+            'domain_rmse/sigma_y',
+            'domain_cdf_area',
+            ]
+
+    # Allocate data
+    for col in cols:
+        data_cv[col] = None
+
+    # Assign bin data to individual points
     for i in bin_cv.bin:
 
         # Ground labels based on rmse
-        gt = bin_cv.loc[bin_cv['bin'] == i]['domain_rmse/sigma_y']
-        gt = gt.values[-1]
-        data_cv.loc[data_cv['bin'] == i, 'domain_rmse/sigma_y'] = gt
+        row = data_cv['bin'] == i
+        gt = bin_cv.loc[bin_cv['bin'] == i][cols]
 
-        # Ground labels based on uq quality
-        gt = bin_cv.loc[bin_cv['bin'] == i]['domain_cdf_area']
-        gt = gt.values[-1]
-        data_cv.loc[data_cv['bin'] == i, 'domain_cdf_area'] = gt
+        for col in cols:
+            data_cv.loc[row, col] = gt[col].values[0]
 
 
 class combine:

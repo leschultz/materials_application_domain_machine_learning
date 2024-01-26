@@ -324,6 +324,20 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
 
 
 def bins(d_min, d_mean, d_max, e, elabel, gt, ylabel, save, suffix):
+    '''
+    Plot statistical errors with respect to dissimilarity.
+
+    inputs:
+        d_min = The minimum of each bin.
+        d_mean = The mean of each bin.
+        d_max = The max of each bin.
+        e = The error statistic.
+        elabel = The domain labels.
+        gt = The domain ground truth.
+        ylabel = The y-axis label.
+        save = The directory to save plot.
+        suffix = Append a suffix to the save name.
+    '''
 
     data = {'gt': gt}
     fig, ax = pl.subplots()
