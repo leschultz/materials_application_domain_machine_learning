@@ -348,6 +348,7 @@ class domain:
             do_pred = The domain prediction.
         '''
 
+        # Keys that are not prediction thresholds
         skip = [
                 'Precision',
                 'Recall',

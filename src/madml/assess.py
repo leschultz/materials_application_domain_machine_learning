@@ -185,6 +185,7 @@ class nested_cv:
         plot.parity()
         plot.bins(self.gt_rmse, self.gt_area)
         plot.pr(self.model.domain_rmse.data, self.model.domain_area.data)
+        plot.confusion()
 
         if name is not None:
 

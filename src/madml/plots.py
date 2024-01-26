@@ -1,7 +1,5 @@
 from sklearn.metrics import (
-                             precision_recall_curve,
                              PrecisionRecallDisplay,
-                             average_precision_score,
                              confusion_matrix,
                              ConfusionMatrixDisplay,
                              )
@@ -431,9 +429,6 @@ def pr(df, save, suffix):
         df = Data with relevant pr data.
         save = The locatin to save the figure/data.
         suffix = Append a suffix to the save name.
-
-    outputs:
-        custom = Data containing threholds for choice of precision/score.
     '''
 
     precision = df['Precision']
@@ -459,6 +454,7 @@ def pr(df, save, suffix):
               xmax=1.0,
               )
 
+    # Keys that are not prediction thresholds
     skip = [
             'Precision',
             'Recall',
@@ -526,93 +522,35 @@ def pr(df, save, suffix):
         json.dump(df, handle)
 
 
-def confusion(y_true, y_pred, pos_label, save='.'):
+def confusion(y, y_pred, save, suffix):
+    '''
+    Make a confusion matrix..
 
-    if pos_label == 'id':
-        labels = ['OD', 'ID']
-    else:
-        labels = ['ID', 'OD']
-        y_true = ~y_true
+    inputs:
+        y = The true value.
+        y_pred = The predicted value.
+        save = The directory to save plot.
+        suffix = Append a suffix to the save name.
+    '''
 
-    conf = confusion_matrix(y_true, y_pred)
-
-    # In case only one class exists
-    if conf.shape == (1, 1):
-
-        t = list(set(y_true))[0]
-        p = list(set(y_pred))[0]
-
-        if (t == p) and (t == 0):
-            conf = np.array([[conf[0, 0], 0], [0, 0]])
-        elif (t == p) and (t == 1):
-            conf = np.array([[0, 0], [0, conf[0, 0]]])
-        else:
-            raise 'You done fucked up'
+    y = list(map(str, y))
+    y_pred = list(map(str, y_pred))
+    conf = confusion_matrix(y, y_pred, labels=['True', 'False'])
 
     fig, ax = pl.subplots()
-    disp = ConfusionMatrixDisplay(conf, display_labels=labels)
+    disp = ConfusionMatrixDisplay(conf)
     disp.plot(ax=ax)
     fig_data = conf.tolist()
 
-    disp.figure_.savefig(
-                         save+'_confusion.png',
-                         bbox_inches='tight'
-                         )
+    disp.figure_.savefig(os.path.join(
+                                      save,
+                                      'confusion_{}.png'.format(suffix),
+                                      ), bbox_inches='tight')
     pl.close(fig)
 
-    jsonfile = save+'_confusion.json'
+    jsonfile = os.path.join(save, 'confusion_{}.json'.format(suffix))
     with open(jsonfile, 'w') as handle:
         json.dump(fig_data, handle)
-
-
-def generate_confusion(df, dfbin, save=None):
-    '''
-    Generate confusion matrix for predictions compared to ground truth.
-
-    inputs:
-        df = Dataframe for single predictions.
-        dfbin = Dataframe for statistical predictions.
-        save = The location to save figures.
-    '''
-
-    def ds(x):
-        return [i for i in df.columns if x in i]
-
-    ids = ds('ID')
-    ods = ds('OD')
-    ds = ids+ods
-
-    for i in ds:
-
-        if 'BIN' in i:
-            newsave = os.path.join(save, 'intervals')
-        else:
-            newsave = os.path.join(save, 'single')
-
-        if 'y_stdc/std(y)' in i:
-            newsave = os.path.join(newsave, 'y_stdc_std(y)')
-        elif 'dist' in i:
-            newsave = os.path.join(newsave, 'dist')
-
-        if 'ID' in i:
-            newsave = os.path.join(newsave, 'id')
-            pos_label = 'id'
-        elif 'OD' in i:
-            newsave = os.path.join(newsave, 'od')
-            pos_label = 'od'
-
-        if 'Max F1' in i:
-            th = 'Max_F1'
-        else:
-            th = i.split(' ')[-1]
-
-        newsave = os.path.join(newsave, th)
-
-        # Cannot assign ground truth prior to observation for statistical test
-        if 'BIN' in i:
-            continue
-        else:
-            confusion(df['id'], df[i], pos_label, newsave)
 
 
 class plotter:
@@ -626,7 +564,7 @@ class plotter:
     def parity(self):
 
         # ID/OD data via gt_rmse
-        df = self.df[self.df['domain_rmse/sigma_y'] == True]
+        df = self.df[self.df['domain_rmse/sigma_y'] is True]
         parity(
                df.y,
                df.y_pred,
@@ -635,10 +573,10 @@ class plotter:
                self.save,
                'rmse_id',
                )
-        
-        df = self.df[self.df['domain_rmse/sigma_y'] == False]
+
+        df = self.df[self.df['domain_rmse/sigma_y'] is False]
         parity(
-               df.y, 
+               df.y,
                df.y_pred,
                df.std_y,
                df.d_pred,
@@ -647,17 +585,17 @@ class plotter:
                )
 
         # ID/OD data via gt_area
-        df = self.df[self.df['domain_cdf_area'] == True]
+        df = self.df[self.df['domain_cdf_area'] is True]
         parity(
-               df.y, 
-               df.y_pred, 
-               df.std_y, 
-               df.d_pred, 
-               self.save, 
+               df.y,
+               df.y_pred,
+               df.std_y,
+               df.d_pred,
+               self.save,
                'area_id',
                )
-        
-        df = self.df[self.df['domain_cdf_area'] == False]
+
+        df = self.df[self.df['domain_cdf_area'] is False]
         parity(
                df.y,
                df.y_pred,
@@ -711,3 +649,16 @@ class plotter:
 
         # Plotting for area
         pr(domain_area, self.save, 'area')
+
+    def confusion(self):
+
+        gt_cols = ['domain_rmse/sigma_y', 'domain_cdf_area']
+        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
+
+        for gt in gt_cols:
+            for pred in pred_cols:
+                if gt.replace('domain_', '') in pred:
+                    y = self.df.loc[:, gt].values
+                    y_pred = self.df.loc[:, pred].values
+                    suffix = pred.replace(' ', '_').replace('/', '_div_')
+                    confusion(y, y_pred, self.save, suffix)
