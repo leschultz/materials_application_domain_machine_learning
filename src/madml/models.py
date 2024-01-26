@@ -417,8 +417,8 @@ def cdf(x):
     z = sorted(z_standard_normal)
 
     # Cummulative fractions
-    xfrac = np.arange(nx)/(nx-1)
-    zfrac = np.arange(nz)/(nz-1)
+    xfrac = np.arange(1, nx+1)/(nx)
+    zfrac = np.arange(1, nz+1)/(nz)
 
     # Interpolation to compare cdf
     eval_points = sorted(list(set(x+z)))

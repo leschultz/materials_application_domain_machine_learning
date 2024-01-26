@@ -119,7 +119,6 @@ class nested_cv:
 
         gt_rmse = bin_id['rmse/std_y'].max()
         gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
-        print(gt_area)
 
         # Classify ground truth labels
         assign_ground_truth(

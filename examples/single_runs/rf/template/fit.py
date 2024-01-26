@@ -5,18 +5,21 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from madml.ml.splitters import BootstrappedLeaveClusterOut
-from madml.models.space import distance_model
-from madml.models.combine import domain_model
-from madml.models.uq import calibration_model
-from madml.ml.assessment import nested_cv
+from madml.models import dissimilarity, calibration, domain, combine
+from madml.splitters import BootstrappedLeaveClusterOut
+from madml.assess import nested_cv
 from madml import datasets
+import random
 
 
 def main():
 
     run_name = 'run'
     data_name = replace_data
+    seed = 0
+
+    # Seed for reproducibility
+    random.seed(seed)
 
     # Load data
     data = datasets.load(data_name)
@@ -26,10 +29,10 @@ def main():
     n_repeats = 5
 
     # ML Distance model
-    ds_model = distance_model(dist='kde')
+    ds_model = dissimilarity(dis='kde')
 
     # ML UQ function
-    uq_model = calibration_model(params=[0.0, 1.0])
+    uq_model = calibration(params=[0.0, 1.0])
 
     # ML
     scale = StandardScaler()
@@ -67,11 +70,13 @@ def main():
 
         splits.append(('agglo_{}'.format(i), top_split))
 
-    # Fit models
-    model = domain_model(gs_model, ds_model, uq_model, splits)
-    cv = nested_cv(X, y, g, model, splits, save=run_name)
-    cv.assess()
-    cv.push('leschultz/cmg-rf-{}:latest'.format(data_name))
+    # Assess models
+    model = combine(gs_model, ds_model, uq_model, splits)
+    cv = nested_cv(model, X, y, splitters=splits)
+    df = cv.test()
+
+    # Full fit model and write results.
+    cv.write_results(run_name)
 
 
 if __name__ == '__main__':
