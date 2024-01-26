@@ -439,9 +439,9 @@ def bin_data(data_cv, bins, by):
     indx = data_cv[by] < 1.0
 
     # Bin data by our dissimilarity
-    data_cv.loc[:, 'bin'] = 'last'
+    data_cv.loc[:, 'bin'] = '[1.0, 1.0]'
     sub_bin = pd.qcut(
-                      data_cv[indx][by].rank(method='first'),
+                      data_cv[indx][by],
                       bins-1,
                       )
 
@@ -675,7 +675,7 @@ class combine:
 
         # Acquire ground truths
         self.gt_rmse = bin_id['rmse/std_y'].max()
-        self.gt_area = bin_id[bin_id['bin'] != 'last']['cdf_area'].max()
+        self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
 
         # Classify ground truth labels
         assign_ground_truth(data_cv, bin_cv, self.gt_rmse, self.gt_area)

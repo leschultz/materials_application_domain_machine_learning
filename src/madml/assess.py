@@ -27,23 +27,23 @@ class nested_cv:
                  y,
                  g=None,
                  splitters=None,
-                 save='./run',
                  ):
 
         '''
         A class to split data into multiple levels.
 
         inputs:
+            model = The combined model to assess.
             X = The original features to be split.
             y = The original target features to be split.
             g = The groups of data to be split.
+            splitters = All the types of splitters to assess.
         '''
 
         self.X = X  # Features
         self.y = y  # Target
         self.splitters = copy.deepcopy(splitters)  # Splitter
         self.model = copy.deepcopy(model)
-        self.save = save
 
         self.model.disable_tqdm = True  # Disable print
 
@@ -118,7 +118,8 @@ class nested_cv:
         df_bin = bin_data(df, self.model.bins, 'd_pred')
 
         gt_rmse = bin_id['rmse/std_y'].max()
-        gt_area = bin_id[bin_id['bin'] != 'last']['cdf_area'].max()
+        gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
+        print(gt_area)
 
         # Classify ground truth labels
         assign_ground_truth(
@@ -128,13 +129,28 @@ class nested_cv:
                             gt_area,
                             )
 
-        save = os.path.join(self.save, 'assessment')
+        self.df = df
+        self.df_bin = df_bin
+
+        return df, df_bin, self.model
+
+    def write_results(self, parent, name=None, push_container=False):
+        '''
+        Push docker container with full fit model.
+
+        inputs:
+            parent = The top directory to save things.
+            name = The name of the container <account>/<repository_name>:<tag>
+            push_container = Whether to build and push a container with model.
+        '''
+
+        save = os.path.join(parent, 'assessment')
         os.makedirs(save, exist_ok=True)
-        df.to_csv(os.path.join(save, 'pred.csv'), index=False)
-        df_bin.to_csv(os.path.join(save, 'pred_bins.csv'), index=False)
+        self.df.to_csv(os.path.join(save, 'pred.csv'), index=False)
+        self.df_bin.to_csv(os.path.join(save, 'pred_bins.csv'), index=False)
 
         # Save model
-        save = os.path.join(self.save, 'model')
+        save = os.path.join(parent, 'model')
         os.makedirs(save, exist_ok=True)
         self.model.fit(self.X, self.y, self.g)
 
@@ -162,58 +178,48 @@ class nested_cv:
                   open(os.path.join(save, 'model.dill'), 'wb')
                   )
 
-        return df, df_bin, self.model
+        if name is not None:
 
-    def push(self, name, push_container=False):
-        '''
-        Push docker container with full fit model.
+            # Create a container
+            data_path = pkg_resources.resource_filename(
+                                                        'madml',
+                                                        'templates/docker',
+                                                        )
+            save = os.path.join(parent, 'hosting')
+            shutil.copytree(data_path, save)
 
-        inputs:
-            name = The name of the container <account>/<repository_name>:<tag>
-            push_container = Whether to build and push a container with model.
-        '''
+            old = os.getcwd()
+            os.chdir(save)
+            shutil.copy('../model/model.dill', '.')
+            shutil.copy('../model/X.csv', '.')
 
-        print('MADML - Creating files to upload model to {}'.format(name))
-        data_path = pkg_resources.resource_filename(
-                                                    'madml',
-                                                    'templates/docker',
-                                                    )
-        save = os.path.join(self.save, 'hosting')
-        shutil.copytree(data_path, save)
+            # Capture current environment
+            env = subprocess.run(
+                                 ['pip', 'freeze'],
+                                 capture_output=True,
+                                 text=True
+                                 )
 
-        old = os.getcwd()
-        os.chdir(save)
-        shutil.copy('../model/model.dill', '.')
-        shutil.copy('../model/X.csv', '.')
+            with open('requirements.txt', 'w') as handle:
+                handle.write(env.stdout)
 
-        # Capture current environment
-        env = subprocess.run(
-                             ['pip', 'freeze'],
-                             capture_output=True,
-                             text=True
-                             )
+            if push_container:
+                docker.build_and_push_container(name)
 
-        with open('requirements.txt', 'w') as handle:
-            handle.write(env.stdout)
+            with open('user_predict.py', 'r') as handle:
+                data = handle.read()
 
-        if push_container:
-            print('MADML - Pushing model')
-            docker.build_and_push_container(name)
+            data = data.replace('replace', name)
 
-        with open('user_predict.py', 'r') as handle:
-            data = handle.read()
+            with open('user_predict.py', 'w') as handle:
+                handle.write(data)
 
-        data = data.replace('replace', name)
+            with open('user_predict.ipynb', 'r') as handle:
+                data = handle.read()
 
-        with open('user_predict.py', 'w') as handle:
-            handle.write(data)
+            data = data.replace('replace', name)
 
-        with open('user_predict.ipynb', 'r') as handle:
-            data = handle.read()
+            with open('user_predict.ipynb', 'w') as handle:
+                handle.write(data)
 
-        data = data.replace('replace', name)
-
-        with open('user_predict.ipynb', 'w') as handle:
-            handle.write(data)
-
-        os.chdir(old)
+            os.chdir(old)
