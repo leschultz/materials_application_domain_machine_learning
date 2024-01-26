@@ -5,7 +5,7 @@ import sys
 import os
 
 
-def parallel(func, x, message=None, *args, **kwargs):
+def parallel(func, x, message=None, disable=False, *args, **kwargs):
     '''
     Run some function in parallel.
 
@@ -13,6 +13,7 @@ def parallel(func, x, message=None, *args, **kwargs):
         func = The function to run.
         x = The list of items to iterate on.
         message = A message to print.
+        disable = Disable tqdm print.
         args = Arguemnts for func.
         kwargs = Keyword arguments for func.
 
@@ -29,7 +30,8 @@ def parallel(func, x, message=None, *args, **kwargs):
         data = list(tqdm(
                          pool.imap(part_func, x),
                          total=len(x),
-                         file=sys.stdout
+                         file=sys.stdout,
+                         disable=disable,
                          ))
 
     return data

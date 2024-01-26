@@ -22,6 +22,7 @@ import copy
 # Standard normal distribution
 nz = 10000
 z_standard_normal = np.random.normal(0, 1, nz)
+pd.options.mode.chained_assignment = None
 
 
 def llh(std, res, x, func):
@@ -438,7 +439,7 @@ def bin_data(data_cv, bins, by):
     indx = data_cv[by] < 1.0
 
     # Bin data by our dissimilarity
-    data_cv['bin'] = 'last'
+    data_cv.loc[:, 'bin'] = 'last'
     sub_bin = pd.qcut(
                       data_cv[indx][by].rank(method='first'),
                       bins-1,
@@ -517,6 +518,7 @@ class combine:
                  splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  precs=[0.95],
+                 disable_tqdm=False,
                  ):
 
         '''
@@ -534,6 +536,7 @@ class combine:
         self.bins = bins
         self.splits = copy.deepcopy(splits)
         self.precs = precs
+        self.disable_tqdm = disable_tqdm
 
         # Add a splitter to calibrate UQ and prevent overfitting
         uqsplits = []
@@ -628,6 +631,7 @@ class combine:
         data_cv = parallel(
                            self.cv,
                            splits,
+                           disable=self.disable_tqdm,
                            gs_model=self.gs_model,
                            ds_model=self.ds_model,
                            X=X,

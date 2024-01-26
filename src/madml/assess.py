@@ -2,6 +2,7 @@ from madml.models import bin_data, assign_ground_truth
 from madml.hosting import docker
 from madml import plots
 from scipy import stats
+from tqdm import tqdm
 
 import pandas as pd
 import numpy as np
@@ -26,7 +27,7 @@ class nested_cv:
                  y,
                  g=None,
                  splitters=None,
-                 save=None,
+                 save='./run',
                  ):
 
         '''
@@ -43,6 +44,8 @@ class nested_cv:
         self.splitters = copy.deepcopy(splitters)  # Splitter
         self.model = copy.deepcopy(model)
         self.save = save
+
+        self.model.disable_tqdm = True  # Disable print
 
         if g is None:
             self.g = np.repeat('not_provided', y.shape[0])
@@ -71,7 +74,6 @@ class nested_cv:
             return pd.DataFrame()
 
         # Fit models
-        print('MADMl - Nested CV {} Fold: {}'.format(name, count))
         model = copy.deepcopy(self.model)
         model.fit(self.X[train], self.y[train], self.g[train])
 
@@ -104,7 +106,10 @@ class nested_cv:
         '''
 
         # Assess model
-        df = [self.cv(i) for i in self.splits]
+        df = []
+        for i in tqdm(self.splits):
+            df.append(self.cv(i))
+
         df = pd.concat(df)  # Combine data
 
         # Determine ground truth from test data
@@ -113,7 +118,6 @@ class nested_cv:
         df_bin = bin_data(df, self.model.bins, 'd_pred')
 
         gt_rmse = bin_id['rmse/std_y'].max()
-        gt_area = bin_id[bin_id['cdf_area'] < bin_id['cdf_area'].max()].max()
         gt_area = bin_id[bin_id['bin'] != 'last']['cdf_area'].max()
 
         # Classify ground truth labels
@@ -125,51 +129,29 @@ class nested_cv:
                             )
 
         save = os.path.join(self.save, 'assessment')
-        out = plots.generate_plots(
-                                   df,
-                                   np.std(self.y),
-                                   self.model.bins,
-                                   save,
-                                   self.model.gts,
-                                   self.model.gtb,
-                                   self.model.dists,
-                                   )
-        thresholds, df_bin = out
-        for i in ['y_stdc/std(y)', 'dist']:
-            iname = 'intervals_{}.csv'.format(i.replace('/', '_'))
-            df_bin[i].to_csv(os.path.join(*[
-                                            save,
-                                            'intervals',
-                                            iname,
-                                            ]), index=False)
-
-        # Some nan values from concatenating on thresholds that do not exist
-        df.fillna(False, inplace=True)
-
-        if save:
-            plots.generate_confusion(df, df_bin, save)
-
-        df.to_csv(os.path.join(*[save, 'single', 'single.csv']), index=False)
+        os.makedirs(save, exist_ok=True)
+        df.to_csv(os.path.join(save, 'pred.csv'), index=False)
+        df_bin.to_csv(os.path.join(save, 'pred_bins.csv'), index=False)
 
         # Save model
-        print('MADML - Making Full Fit Model')
-        self.model.save = os.path.join(self.save, 'model')
+        save = os.path.join(self.save, 'model')
+        os.makedirs(save, exist_ok=True)
         self.model.fit(self.X, self.y, self.g)
 
         np.savetxt(
-                   os.path.join(self.model.save, 'X.csv'),
+                   os.path.join(save, 'X.csv'),
                    self.X,
                    delimiter=',',
                    )
 
         np.savetxt(
-                   os.path.join(self.model.save, 'y.csv'),
+                   os.path.join(save, 'y.csv'),
                    self.y,
                    delimiter=',',
                    )
 
         np.savetxt(
-                   os.path.join(self.model.save, 'g.csv'),
+                   os.path.join(save, 'g.csv'),
                    self.g,
                    delimiter=',',
                    fmt='%s',
@@ -177,10 +159,10 @@ class nested_cv:
 
         dill.dump(
                   self.model,
-                  open(os.path.join(self.model.save, 'model.dill'), 'wb')
+                  open(os.path.join(save, 'model.dill'), 'wb')
                   )
 
-        return df, self.model
+        return df, df_bin, self.model
 
     def push(self, name, push_container=False):
         '''
