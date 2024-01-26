@@ -271,6 +271,7 @@ class domain:
                                                 )
 
             precision, recall, thresholds = prc_scores
+            thresholds *= -1
 
             auc_score = average_precision_score(
                                                 labels,
@@ -285,11 +286,12 @@ class domain:
                               den,
                               out=np.zeros_like(den), where=(den != 0)
                               )
+        # Save data
+        data = {}
 
         # Maximum F1 score
         max_f1_index = np.argmax(f1_scores)
 
-        data = {}
         data['Max F1'] = {
                           'Precision': precision[max_f1_index],
                           'Recall': recall[max_f1_index],
@@ -326,9 +328,12 @@ class domain:
             else:
                 data[name]['Threshold'] = thresholds[index]
 
-        # Convert back
-        for key, value in data.items():
-            data[key]['Threshold'] *= -1
+        data['AUC'] = auc_score
+        data['Baseline'] = sum(labels)/len(labels)
+        data['AUC-Baseline'] = auc_score-data['Baseline']
+        data['Precision'] = precision.tolist()
+        data['Recall'] = recall.tolist()
+        data['Thresholds'] = thresholds.tolist()
 
         self.data = data
 
@@ -343,8 +348,20 @@ class domain:
             do_pred = The domain prediction.
         '''
 
+        skip = [
+                'Precision',
+                'Recall',
+                'Thresholds',
+                'AUC',
+                'Baseline',
+                'AUC-Baseline',
+                ]
+
         do_pred = pd.DataFrame()
         for key, value in self.data.items():
+
+            if key in skip:
+                continue
 
             key = 'Domain Prediction from {}'.format(key)
             cut = value['Threshold']

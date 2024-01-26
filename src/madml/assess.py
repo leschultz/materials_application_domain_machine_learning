@@ -146,7 +146,6 @@ class nested_cv:
         for d in [ass_save, model_save]:
             os.makedirs(d, exist_ok=True)
 
-
         # Write test data
         self.df.to_csv(os.path.join(ass_save, 'pred.csv'), index=False)
         self.df_bin.to_csv(os.path.join(
@@ -185,6 +184,7 @@ class nested_cv:
         plot = plotter(self.df, self.df_bin, ass_save)
         plot.parity()
         plot.bins(self.gt_rmse, self.gt_area)
+        plot.pr(self.model.domain_rmse.data, self.model.domain_area.data)
 
         if name is not None:
 

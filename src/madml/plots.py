@@ -47,8 +47,6 @@ def parity(
         suffix = Append a suffix to the save name.
     '''
 
-    os.makedirs(save, exist_ok=True)
-
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
     rmse_sigma = metrics.mean_squared_error(y/sigma_y, y_pred/sigma_y)**0.5
 
@@ -177,8 +175,6 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
         cdf_name = '{}_{}'.format(cdf_name, binsave)
         parity_name = '{}_{}'.format(parity_name, binsave)
         dist_name = '{}_{}'.format(dist_name, binsave)
-
-    os.makedirs(save, exist_ok=True)
 
     area_label = 'Observed Distribution'
     area_label += '\nMiscalibration Area: {:.3f}'.format(areaparity)
@@ -427,38 +423,29 @@ def bins(d_min, d_mean, d_max, e, elabel, gt, ylabel, save, suffix):
         json.dump(data, handle)
 
 
-def pr(score, in_domain, pos_label, save=False):
+def pr(df, save, suffix):
     '''
     Plot PR curve and acquire thresholds.
 
     inputs:
-        score = The dissimilarity score.
-        in_domain = The label for domain.
-        pos_label = The positive label for domain.
+        df = Data with relevant pr data.
         save = The locatin to save the figure/data.
+        suffix = Append a suffix to the save name.
 
     outputs:
         custom = Data containing threholds for choice of precision/score.
     '''
 
-    baseline = [1 if i == pos_label else 0 for i in in_domain]
-    baseline = sum(baseline)/len(in_domain)
-    relative_base = 1-baseline  # The amount of area to gain in PR
-    diff = auc_score-baseline
-
-    # AUC relative to the baseline
-    if relative_base == 0.0:
-        auc_relative = 0.0
-    else:
-        auc_relative = (diff)/relative_base
-
-    os.makedirs(save, exist_ok=True)
+    precision = df['Precision']
+    recall = df['Recall']
+    auc_score = df['AUC']
+    diff = df['AUC-Baseline']
+    baseline = df['Baseline']
 
     fig, ax = pl.subplots()
 
     pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
     pr_label = 'AUC: {:.2f}\n'.format(auc_score)
-    pr_label += 'Relative AUC: {:.2f}\n'.format(auc_relative)
     pr_label += 'AUC-Baseline: {:.2f}'.format(diff)
 
     pr_display.plot(ax=ax, label=pr_label)
@@ -472,10 +459,23 @@ def pr(score, in_domain, pos_label, save=False):
               xmax=1.0,
               )
 
-    for key, values in custom.items():
-        p = custom[key]['Precision']
-        r = custom[key]['Recall']
-        t = custom[key]['Threshold']
+    skip = [
+            'Precision',
+            'Recall',
+            'Thresholds',
+            'AUC',
+            'Baseline',
+            'AUC-Baseline',
+            ]
+
+    for key, values in df.items():
+
+        if key in skip:
+            continue
+
+        p = df[key]['Precision']
+        r = df[key]['Recall']
+        t = df[key]['Threshold']
 
         label = key
         label += '\nPrecision: {:.2f}'.format(p)
@@ -508,28 +508,22 @@ def pr(score, in_domain, pos_label, save=False):
 
     legend = ax.legend()
     legend.remove()
-    fig.savefig(os.path.join(save, 'pr.png'), bbox_inches='tight')
+    fig.savefig(os.path.join(
+                             save,
+                             'pr_{}.png'.format(suffix)
+                             ), bbox_inches='tight')
     fig_legend.savefig(os.path.join(
                                     save,
-                                    'pr_legend.png'
+                                    'pr_{}_legend.png'.format(suffix)
                                     ), bbox_inches='tight'
                        )
     pl.close(fig)
     pl.close(fig_legend)
 
     # Repare plot data for saving
-    data = {}
-    data['recall'] = list(recall)
-    data['precision'] = list(precision)
-    data['baseline'] = baseline
-    data['auc'] = auc_score
-    data['auc-baseline'] = diff
-    data['auc_relative'] = auc_relative
-    data.update(custom)
-
-    jsonfile = os.path.join(save, 'pr.json')
+    jsonfile = os.path.join(save, 'pr_{}.json'.format(suffix))
     with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+        json.dump(df, handle)
 
 
 def confusion(y_true, y_pred, pos_label, save='.'):
@@ -709,3 +703,11 @@ class plotter:
              self.save,
              'area',
              )
+
+    def pr(self, domain_rmse, domain_area):
+
+        # Plotting for rmse
+        pr(domain_rmse, self.save, 'rmse')
+
+        # Plotting for area
+        pr(domain_area, self.save, 'area')
