@@ -592,11 +592,7 @@ class combine:
         data['y'] = y[te]
 
         # Statistics from training data
-        data['range_y'] = np.ptp(y[tr])
-        data['iqr_y'] = stats.iqr(y[tr])
-        data['var_y'] = np.var(y[tr])
         data['std_y'] = np.std(y[tr])
-        data['mad_y'] = stats.median_abs_deviation(y[tr])
 
         # Predictions
         data['y_pred'] = gs_model_cv.predict(X[te])

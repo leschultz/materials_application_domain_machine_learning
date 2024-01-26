@@ -1,7 +1,6 @@
 from madml.models import bin_data, assign_ground_truth
 from madml.hosting import docker
-from madml import plots
-from scipy import stats
+from madml.plots import plotter
 from tqdm import tqdm
 
 import pandas as pd
@@ -87,11 +86,7 @@ class nested_cv:
         data['y'] = self.y[test]
 
         # Statistics from training data
-        data['range_y'] = np.ptp(self.y[train])
-        data['iqr_y'] = stats.iqr(self.y[train])
-        data['var_y'] = np.var(self.y[train])
         data['std_y'] = np.std(self.y[train])
-        data['mad_y'] = stats.median_abs_deviation(self.y[train])
 
         # Predictions
         data['r'] = self.y[test]-data['y_pred']
@@ -117,15 +112,15 @@ class nested_cv:
         bin_id = bin_data(df_id, self.model.bins, 'd_pred')
         df_bin = bin_data(df, self.model.bins, 'd_pred')
 
-        gt_rmse = bin_id['rmse/std_y'].max()
-        gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
+        self.gt_rmse = bin_id['rmse/std_y'].max()
+        self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
 
         # Classify ground truth labels
         assign_ground_truth(
                             df,
                             df_bin,
-                            gt_rmse,
-                            gt_area,
+                            self.gt_rmse,
+                            self.gt_area,
                             )
 
         self.df = df
@@ -143,30 +138,39 @@ class nested_cv:
             push_container = Whether to build and push a container with model.
         '''
 
-        save = os.path.join(parent, 'assessment')
-        os.makedirs(save, exist_ok=True)
-        self.df.to_csv(os.path.join(save, 'pred.csv'), index=False)
-        self.df_bin.to_csv(os.path.join(save, 'pred_bins.csv'), index=False)
+        # Save locations
+        ass_save = os.path.join(parent, 'assessment')
+        model_save = os.path.join(parent, 'model')
+
+        # Create locations
+        for d in [ass_save, model_save]:
+            os.makedirs(d, exist_ok=True)
+
+
+        # Write test data
+        self.df.to_csv(os.path.join(ass_save, 'pred.csv'), index=False)
+        self.df_bin.to_csv(os.path.join(
+                                        ass_save,
+                                        'pred_bins.csv',
+                                        ), index=False)
 
         # Save model
-        save = os.path.join(parent, 'model')
-        os.makedirs(save, exist_ok=True)
         self.model.fit(self.X, self.y, self.g)
 
         np.savetxt(
-                   os.path.join(save, 'X.csv'),
+                   os.path.join(model_save, 'X.csv'),
                    self.X,
                    delimiter=',',
                    )
 
         np.savetxt(
-                   os.path.join(save, 'y.csv'),
+                   os.path.join(model_save, 'y.csv'),
                    self.y,
                    delimiter=',',
                    )
 
         np.savetxt(
-                   os.path.join(save, 'g.csv'),
+                   os.path.join(model_save, 'g.csv'),
                    self.g,
                    delimiter=',',
                    fmt='%s',
@@ -174,8 +178,13 @@ class nested_cv:
 
         dill.dump(
                   self.model,
-                  open(os.path.join(save, 'model.dill'), 'wb')
+                  open(os.path.join(model_save, 'model.dill'), 'wb')
                   )
+
+        # Make plots from test data
+        plot = plotter(self.df, self.df_bin, ass_save)
+        plot.parity()
+        plot.bins(self.gt_rmse, self.gt_area)
 
         if name is not None:
 
