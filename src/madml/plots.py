@@ -335,50 +335,48 @@ def bins(d_min, d_mean, d_max, e, elabel, gt, ylabel, save, suffix):
 
     data = {'gt': gt}
     fig, ax = pl.subplots()
-    for dom in [True, False]:
+    for dom in ['ID', 'OD']:
 
-        if dom is True:
+        if dom == 'ID':
             color = 'g'
             marker = '.'
-            label = 'ID'
         else:
             color = 'r'
             marker = 'x'
-            label = 'OD'
 
         # Domain indexes
-        dom = dom == elabel
+        domi = dom == elabel
 
         ax.scatter(
-                   d_mean[dom],
-                   e[dom],
+                   d_mean[domi],
+                   e[domi],
                    marker=marker,
                    color=color,
-                   label='{} Mean'.format(label),
+                   label='{} Mean'.format(dom),
                    )
 
         ax.scatter(
-                   d_min[dom],
-                   e[dom],
+                   d_min[domi],
+                   e[domi],
                    marker=1,
                    color=color,
-                   label='{} Start'.format(label),
+                   label='{} Start'.format(dom),
                    )
 
         ax.scatter(
-                   d_max[dom],
-                   e[dom],
+                   d_max[domi],
+                   e[domi],
                    marker='|',
                    color=color,
-                   label='{} End'.format(label),
+                   label='{} End'.format(dom),
                    )
 
         data[marker] = {}
-        data[marker][label] = {}
-        data[marker][label]['min_d'] = d_min[dom].tolist()
-        data[marker][label]['mean_d'] = d_mean[dom].tolist()
-        data[marker][label]['max_d'] = d_max[dom].tolist()
-        data[marker][label]['e'] = e[dom].tolist()
+        data[marker][dom] = {}
+        data[marker][dom]['min_d'] = d_min[domi].tolist()
+        data[marker][dom]['mean_d'] = d_mean[domi].tolist()
+        data[marker][dom]['max_d'] = d_max[domi].tolist()
+        data[marker][dom]['e'] = e[domi].tolist()
 
     ax.axhline(
                gt,
@@ -533,13 +531,10 @@ def confusion(y, y_pred, save, suffix):
         suffix = Append a suffix to the save name.
     '''
 
-    y = list(map(str, y))
-    y_pred = list(map(str, y_pred))
-
-    conf = confusion_matrix(y, y_pred)
+    conf = confusion_matrix(y, y_pred, labels=['ID', 'OD'])
 
     fig, ax = pl.subplots()
-    disp = ConfusionMatrixDisplay(conf)
+    disp = ConfusionMatrixDisplay(conf, display_labels=['ID', 'OD'])
     disp.plot(ax=ax)
     fig_data = conf.tolist()
 
@@ -573,11 +568,6 @@ class plotter:
 
             for group, values in self.df.groupby(gt):
 
-                if group is True:
-                    dom = 'id'
-                elif group is False:
-                    dom = 'od'
-
                 df = self.df[self.df[gt] == group]
                 parity(
                        df.y,
@@ -585,7 +575,7 @@ class plotter:
                        df.std_y,
                        df.d_pred,
                        self.save,
-                       '{}_{}'.format(name, dom),
+                       '{}_{}'.format(name, group),
                        )
 
     def bins(self, gt_rmse, gt_area):

@@ -267,7 +267,7 @@ class domain:
             prc_scores = precision_recall_curve(
                                                 labels,
                                                 d,
-                                                pos_label=True,
+                                                pos_label='ID',
                                                 )
 
             precision, recall, thresholds = prc_scores
@@ -276,7 +276,7 @@ class domain:
             auc_score = average_precision_score(
                                                 labels,
                                                 d,
-                                                pos_label=True,
+                                                pos_label='ID',
                                                 )
 
         num = 2*recall*precision
@@ -329,7 +329,7 @@ class domain:
                 data[name]['Threshold'] = thresholds[index]
 
         data['AUC'] = auc_score
-        data['Baseline'] = sum(labels)/len(labels)
+        data['Baseline'] = np.sum(labels == 'ID')/labels.shape[0]
         data['AUC-Baseline'] = auc_score-data['Baseline']
         data['Precision'] = precision.tolist()
         data['Recall'] = recall.tolist()
@@ -366,7 +366,7 @@ class domain:
 
             key = 'Domain Prediction from {}'.format(key)
             cut = value['Threshold']
-            do_pred[key] = d <= cut
+            do_pred[key] = np.where(d <= cut, 'ID', 'OD')
 
         return do_pred
 
@@ -504,8 +504,11 @@ def bin_data(data_cv, bins, by):
 
 def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
 
-    bin_cv['domain_rmse/sigma_y'] = bin_cv['rmse/std_y'] <= gt_rmse
-    bin_cv['domain_cdf_area'] = bin_cv['cdf_area'] <= gt_area
+    rmse = bin_cv['rmse/std_y'] <= gt_rmse
+    area = bin_cv['cdf_area'] <= gt_area
+
+    bin_cv['domain_rmse/sigma_y'] = np.where(rmse, 'ID', 'OD')
+    bin_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
 
     cols = [
             'domain_rmse/sigma_y',
@@ -704,8 +707,14 @@ class combine:
         self.domain_area = domain(self.precs)
 
         # Train classifiers
-        self.domain_rmse.train(bin_cv['d_max'], bin_cv['domain_rmse/sigma_y'])
-        self.domain_area.train(bin_cv['d_max'], bin_cv['domain_cdf_area'])
+        self.domain_rmse.train(
+                               bin_cv['d_max'].values,
+                               bin_cv['domain_rmse/sigma_y'].values,
+                               )
+        self.domain_area.train(
+                               bin_cv['d_max'].values,
+                               bin_cv['domain_cdf_area'].values,
+                               )
 
         self.data_cv = data_cv
         self.bin_cv = bin_cv
