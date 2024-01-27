@@ -153,11 +153,6 @@ def parity(
     ax.set_ylabel(r'$\hat{y}$')
     ax.set_xlabel('y')
 
-    h = 8
-    w = 8
-
-    fig.set_size_inches(h, w, forward=True)
-
     data = {}
     data[r'$RMSE$'] = rmse
     data[r'$RMSE/\sigma_{y}$'] = rmse_sigma
@@ -169,51 +164,58 @@ def parity(
     plot_dump(data, fig, ax, 'parity', save, suffix)
 
 
-def cdf(x, save, suffix):
+def cdf(df, gt, save, suffix):
     '''
     Plot the quantile quantile plot for cummulative distributions.
 
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
+        gt = The ground truth to examine.
         save = The location to save the figure/data.
-        suffix = Append a suffix to the save name.
     '''
 
-    eval_points, y, y_pred, _, areacdf = calculators.cdf(x)
-
+    data = {}
     fig, ax = pl.subplots()
+    for group, values in df.groupby(gt):
 
-    area_label = 'Observed Distribution'
-    area_label += '\nMiscalibration Area: {:.3f}'.format(areacdf)
+        eval_points, y, y_pred, _, areacdf = calculators.cdf(values['z'])
 
-    fig, ax = pl.subplots()
+        area_label = '{}: '.format(group)
+        area_label += '$E^{{{}}}={:.3f}$'.format(suffix, areacdf)
 
+        color = 'g' if group == 'ID' else 'r'
+
+        ax.plot(
+                eval_points,
+                y_pred,
+                zorder=1,
+                color=color,
+                linewidth=4,
+                label=area_label,
+                )
+
+        data[group] = {}
+        data[group]['x'] = list(eval_points)
+        data[group]['y'] = list(y_pred)
+        data[group] = areacdf
+
+    # Just need one set of N(0,1) values.
     ax.plot(
             eval_points,
             y,
             zorder=0,
-            color='g',
+            color='b',
             linewidth=4,
-            label='Standard Normal Distribution',
+            label='N(0,1)',
             )
 
-    ax.plot(
-            eval_points,
-            y_pred,
-            zorder=1,
-            color='r',
-            linewidth=4,
-            label=area_label,
-            )
+    data['N(0,1)'] = {}
+    data['N(0,1)']['x'] = list(eval_points)
+    data['N(0,1)']['y'] = list(y)
+    data['N(0,1)'] = areacdf
 
     ax.set_xlabel('z')
     ax.set_ylabel('CDF(z)')
-
-    data = {}
-    data['x'] = list(eval_points)
-    data['y'] = list(y)
-    data['y_pred'] = list(y_pred)
-    data['Area'] = areacdf
 
     plot_dump(data, fig, ax, 'cdf', save, suffix)
 
@@ -234,7 +236,9 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
 
     data = {'gt': gt}
     fig, ax = pl.subplots()
-    for dom, values in df.groupby(elabel):
+    for group, values in df.groupby([elabel, 'bin']):
+
+        dom, _ = group
 
         if dom == 'ID':
             color = 'g'
@@ -246,7 +250,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
         x = np.array(values[d], dtype=float)
         y = np.array(values[e], dtype=float)
 
-        ax.plot(x, y, color=color, label=dom)
+        ax.plot(x, y, color=color)
         ax.fill_between(
                         x,
                         y,
@@ -342,7 +346,7 @@ def pr(df, save, suffix):
 
 def confusion(y, y_pred, save, suffix):
     '''
-    Make a confusion matrix..
+    Make a confusion matrix.
 
     inputs:
         y = The true value.
@@ -360,32 +364,93 @@ def confusion(y, y_pred, save, suffix):
     plot_dump(conf.tolist(), fig, ax, 'confusion', save, suffix)
 
 
+def bin_relation(df, save):
+    '''
+    Make a plot of miscalibration area vs rmse.
+
+    inputs:
+        df = Dataframe.
+        save = The directory to save plot.
+    '''
+
+    d = df['d_pred_mean']
+    rmse = df['rmse/std_y']
+    area = df['cdf_area']
+
+    fig, ax = pl.subplots()
+    sc = ax.scatter(
+                    rmse,
+                    area,
+                    c=d,
+                    cmap='viridis',
+                    marker='.',
+                    zorder=2,
+                    label='Bins',
+                    vmin=0.0,
+                    vmax=1.0,
+                    )
+
+    bar = fig.colorbar(sc, ax=ax, label='D')
+
+    ax.set_xlabel(r'$E^{rmse}$')
+    ax.set_ylabel(r'$E^{area}$')
+
+    data = {}
+    data['x'] = rmse.tolist()
+    data['y'] = area.tolist()
+    data['d'] = d.tolist()
+
+    plot_dump(data, fig, ax, 'area_vs_rmse', save, '')
+
+
 class plotter:
 
-    def __init__(self, df, df_bin, save):
+    def __init__(
+                 self,
+                 df,
+                 df_bin,
+                 domain_rmse,
+                 domain_area,
+                 gt_rmse,
+                 gt_area,
+                 save
+                 ):
 
         self.save = save
         self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
         self.errors = ['rmse/std_y', 'cdf_area']
         self.assessments = ['rmse', 'area']
 
+        # Domain
+        self.gts = [gt_rmse, gt_area]  # Ground truths
+        self.prs = [domain_rmse, domain_area]  # Domain pr
+
         # For plotting purposes
         cols = self.errors+self.domains
         self.df = df.sort_values(by=['d_pred']+cols)
         self.df_bin = df_bin.sort_values(by=['d_pred_max']+cols)
 
-    def parity(self):
+    def generate(self):
 
-        # ID/OD data via gt_rmse
+        # Domain prediction columns
+        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
-        for gt, name in zip(
-                            self.domains,
-                            self.assessments,
-                            ):
+        # Bin relationships
+        bin_relation(self.df_bin, self.save)
 
-            for group, df in self.df.groupby(gt):
+        # Loop over domains
+        for i, j, k, f, z in zip(
+                                 self.domains,
+                                 self.errors,
+                                 self.assessments,
+                                 self.gts,
+                                 self.prs,
+                                 ):
 
-                suffix = '{}_{}'.format(name, group)
+            # Parity plots separated by domain
+            for group, df in self.df.groupby(i):
+
+                suffix = '{}_{}'.format(k, group)
 
                 parity(
                        df.y,
@@ -397,20 +462,10 @@ class plotter:
                        suffix,
                        )
 
-                cdf(df.z, self.save, suffix)
+            # CDF Plots
+            cdf(self.df, i, self.save, k)
 
-            for group, df in self.df_bin.groupby(gt):
-                print(df)
-
-    def bins(self, gt_rmse, gt_area):
-
-        for i, j, k, f in zip(
-                              self.domains,
-                              self.errors,
-                              self.assessments,
-                              [gt_rmse, gt_area],
-                              ):
-
+            # Bins versus errors
             bins(
                  self.df,
                  'd_pred',
@@ -422,19 +477,13 @@ class plotter:
                  k,
                  )
 
-    def pr(self, domain_rmse, domain_area):
+            # PR curve
+            pr(z, self.save, k)
 
-        for i, j in zip([domain_rmse, domain_area], ['rmse', 'area']):
-            pr(i, self.save, j)
-
-    def confusion(self):
-
-        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
-
-        for gt in self.domains:
+            # Confusion matrices
             for pred in pred_cols:
-                if gt.replace('domain_', '') in pred:
-                    y = self.df.loc[:, gt].values
+                if i.replace('domain_', '') in pred:
+                    y = self.df.loc[:, i].values
                     y_pred = self.df.loc[:, pred].values
                     suffix = pred.replace(' ', '_').replace('/', '_div_')
                     confusion(y, y_pred, self.save, suffix)

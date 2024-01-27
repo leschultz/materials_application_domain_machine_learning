@@ -182,11 +182,16 @@ class nested_cv:
                   )
 
         # Make plots from test data
-        plot = plotter(self.df, self.df_bin, ass_save)
-        plot.parity()
-        plot.bins(self.gt_rmse, self.gt_area)
-        plot.pr(self.model.domain_rmse.data, self.model.domain_area.data)
-        plot.confusion()
+        plot = plotter(
+                       self.df,
+                       self.df_bin,
+                       self.model.domain_rmse.data,
+                       self.model.domain_area.data,
+                       self.gt_rmse,
+                       self.gt_area,
+                       ass_save
+                       )
+        plot.generate()
 
         if name is not None:
 
