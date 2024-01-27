@@ -86,12 +86,13 @@ class nested_cv:
         data['y'] = self.y[test]
 
         # Statistics from training data
-        data['std_y'] = np.std(self.y[train])
+        std_y = np.std(self.y[train])
 
         # Predictions
         data['r'] = self.y[test]-data['y_pred']
         data['z'] = data['r']/data['y_stdc_pred']
-        data['r/std_y'] = data['r']/data['std_y']
+        data['r/std_y'] = data['r']/std_y
+        data['y_stdc_pred/std_y'] = data['y_stdc_pred']/std_y
 
         return data
 
@@ -109,8 +110,8 @@ class nested_cv:
 
         # Determine ground truth from test data
         df_id = df[df['splitter'] == 'fit']
-        bin_id = bin_data(df_id, self.model.bins, 'd_pred')
-        df_bin = bin_data(df, self.model.bins, 'd_pred')
+        bin_id = bin_data(df_id, self.model.bins)
+        df_bin = bin_data(df, self.model.bins)
 
         self.gt_rmse = bin_id['rmse/std_y'].max()
         self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
@@ -181,7 +182,7 @@ class nested_cv:
                   )
 
         # Make plots from test data
-        plot = plotter(self.df, ass_save)
+        plot = plotter(self.df, self.df_bin, ass_save)
         plot.parity()
         plot.bins(self.gt_rmse, self.gt_area)
         plot.pr(self.model.domain_rmse.data, self.model.domain_area.data)

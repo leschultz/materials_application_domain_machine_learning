@@ -5,6 +5,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from madml import calculators
 from sklearn import metrics
 
 import numpy as np
@@ -18,10 +19,55 @@ font = {'font.size': 16, 'lines.markersize': 10}
 matplotlib.rcParams.update(font)
 
 
+def plot_dump(data, fig, ax, name, save, suffix):
+    '''
+    Function to dump figures.
+
+    inputs:
+        data = Data to dump in json file.
+        fig = Figure object.
+        ax = Axes object.
+        name = The name for the plot.
+        save = The location to save plot.
+        suffix = Append a suffix to the save name.
+    '''
+
+    fig.tight_layout()
+    fig_legend, ax_legend = pl.subplots()
+    ax_legend.axis(False)
+    legend = ax_legend.legend(
+                              *ax.get_legend_handles_labels(),
+                              frameon=False,
+                              loc='center',
+                              bbox_to_anchor=(0.5, 0.5)
+                              )
+    ax_legend.spines['top'].set_visible(False)
+    ax_legend.spines['bottom'].set_visible(False)
+    ax_legend.spines['left'].set_visible(False)
+    ax_legend.spines['right'].set_visible(False)
+
+    fig.savefig(os.path.join(
+                             save,
+                             '{}_{}.png'.format(name, suffix)
+                             ), bbox_inches='tight')
+    fig_legend.savefig(os.path.join(
+                                    save,
+                                    '{}_{}_legend.png'.format(name, suffix)
+                                    ), bbox_inches='tight')
+
+    pl.close(fig)
+    pl.close(fig_legend)
+
+    jsonfile = os.path.join(save, '{}_{}.json'.format(name, suffix))
+    with open(jsonfile, 'w') as handle:
+        json.dump(data, handle)
+
+
 def parity(
            y,
            y_pred,
-           sigma_y,
+           y_stdc_pred,
+           r_std_y,
            d,
            save='.',
            suffix='',
@@ -32,14 +78,15 @@ def parity(
     inputs:
         y = The true target value.
         y_pred = The predicted target value.
-        sigma_y = The standard deviation of target variable.
+        y_stdc_pred = The uncertainties in predicted values.
+        r_std_y = The residuals normalized by standard deviation.
         d = Dissimilarity measure
         save = The directory to save plot.
         suffix = Append a suffix to the save name.
     '''
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
-    rmse_sigma = metrics.mean_squared_error(y/sigma_y, y_pred/sigma_y)**0.5
+    rmse_sigma = (sum(r_std_y**2)/r_std_y.shape[0])**0.5
 
     mae = metrics.mean_absolute_error(y, y_pred)
     r2 = metrics.r2_score(y, y_pred)
@@ -69,6 +116,16 @@ def parity(
                     vmin=0.0,
                     vmax=1.0,
                     )
+
+    ax.errorbar(
+                y,
+                y_pred,
+                yerr=y_stdc_pred,
+                marker='.',
+                fmt='none',
+                ecolor='r',
+                zorder=-1,
+                )
 
     bar = fig.colorbar(sc, ax=ax, label='D')
 
@@ -100,32 +157,6 @@ def parity(
     w = 8
 
     fig.set_size_inches(h, w, forward=True)
-    fig.tight_layout()
-
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
-
-    fig.savefig(os.path.join(
-                             save,
-                             'parity_{}.png'.format(suffix)
-                             ), bbox_inches='tight')
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    'parity_{}_legend.png'.format(suffix)
-                                    ), bbox_inches='tight')
-
-    pl.close(fig)
-    pl.close(fig_legend)
 
     data = {}
     data[r'$RMSE$'] = rmse
@@ -135,111 +166,22 @@ def parity(
     data['y'] = y.tolist()
     data['y_pred'] = y_pred.tolist()
 
-    jsonfile = os.path.join(save, 'parity_{}.json'.format(suffix))
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+    plot_dump(data, fig, ax, 'parity', save, suffix)
 
 
-def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
+def cdf(x, save, suffix):
     '''
     Plot the quantile quantile plot for cummulative distributions.
 
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
         save = The location to save the figure/data.
-        binsave = Adding to a directory of the saving for each bin.
-        subsave = Append a name to the save file.
-        choice = Whether to compare to standard normal distribution,
-                 same mean variance of 1 for z, zero mean variance of z for z.
-
-    outputs:
-        y = The cummulative distribution of observed data.
-        y_pred = The cummulative distribution of standard normal distribution.
-        area = The area between y and y_pred.
+        suffix = Append a suffix to the save name.
     '''
 
-    cdf_name = 'cdf'
-    parity_name = 'cdf_parity'
-    dist_name = 'distribution'
-    if binsave is not None:
-        save = os.path.join(save, 'each_bin')
-        cdf_name = '{}_{}'.format(cdf_name, binsave)
-        parity_name = '{}_{}'.format(parity_name, binsave)
-        dist_name = '{}_{}'.format(dist_name, binsave)
-
-    area_label = 'Observed Distribution'
-    area_label += '\nMiscalibration Area: {:.3f}'.format(areaparity)
+    eval_points, y, y_pred, _, areacdf = calculators.cdf(x)
 
     fig, ax = pl.subplots()
-
-    ax.plot(
-            y,
-            y_pred,
-            zorder=0,
-            color='b',
-            linewidth=4,
-            label=area_label,
-            )
-
-    # Line of best fit
-    ax.plot(
-            y,
-            y,
-            color='k',
-            linestyle=':',
-            zorder=1,
-            linewidth=4,
-            label='Ideal',
-            )
-
-    ax.set_ylabel('Predicted CDF')
-    ax.set_xlabel('Standard Normal CDF')
-
-    h = 8
-    w = 8
-
-    fig.set_size_inches(h, w, forward=True)
-    ax.set_aspect('equal')
-    fig.tight_layout()
-
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
-
-    fig.savefig(os.path.join(
-                             save,
-                             '{}{}.png'.format(parity_name, subsave)
-                             ), bbox_inches='tight')
-
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    '{}{}_legend.png'.format(
-                                                             parity_name,
-                                                             subsave
-                                                             )
-                                    ), bbox_inches='tight')
-
-    pl.close(fig)
-    pl.close(fig_legend)
-
-    data = {}
-    data['y'] = list(y)
-    data['y_pred'] = list(y_pred)
-    data['Area'] = areaparity
-    with open(os.path.join(
-                           save,
-                           '{}{}.json'.format(parity_name, subsave)
-                           ), 'w') as handle:
-        json.dump(data, handle)
 
     area_label = 'Observed Distribution'
     area_label += '\nMiscalibration Area: {:.3f}'.format(areacdf)
@@ -267,47 +209,13 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
     ax.set_xlabel('z')
     ax.set_ylabel('CDF(z)')
 
-    fig.tight_layout()
-
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
-
-    fig.savefig(os.path.join(
-                             save,
-                             '{}{}.png'.format(cdf_name, subsave),
-                             ), bbox_inches='tight')
-
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    '{}{}_legend.png'.format(
-                                                             cdf_name,
-                                                             subsave
-                                                             ),
-                                    ), bbox_inches='tight')
-
-    pl.close(fig)
-    pl.close(fig_legend)
-
     data = {}
     data['x'] = list(eval_points)
     data['y'] = list(y)
     data['y_pred'] = list(y_pred)
     data['Area'] = areacdf
-    with open(os.path.join(
-                           save,
-                           '{}{}.json'.format(cdf_name, subsave),
-                           ), 'w') as handle:
-        json.dump(data, handle)
+
+    plot_dump(data, fig, ax, 'cdf', save, suffix)
 
 
 def bins(df, d, e, elabel, gt, ylabel, save, suffix):
@@ -360,36 +268,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     ax.set_ylabel(ylabel)
     ax.set_xlabel('D')
 
-    fig.tight_layout()
-
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
-
-    fig.savefig(os.path.join(
-                             save,
-                             'bins_{}.png'.format(suffix)
-                             ), bbox_inches='tight')
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    'bins_{}_legend.png'.format(suffix)
-                                    ), bbox_inches='tight')
-
-    pl.close(fig)
-    pl.close(fig_legend)
-
-    jsonfile = os.path.join(save, 'bins_{}.json'.format(suffix))
-    with open(jsonfile, 'w') as handle:
-        json.dump(data, handle)
+    plot_dump(data, fig, ax, 'bins', save, suffix)
 
 
 def pr(df, save, suffix):
@@ -458,39 +337,7 @@ def pr(df, save, suffix):
 
     ax.set_aspect('equal', adjustable='box')
 
-    fig.tight_layout()
-
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
-
-    legend = ax.legend()
-    legend.remove()
-    fig.savefig(os.path.join(
-                             save,
-                             'pr_{}.png'.format(suffix)
-                             ), bbox_inches='tight')
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    'pr_{}_legend.png'.format(suffix)
-                                    ), bbox_inches='tight'
-                       )
-    pl.close(fig)
-    pl.close(fig_legend)
-
-    # Repare plot data for saving
-    jsonfile = os.path.join(save, 'pr_{}.json'.format(suffix))
-    with open(jsonfile, 'w') as handle:
-        json.dump(df, handle)
+    plot_dump(df, fig, ax, 'pr', save, suffix)
 
 
 def confusion(y, y_pred, save, suffix):
@@ -509,22 +356,13 @@ def confusion(y, y_pred, save, suffix):
     fig, ax = pl.subplots()
     disp = ConfusionMatrixDisplay(conf, display_labels=['ID', 'OD'])
     disp.plot(ax=ax)
-    fig_data = conf.tolist()
 
-    disp.figure_.savefig(os.path.join(
-                                      save,
-                                      'confusion_{}.png'.format(suffix),
-                                      ), bbox_inches='tight')
-    pl.close(fig)
-
-    jsonfile = os.path.join(save, 'confusion_{}.json'.format(suffix))
-    with open(jsonfile, 'w') as handle:
-        json.dump(fig_data, handle)
+    plot_dump(conf.tolist(), fig, ax, 'confusion', save, suffix)
 
 
 class plotter:
 
-    def __init__(self, df, save):
+    def __init__(self, df, df_bin, save):
 
         self.save = save
         self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
@@ -532,7 +370,9 @@ class plotter:
         self.assessments = ['rmse', 'area']
 
         # For plotting purposes
-        self.df = df.sort_values(by=['d_pred']+self.errors+self.domains)
+        cols = self.errors+self.domains
+        self.df = df.sort_values(by=['d_pred']+cols)
+        self.df_bin = df_bin.sort_values(by=['d_pred_max']+cols)
 
     def parity(self):
 
@@ -543,17 +383,24 @@ class plotter:
                             self.assessments,
                             ):
 
-            for group, values in self.df.groupby(gt):
+            for group, df in self.df.groupby(gt):
 
-                df = self.df[self.df[gt] == group]
+                suffix = '{}_{}'.format(name, group)
+
                 parity(
                        df.y,
                        df.y_pred,
-                       df.std_y,
+                       df.y_stdc_pred,
+                       df['r/std_y'],
                        df.d_pred,
                        self.save,
-                       '{}_{}'.format(name, group),
+                       suffix,
                        )
+
+                cdf(df.z, self.save, suffix)
+
+            for group, df in self.df_bin.groupby(gt):
+                print(df)
 
     def bins(self, gt_rmse, gt_area):
 
