@@ -135,9 +135,15 @@ def parity(
     bar = fig.colorbar(sc, ax=ax, label='D')
 
     # Line of best fit
+    limits = []
+    min_range = min(min(y), min(y_pred))
+    max_range = max(max(y), max(y_pred))
+    span = max_range-min_range
+    limits.append(min_range-0.1*span)
+    limits.append(max_range+0.1*span)
     ax.plot(
-            y,
-            y,
+            limits,
+            limits,
             label=r'$y=\hat{y}$',
             color='k',
             linestyle=':',
@@ -290,10 +296,11 @@ def pr(df, save, suffix):
     fig, ax = pl.subplots()
 
     pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
-    pr_label = 'AUC: {:.2f}\n'.format(auc_score)
-    pr_label += 'AUC-Baseline: {:.2f}'.format(diff)
+    label = 'AUC: {:.2f}\n'.format(auc_score)
+    label += 'AUC-Baseline: {:.2f}'.format(diff)
 
-    pr_display.plot(ax=ax, label=pr_label)
+    pr_display.plot(ax=ax)
+    ax.legend([label])
 
     ax.hlines(
               baseline,
@@ -429,9 +436,15 @@ def rmse_vs_stdc(df, save, suffix):
     bar = fig.colorbar(sc, ax=ax, label='D')
 
     # Line of best fit
+    limits = []
+    min_range = min(min(rmse), min(stdc))
+    max_range = max(max(rmse), max(stdc))
+    span = max_range-min_range
+    limits.append(min_range-0.1*span)
+    limits.append(max_range+0.1*span)
     ax.plot(
-            rmse,
-            rmse,
+            limits,
+            limits,
             label=r'$E^{rmse}=mean(\sigma_{c}/\sigma_(y))$',
             color='k',
             linestyle=':',

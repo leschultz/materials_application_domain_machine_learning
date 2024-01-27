@@ -354,6 +354,7 @@ def bin_data(data_cv, bins, by='d_pred'):
         data_cv['bin'] = pd.qcut(
                                  data_cv[by],
                                  bins,
+                                 duplicates='drop',
                                  )
 
     # Calculate statistics
