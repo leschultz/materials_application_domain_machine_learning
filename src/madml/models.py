@@ -257,12 +257,13 @@ class domain:
 
         self.data = data
 
-    def predict(self, d):
+    def predict(self, d, d_input):
         '''
         Predict the domain based on thresholds.
 
         inputs:
             d = The score.
+            d_input = A user defined cutoff on d.
 
         outputs:
             do_pred = The domain prediction.
@@ -287,6 +288,9 @@ class domain:
             key = 'Domain Prediction from {}'.format(key)
             cut = value['Threshold']
             do_pred[key] = np.where(d <= cut, 'ID', 'OD')
+
+        if d_input is not None:
+            do_pred['d_input'] = np.where(d <= d_input, 'ID', 'OD')
 
         return do_pred
 
@@ -621,17 +625,17 @@ class combine:
         self.data_cv = data_cv
         self.bin_cv = bin_cv
 
-    def combine_domains_preds(self, d):
+    def combine_domains_preds(self, d, d_input=None):
         '''
         Combine domain classifiers that were fit for RMSE
         and miscalibration area.
         '''
 
         # Predict domains on training data
-        data_rmse_dom_pred = self.domain_rmse.predict(d)
+        data_rmse_dom_pred = self.domain_rmse.predict(d, d_input)
         data_rmse_dom_pred = data_rmse_dom_pred.add_prefix('rmse/sigma_y ')
 
-        data_area_dom_pred = self.domain_area.predict(d)
+        data_area_dom_pred = self.domain_area.predict(d, d_input)
         data_area_dom_pred = data_area_dom_pred.add_prefix('cdf_area ')
 
         dom_pred = pd.concat([
@@ -641,7 +645,7 @@ class combine:
 
         return dom_pred
 
-    def predict(self, X):
+    def predict(self, X, d_input=None):
         '''
         Aggregate all predictions from models.
         '''
@@ -658,7 +662,7 @@ class combine:
 
         pred = pd.concat([
                           pred,
-                          self.combine_domains_preds(pred['d_pred']),
+                          self.combine_domains_preds(pred['d_pred'], d_input),
                           ], axis=1)
 
         return pred
