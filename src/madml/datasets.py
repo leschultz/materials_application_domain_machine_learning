@@ -310,7 +310,7 @@ def load(name, *args, **kwargs):
 
         return loader(df, target, **kwargs)
 
-    elif name == 'steel_yield_strength':
+    elif name == 'strength':
         '''
         Load the steel yield strength dataset.
         '''
@@ -344,10 +344,10 @@ def list_data():
     '''
 
     datanames = [
-                 'super_cond',
+                 'supercond',
                  'diffusion',
                  'friedman1',
-                 'steel_yield_strength',
+                 'strength',
                  'fluence',
                  'make_regression',
                  'fetch_california_housing',

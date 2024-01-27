@@ -4,8 +4,8 @@ data=(
       "friedman1"
       "fluence"
       "diffusion"
-      "steel_yield_strength"
-      "super_cond"
+      "strength"
+      "supercond"
       )
 
 models=(

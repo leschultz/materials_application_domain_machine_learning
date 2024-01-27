@@ -310,14 +310,12 @@ def cdf(x, save=None, binsave=None, subsave='', choice='standard_normal'):
         json.dump(data, handle)
 
 
-def bins(d_min, d_mean, d_max, e, elabel, gt, ylabel, save, suffix):
+def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     '''
     Plot statistical errors with respect to dissimilarity.
 
     inputs:
-        d_min = The minimum of each bin.
-        d_mean = The mean of each bin.
-        d_max = The max of each bin.
+        d = The dissimilarity.
         e = The error statistic.
         elabel = The domain labels.
         gt = The domain ground truth.
@@ -328,52 +326,34 @@ def bins(d_min, d_mean, d_max, e, elabel, gt, ylabel, save, suffix):
 
     data = {'gt': gt}
     fig, ax = pl.subplots()
-    for dom in ['ID', 'OD']:
+    for dom, values in df.groupby(elabel):
 
         if dom == 'ID':
             color = 'g'
-            marker = '.'
+            bot = 0
         else:
             color = 'r'
-            marker = 'x'
+            bot = gt
 
-        # Domain indexes
-        domi = dom == elabel
+        x = np.array(values[d], dtype=float)
+        y = np.array(values[e], dtype=float)
 
-        ax.scatter(
-                   d_mean[domi],
-                   e[domi],
-                   marker=marker,
-                   color=color,
-                   label='{} Mean'.format(dom),
-                   )
+        ax.plot(x, y, color=color, label=dom)
+        ax.fill_between(
+                        x,
+                        y,
+                        bot,
+                        color=color,
+                        alpha=0.5,
+                        )
 
-        ax.scatter(
-                   d_min[domi],
-                   e[domi],
-                   marker=1,
-                   color=color,
-                   label='{} Start'.format(dom),
-                   )
-
-        ax.scatter(
-                   d_max[domi],
-                   e[domi],
-                   marker='|',
-                   color=color,
-                   label='{} End'.format(dom),
-                   )
-
-        data[marker] = {}
-        data[marker][dom] = {}
-        data[marker][dom]['min_d'] = d_min[domi].tolist()
-        data[marker][dom]['mean_d'] = d_mean[domi].tolist()
-        data[marker][dom]['max_d'] = d_max[domi].tolist()
-        data[marker][dom]['e'] = e[domi].tolist()
+        data[dom] = {}
+        data[dom]['x'] = x.tolist()
+        data[dom]['y'] = y.tolist()
 
     ax.axhline(
                gt,
-               color='r',
+               color='g',
                label='GT = {:.2f}'.format(gt),
                )
 
@@ -544,19 +524,23 @@ def confusion(y, y_pred, save, suffix):
 
 class plotter:
 
-    def __init__(self, df, df_bin, save):
+    def __init__(self, df, save):
 
-        self.df = df
-        self.df_bin = df_bin
         self.save = save
+        self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
+        self.errors = ['rmse/std_y', 'cdf_area']
+        self.assessments = ['rmse', 'area']
+
+        # For plotting purposes
+        self.df = df.sort_values(by=['d_pred']+self.errors+self.domains)
 
     def parity(self):
 
         # ID/OD data via gt_rmse
 
         for gt, name in zip(
-                            ['domain_rmse/sigma_y', 'domain_cdf_area'],
-                            ['rmse', 'area']
+                            self.domains,
+                            self.assessments,
                             ):
 
             for group, values in self.df.groupby(gt):
@@ -573,29 +557,18 @@ class plotter:
 
     def bins(self, gt_rmse, gt_area):
 
-        # Plot data
-        d_min = self.df_bin.d_pred_min
-        d_mean = self.df_bin.d_pred_mean
-        d_max = self.df_bin.d_pred_max
-        rmse = self.df_bin['rmse/std_y']
-        rmse_label = self.df_bin['domain_rmse/sigma_y']
-        area = self.df_bin['cdf_area']
-        area_label = self.df_bin['domain_cdf_area']
-
-        # Plotting
         for i, j, k, f in zip(
-                              ['domain_rmse/sigma_y', 'domain_cdf_area'],
-                              ['rmse/std_y', 'cdf_area'],
-                              ['rmse', 'area'],
+                              self.domains,
+                              self.errors,
+                              self.assessments,
                               [gt_rmse, gt_area],
                               ):
 
             bins(
-                 d_min,
-                 d_mean,
-                 d_max,
-                 self.df_bin[j],
-                 self.df_bin[i],
+                 self.df,
+                 'd_pred',
+                 j,
+                 i,
                  f,
                  r'$E^{{{}}}$'.format(k),
                  self.save,
@@ -604,16 +577,14 @@ class plotter:
 
     def pr(self, domain_rmse, domain_area):
 
-        # Plotting
         for i, j in zip([domain_rmse, domain_area], ['rmse', 'area']):
             pr(i, self.save, j)
 
     def confusion(self):
 
-        gt_cols = ['domain_rmse/sigma_y', 'domain_cdf_area']
         pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
-        for gt in gt_cols:
+        for gt in self.domains:
             for pred in pred_cols:
                 if gt.replace('domain_', '') in pred:
                     y = self.df.loc[:, gt].values

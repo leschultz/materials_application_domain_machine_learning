@@ -509,6 +509,8 @@ def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
     cols = [
             'domain_rmse/sigma_y',
             'domain_cdf_area',
+            'rmse/std_y',
+            'cdf_area',
             ]
 
     # Allocate data
