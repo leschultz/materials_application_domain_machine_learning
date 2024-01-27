@@ -535,7 +535,8 @@ def confusion(y, y_pred, save, suffix):
 
     y = list(map(str, y))
     y_pred = list(map(str, y_pred))
-    conf = confusion_matrix(y, y_pred, labels=['True', 'False'])
+
+    conf = confusion_matrix(y, y_pred)
 
     fig, ax = pl.subplots()
     disp = ConfusionMatrixDisplay(conf)
@@ -564,46 +565,28 @@ class plotter:
     def parity(self):
 
         # ID/OD data via gt_rmse
-        df = self.df[self.df['domain_rmse/sigma_y'] is True]
-        parity(
-               df.y,
-               df.y_pred,
-               df.std_y,
-               df.d_pred,
-               self.save,
-               'rmse_id',
-               )
 
-        df = self.df[self.df['domain_rmse/sigma_y'] is False]
-        parity(
-               df.y,
-               df.y_pred,
-               df.std_y,
-               df.d_pred,
-               self.save,
-               'rmse_od',
-               )
+        for gt, name in zip(
+                            ['domain_rmse/sigma_y', 'domain_cdf_area'],
+                            ['rmse', 'area']
+                            ):
 
-        # ID/OD data via gt_area
-        df = self.df[self.df['domain_cdf_area'] is True]
-        parity(
-               df.y,
-               df.y_pred,
-               df.std_y,
-               df.d_pred,
-               self.save,
-               'area_id',
-               )
+            for group, values in self.df.groupby(gt):
 
-        df = self.df[self.df['domain_cdf_area'] is False]
-        parity(
-               df.y,
-               df.y_pred,
-               df.std_y,
-               df.d_pred,
-               self.save,
-               'area_od',
-               )
+                if group is True:
+                    dom = 'id'
+                elif group is False:
+                    dom = 'od'
+
+                df = self.df[self.df[gt] == group]
+                parity(
+                       df.y,
+                       df.y_pred,
+                       df.std_y,
+                       df.d_pred,
+                       self.save,
+                       '{}_{}'.format(name, dom),
+                       )
 
     def bins(self, gt_rmse, gt_area):
 
@@ -616,39 +599,31 @@ class plotter:
         area = self.df_bin['cdf_area']
         area_label = self.df_bin['domain_cdf_area']
 
-        # Plotting for rmse
-        bins(
-             d_min,
-             d_mean,
-             d_max,
-             rmse,
-             rmse_label,
-             gt_rmse,
-             r'$E^{rmse}$',
-             self.save,
-             'rmse',
-             )
+        # Plotting
+        for i, j, k, f in zip(
+                              ['domain_rmse/sigma_y', 'domain_cdf_area'],
+                              ['rmse/std_y', 'cdf_area'],
+                              ['rmse', 'area'],
+                              [gt_rmse, gt_area],
+                              ):
 
-        # Plotting for area
-        bins(
-             d_min,
-             d_mean,
-             d_max,
-             area,
-             area_label,
-             gt_area,
-             r'$E^{area}$',
-             self.save,
-             'area',
-             )
+            bins(
+                 d_min,
+                 d_mean,
+                 d_max,
+                 self.df_bin[j],
+                 self.df_bin[i],
+                 f,
+                 r'$E^{{{}}}$'.format(k),
+                 self.save,
+                 k,
+                 )
 
     def pr(self, domain_rmse, domain_area):
 
-        # Plotting for rmse
-        pr(domain_rmse, self.save, 'rmse')
-
-        # Plotting for area
-        pr(domain_area, self.save, 'area')
+        # Plotting
+        for i, j in zip([domain_rmse, domain_area], ['rmse', 'area']):
+            pr(i, self.save, j)
 
     def confusion(self):
 
