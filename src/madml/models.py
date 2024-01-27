@@ -335,24 +335,30 @@ def predict_std(model, X):
     return std
 
 
-def bin_data(data_cv, bins):
+def bin_data(data_cv, bins, by='d_pred'):
 
     # Correct for cases were many cases are at the same value
-    indx = data_cv['d_pred'] < 1.0
+    if by == 'd_pred':
+        indx = data_cv[by] < 1.0
 
-    # Bin data by our dissimilarity
-    data_cv.loc[:, 'bin'] = '[1.0, 1.0]'
-    sub_bin = pd.qcut(
-                      data_cv[indx]['d_pred'],
-                      bins-1,
-                      )
+        # Bin data by our dissimilarity
+        data_cv.loc[:, 'bin'] = '[1.0, 1.0]'
+        sub_bin = pd.qcut(
+                          data_cv[indx][by],
+                          bins-1,
+                          )
 
-    data_cv.loc[indx, 'bin'] = sub_bin
+        data_cv.loc[indx, 'bin'] = sub_bin
+
+    else:
+        data_cv['bin'] = pd.qcut(
+                                 data_cv[by],
+                                 bins,
+                                 )
 
     # Calculate statistics
     bin_groups = data_cv.groupby('bin', observed=False)
     distmean = bin_groups['d_pred'].mean()
-    binmin = bin_groups['d_pred'].min()
     binmax = bin_groups['d_pred'].max()
     counts = bin_groups['z'].count()
     stdc = bin_groups['y_stdc_pred/std_y'].mean()
@@ -365,7 +371,6 @@ def bin_data(data_cv, bins):
     area = area.to_frame().rename({0: 'cdf_area'}, axis=1)
 
     distmean = distmean.to_frame().add_suffix('_mean')
-    binmin = binmin.to_frame().add_suffix('_min')
     binmax = binmax.to_frame().add_suffix('_max')
     stdc = stdc.to_frame().add_suffix('_mean')
     rmse = rmse.to_frame().rename({'r/std_y': 'rmse/std_y'}, axis=1)
@@ -374,7 +379,6 @@ def bin_data(data_cv, bins):
     # Combine data for each bin
     bin_cv = [
               counts,
-              binmin,
               distmean,
               binmax,
               stdc,

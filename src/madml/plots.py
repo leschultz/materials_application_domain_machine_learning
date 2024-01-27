@@ -5,6 +5,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from madml.models import bin_data
 from madml import calculators
 from sklearn import metrics
 
@@ -19,7 +20,7 @@ font = {'font.size': 16, 'lines.markersize': 10}
 matplotlib.rcParams.update(font)
 
 
-def plot_dump(data, fig, ax, name, save, suffix):
+def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     '''
     Function to dump figures.
 
@@ -33,30 +34,34 @@ def plot_dump(data, fig, ax, name, save, suffix):
     '''
 
     fig.tight_layout()
-    fig_legend, ax_legend = pl.subplots()
-    ax_legend.axis(False)
-    legend = ax_legend.legend(
-                              *ax.get_legend_handles_labels(),
-                              frameon=False,
-                              loc='center',
-                              bbox_to_anchor=(0.5, 0.5)
-                              )
-    ax_legend.spines['top'].set_visible(False)
-    ax_legend.spines['bottom'].set_visible(False)
-    ax_legend.spines['left'].set_visible(False)
-    ax_legend.spines['right'].set_visible(False)
+
+    if legend:
+        fig_legend, ax_legend = pl.subplots()
+        ax_legend.axis(False)
+        legend = ax_legend.legend(
+                                  *ax.get_legend_handles_labels(),
+                                  frameon=False,
+                                  loc='center',
+                                  bbox_to_anchor=(0.5, 0.5)
+                                  )
+        ax_legend.spines['top'].set_visible(False)
+        ax_legend.spines['bottom'].set_visible(False)
+        ax_legend.spines['left'].set_visible(False)
+        ax_legend.spines['right'].set_visible(False)
+
+        fig_legend.savefig(os.path.join(
+                                        save,
+                                        '{}_{}_legend.png'.format(name, suffix)
+                                        ), bbox_inches='tight')
+
+        pl.close(fig_legend)
 
     fig.savefig(os.path.join(
                              save,
                              '{}_{}.png'.format(name, suffix)
                              ), bbox_inches='tight')
-    fig_legend.savefig(os.path.join(
-                                    save,
-                                    '{}_{}_legend.png'.format(name, suffix)
-                                    ), bbox_inches='tight')
 
     pl.close(fig)
-    pl.close(fig_legend)
 
     jsonfile = os.path.join(save, '{}_{}.json'.format(name, suffix))
     with open(jsonfile, 'w') as handle:
@@ -129,17 +134,10 @@ def parity(
 
     bar = fig.colorbar(sc, ax=ax, label='D')
 
-    limits = []
-    min_range = min(min(y), min(y_pred))
-    max_range = max(max(y), max(y_pred))
-    span = max_range-min_range
-    limits.append(min_range-0.1*span)
-    limits.append(max_range+0.1*span)
-
     # Line of best fit
     ax.plot(
-            limits,
-            limits,
+            y,
+            y,
             label=r'$y=\hat{y}$',
             color='k',
             linestyle=':',
@@ -147,8 +145,6 @@ def parity(
             )
 
     ax.set_aspect('equal')
-    ax.set_xlim(limits)
-    ax.set_ylim(limits)
 
     ax.set_ylabel(r'$\hat{y}$')
     ax.set_xlabel('y')
@@ -361,10 +357,10 @@ def confusion(y, y_pred, save, suffix):
     disp = ConfusionMatrixDisplay(conf, display_labels=['ID', 'OD'])
     disp.plot(ax=ax)
 
-    plot_dump(conf.tolist(), fig, ax, 'confusion', save, suffix)
+    plot_dump(conf.tolist(), fig, ax, 'confusion', save, suffix, legend=False)
 
 
-def bin_relation(df, save):
+def area_vs_rmse(df, save):
     '''
     Make a plot of miscalibration area vs rmse.
 
@@ -403,6 +399,58 @@ def bin_relation(df, save):
     plot_dump(data, fig, ax, 'area_vs_rmse', save, '')
 
 
+def rmse_vs_stdc(df, save, suffix):
+    '''
+    Make a plot of rmse vs stdc.
+
+    inputs:
+        df = Dataframe.
+        save = The directory to save plot.
+        suffix = Append a suffix to the save name.
+    '''
+
+    d = df['d_pred_mean']
+    rmse = df['rmse/std_y']
+    stdc = df['y_stdc_pred/std_y_mean']
+
+    fig, ax = pl.subplots()
+    sc = ax.scatter(
+                    stdc,
+                    rmse,
+                    c=d,
+                    cmap='viridis',
+                    marker='.',
+                    zorder=2,
+                    label='Bins',
+                    vmin=0.0,
+                    vmax=1.0,
+                    )
+
+    bar = fig.colorbar(sc, ax=ax, label='D')
+
+    # Line of best fit
+    ax.plot(
+            rmse,
+            rmse,
+            label=r'$E^{rmse}=mean(\sigma_{c}/\sigma_(y))$',
+            color='k',
+            linestyle=':',
+            zorder=1
+            )
+
+    ax.set_aspect('equal')
+
+    ax.set_xlabel(r'$\sigma_{c}/\sigma_(y)$')
+    ax.set_ylabel(r'$E^{rmse}$')
+
+    data = {}
+    data['x'] = stdc.tolist()
+    data['y'] = rmse.tolist()
+    data['d'] = d.tolist()
+
+    plot_dump(data, fig, ax, 'rmse_vs_stdc', save, suffix)
+
+
 class plotter:
 
     def __init__(
@@ -430,13 +478,15 @@ class plotter:
         self.df = df.sort_values(by=['d_pred']+cols)
         self.df_bin = df_bin.sort_values(by=['d_pred_max']+cols)
 
+        self.bins = self.df_bin.shape[0]
+
     def generate(self):
 
         # Domain prediction columns
         pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
-        # Bin relationships
-        bin_relation(self.df_bin, self.save)
+        # Miscalibration area vs. RMSE
+        area_vs_rmse(self.df_bin, self.save)
 
         # Loop over domains
         for i, j, k, f, z in zip(
@@ -447,11 +497,10 @@ class plotter:
                                  self.prs,
                                  ):
 
-            # Parity plots separated by domain
+            # Separate domains and classes
             for group, df in self.df.groupby(i):
 
-                suffix = '{}_{}'.format(k, group)
-
+                # Parity plot
                 parity(
                        df.y,
                        df.y_pred,
@@ -459,8 +508,18 @@ class plotter:
                        df['r/std_y'],
                        df.d_pred,
                        self.save,
-                       suffix,
+                       '{}_{}'.format(k, group),
                        )
+
+                # Need to re-bin data by stdc not d for visual
+                df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+
+                # RMSE vs. stdc
+                rmse_vs_stdc(
+                             df,
+                             self.save,
+                             '{}_{}'.format(k, group),
+                             )
 
             # CDF Plots
             cdf(self.df, i, self.save, k)
