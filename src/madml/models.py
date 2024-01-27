@@ -338,24 +338,19 @@ def predict_std(model, X):
 def bin_data(data_cv, bins, by='d_pred'):
 
     # Correct for cases were many cases are at the same value
-    if by == 'd_pred':
-        indx = data_cv[by] < 1.0
+    count = 0
+    unique_quantiles = 0
+    while unique_quantiles < bins:
+        quantiles = pd.qcut(
+                            data_cv[by],
+                            bins+count,
+                            duplicates='drop',
+                            )
 
-        # Bin data by our dissimilarity
-        data_cv.loc[:, 'bin'] = '[1.0, 1.0]'
-        sub_bin = pd.qcut(
-                          data_cv[indx][by],
-                          bins-1,
-                          )
+        unique_quantiles = len(quantiles.unique())
+        count += 1
 
-        data_cv.loc[indx, 'bin'] = sub_bin
-
-    else:
-        data_cv['bin'] = pd.qcut(
-                                 data_cv[by],
-                                 bins,
-                                 duplicates='drop',
-                                 )
+    data_cv['bin'] = quantiles
 
     # Calculate statistics
     bin_groups = data_cv.groupby('bin', observed=False)
@@ -438,6 +433,8 @@ class combine:
                  splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  precs=[0.95],
+                 gt_rmse=None,
+                 gt_area=None,
                  disable_tqdm=False,
                  ):
 
@@ -448,12 +445,17 @@ class combine:
             uq_model = The UQ model
             splits = The list of splitting generators.
             bins = The number of quantailes for binning data.
+            precs = The minimum preicisions for domain model.
+            gt_rmse = The ground truth for rmse.
+            gt_area = The ground truth for miscalibration area.
         '''
 
         self.gs_model = gs_model
         self.ds_model = ds_model
         self.uq_model = uq_model
         self.bins = bins
+        self.gt_rmse = gt_rmse
+        self.gt_area = gt_area
         self.splits = copy.deepcopy(splits)
         self.precs = precs
         self.disable_tqdm = disable_tqdm
@@ -592,8 +594,12 @@ class combine:
         bin_cv = bin_data(data_cv, self.bins)
 
         # Acquire ground truths
-        self.gt_rmse = bin_id['rmse/std_y'].max()
-        self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
+        if self.gt_rmse is None:
+            self.gt_rmse = bin_id['rmse/std_y'].max()
+
+        if self.gt_area is None:
+            self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']
+            self.gt_area = self.gt_area['cdf_area'].max()
 
         # Classify ground truth labels
         assign_ground_truth(data_cv, bin_cv, self.gt_rmse, self.gt_area)

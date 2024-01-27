@@ -69,7 +69,7 @@ def main():
     # Assess models
     model = combine(gs_model, ds_model, uq_model, splits)
     cv = nested_cv(model, X, y, splitters=splits)
-    df = cv.test()
+    df, df_bin, fit_model = cv.test()
 
     # Full fit model and write results.
     cv.write_results(run_name)

@@ -113,8 +113,16 @@ class nested_cv:
         bin_id = bin_data(df_id, self.model.bins)
         df_bin = bin_data(df, self.model.bins)
 
-        self.gt_rmse = bin_id['rmse/std_y'].max()
-        self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']['cdf_area'].max()
+        if self.model.gt_rmse is None:
+            self.gt_rmse = bin_id['rmse/std_y'].max()
+        else:
+            self.gt_rmse = self.model.gt_rmse
+
+        if self.model.gt_area is None:
+            self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']
+            self.gt_area = self.gt_area['cdf_area'].max()
+        else:
+            self.gt_area = self.model.gt_area
 
         # Classify ground truth labels
         assign_ground_truth(
@@ -126,6 +134,9 @@ class nested_cv:
 
         self.df = df
         self.df_bin = df_bin
+
+        # Full fit
+        self.model.fit(self.X, self.y, self.g)
 
         return df, df_bin, self.model
 
@@ -155,8 +166,6 @@ class nested_cv:
                                         ), index=False)
 
         # Save model
-        self.model.fit(self.X, self.y, self.g)
-
         np.savetxt(
                    os.path.join(model_save, 'X.csv'),
                    self.X,
