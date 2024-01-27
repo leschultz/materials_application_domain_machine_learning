@@ -36,14 +36,17 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     fig.tight_layout()
 
     if legend:
+
         fig_legend, ax_legend = pl.subplots()
         ax_legend.axis(False)
+
         legend = ax_legend.legend(
                                   *ax.get_legend_handles_labels(),
                                   frameon=False,
                                   loc='center',
                                   bbox_to_anchor=(0.5, 0.5)
                                   )
+
         ax_legend.spines['top'].set_visible(False)
         ax_legend.spines['bottom'].set_visible(False)
         ax_legend.spines['left'].set_visible(False)
@@ -53,6 +56,8 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
                                         save,
                                         '{}_{}_legend.png'.format(name, suffix)
                                         ), bbox_inches='tight')
+
+        ax.legend().remove()
 
         pl.close(fig_legend)
 
