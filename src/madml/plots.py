@@ -5,18 +5,11 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
-
-from itertools import groupby
-from functools import reduce
 from sklearn import metrics
-from scipy import stats
 
-import seaborn as sns
-import pandas as pd
 import numpy as np
 
 import matplotlib
-import warnings
 import json
 import os
 

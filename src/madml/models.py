@@ -306,14 +306,10 @@ class domain:
         loop = range(nprec)
         for cut in self.precs:
 
-            # Correction for no observed precision higher than cut
-            if not any(precision[:-1] >= cut):
-                break
-            else:
-                for index in loop:
-                    p = precision[index]
-                    if p >= cut:
-                        break
+            for index in loop:
+                p = precision[index]
+                if p >= cut:
+                    break
 
             name = 'Minimum Precision: {}'.format(cut)
             data[name] = {
