@@ -613,7 +613,10 @@ class combine:
             self.gt_rmse = rmse
 
         if self.gt_area is None:
-            pred = data_id['naive_stdc']/data_id['std_y']
+            num = data_id['y']-data_id['y_pred']
+            den = data_id['naive_stdc']
+            pred = num/den
+            pred = pred/data_id['std_y']
             self.gt_area = cdf(pred)[4]
 
         # Classify ground truth labels

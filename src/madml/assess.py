@@ -136,7 +136,10 @@ class nested_cv:
             self.gt_rmse = self.model.gt_rmse
 
         if self.model.gt_area is None:
-            pred = df_id['naive_stdc']/df_id['std_y']
+            num = df_id['y']-df_id['y_pred']
+            den = df_id['naive_stdc']
+            pred = num/den
+            pred = pred/df_id['std_y']
             self.gt_area = cdf(pred)[4]
 
         else:
