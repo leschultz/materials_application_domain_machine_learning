@@ -17,6 +17,8 @@ def main():
     run_name = 'output'
     data_name = replace_data
     model = replace_model
+    kernel = replace_kernel
+    bandwidth = replace_bandwidth
 
     # Load data
     data = datasets.load(data_name)
@@ -25,7 +27,7 @@ def main():
     n_repeats = 5
 
     # ML Distance model
-    ds_model = dissimilarity(dis='kde')
+    ds_model = dissimilarity('kde', kernel, bandwidth)
 
     # ML UQ function
     uq_model = calibration(params=[0.0, 1.0])
