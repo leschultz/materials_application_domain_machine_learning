@@ -1,8 +1,3 @@
-from sklearn.metrics import (
-                             precision_recall_curve,
-                             average_precision_score,
-                             )
-
 from sklearn.model_selection import RepeatedKFold
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
@@ -183,79 +178,7 @@ class domain:
         Train the domain model on dissimilarity scores by finding thresholds.
         '''
 
-        d = -d  # Because lowest d is more likely ID
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-
-            prc_scores = precision_recall_curve(
-                                                labels,
-                                                d,
-                                                pos_label='ID',
-                                                )
-
-            precision, recall, thresholds = prc_scores
-            thresholds *= -1
-
-            auc_score = average_precision_score(
-                                                labels,
-                                                d,
-                                                pos_label='ID',
-                                                )
-
-        num = 2*recall*precision
-        den = recall+precision
-        f1_scores = np.divide(
-                              num,
-                              den,
-                              out=np.zeros_like(den), where=(den != 0)
-                              )
-        # Save data
-        data = {}
-
-        # Maximum F1 score
-        max_f1_index = np.argmax(f1_scores)
-
-        data['Max F1'] = {
-                          'Precision': precision[max_f1_index],
-                          'Recall': recall[max_f1_index],
-                          'Threshold': thresholds[max_f1_index],
-                          'F1': f1_scores[max_f1_index],
-                          }
-
-        # Loop for lowest to highest to get better thresholds
-        nprec = len(precision)
-        nthresh = nprec-1  # sklearn convention
-        nthreshindex = nthresh-1  # Foor loop index comparison
-        loop = range(nprec)
-        for cut in self.precs:
-
-            for index in loop:
-                p = precision[index]
-                if p >= cut:
-                    break
-
-            name = 'Minimum Precision: {}'.format(cut)
-            data[name] = {
-                          'Precision': precision[index],
-                          'Recall': recall[index],
-                          'F1': f1_scores[index],
-                          }
-
-            # If precision is set at arbitrary 1 from sklearn convention
-            if index > nthreshindex:
-                data[name]['Threshold'] = max(thresholds)
-            else:
-                data[name]['Threshold'] = thresholds[index]
-
-        data['AUC'] = auc_score
-        data['Baseline'] = np.sum(labels == 'ID')/labels.shape[0]
-        data['AUC-Baseline'] = auc_score-data['Baseline']
-        data['Precision'] = precision.tolist()
-        data['Recall'] = recall.tolist()
-        data['Thresholds'] = thresholds.tolist()
-
-        self.data = data
+        self.data = pr(d, labels, self.precs)
 
     def predict(self, d, d_input):
         '''

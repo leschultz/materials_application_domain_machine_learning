@@ -1,5 +1,5 @@
 from madml.models import bin_data, assign_ground_truth
-from madml.calculators import cdf
+from madml.calculators import cdf, pr
 from madml.hosting import docker
 from madml.plots import plotter
 from sklearn import metrics
@@ -210,11 +210,21 @@ class nested_cv:
                   )
 
         # Make plots from test data
+        pr_rmse = pr(
+                     self.df['d_pred'],
+                     self.df['domain_rmse/sigma_y'],
+                     self.model.precs,
+                     )
+        pr_area = pr(
+                     self.df['d_pred'],
+                     self.df['domain_cdf_area'],
+                     self.model.precs,
+                     )
         plot = plotter(
                        self.df,
                        self.df_bin,
-                       self.model.domain_rmse.data,
-                       self.model.domain_area.data,
+                       pr_rmse,
+                       pr_area,
                        self.gt_rmse,
                        self.gt_area,
                        ass_save
