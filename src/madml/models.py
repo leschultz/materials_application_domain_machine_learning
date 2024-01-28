@@ -22,6 +22,33 @@ import copy
 pd.options.mode.chained_assignment = None
 
 
+class naive:
+    '''
+    Estimate either the mean or median.
+    '''
+
+    def __init__(self, mode='median'):
+        self.mode = mode
+
+    def fit(self, X, y):
+
+        if self.mode == 'mean':
+            self.data = np.mean(y)
+
+        elif self.mode == 'median':
+            self.data = np.median(y)
+
+    def transform(self, X):
+
+        if self.mode == 'mean':
+            result = np.full((X.shape[0], 1), self.data)
+
+        elif self.median == 'median':
+            result = np.full((X.shape[0], 1), self.data)
+
+        return result
+
+
 class calibration:
     '''
     A UQ model for calibration of uncertainties.
@@ -518,15 +545,14 @@ class combine:
         data['y'] = y[te]
 
         # Statistics from training data
-        std_y = np.std(y[tr])
+        data['std_y'] = np.std(y[tr])
 
         # Predictions
         data['y_pred'] = gs_model_cv.predict(X[te])
         data['y_stdc_pred'] = predict_std(gs_model_cv, X_trans_te)
         data['d_pred'] = ds_model_cv.predict(X_trans_te)
         data['r'] = y[te]-data['y_pred']
-        data['r/std_y'] = data['r']/std_y
-        data['y_stdc_pred/std_y'] = data['y_stdc_pred']/std_y
+        data['r/std_y'] = data['r']/data['std_y']
 
         return data
 
@@ -587,6 +613,7 @@ class combine:
         # Update data not used for calibration of UQ
         data_cv['y_stdc_pred'] = data_cv['y_stdc_pred'].values
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdc_pred'])
+        data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
 
         # Separate out of bag data from those used to fint UQ
