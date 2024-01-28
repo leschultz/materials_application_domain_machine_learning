@@ -349,8 +349,6 @@ def list_data():
                  'friedman1',
                  'strength',
                  'fluence',
-                 'make_regression',
-                 'fetch_california_housing',
                  ]
 
     return datanames

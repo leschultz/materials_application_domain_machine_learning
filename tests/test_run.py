@@ -5,10 +5,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from madml.models.space import distance_model
-from madml.models.combine import domain_model
-from madml.models.uq import calibration_model
-from madml.ml.assessment import nested_cv
+from madml.models import dissimilarity, calibration, domain, combine
+from madml.splitters import BootstrappedLeaveClusterOut
+from madml.assess import nested_cv
 from madml import datasets
 
 import unittest
@@ -22,20 +21,20 @@ class ml_test(unittest.TestCase):
         Test a quick run.
         '''
 
-        run_name = 'run'
+        run_name = 'output'
 
         # Load data
-        data = datasets.load('diffusion')
+        data = datasets.load('strength')
         df = data['frame']
         X = data['data']
         y = data['target']
         g = data['class_name']
 
         # ML Distance model
-        ds_model = distance_model(dist='kde')
+        ds_model = dissimilarity(dis='kde')
 
         # ML UQ function
-        uq_model = calibration_model(params=[0.0, 0.1])
+        uq_model = calibration(params=[0.0, 0.1])
 
         # ML
         scale = StandardScaler()
@@ -44,8 +43,6 @@ class ml_test(unittest.TestCase):
         # The grid to do grid search
         grid = {}
         grid['model__n_estimators'] = [100]
-        grid['model__max_features'] = [None]
-        grid['model__max_depth'] = [None]
 
         # The ML Pipeline
         pipe = Pipeline(steps=[
@@ -63,10 +60,13 @@ class ml_test(unittest.TestCase):
         # Types of sampling to test
         splits = [('fit', RepeatedKFold(n_repeats=1))]
 
-        # Fit models
-        model = domain_model(gs_model, ds_model, uq_model, splits)
-        cv = nested_cv(X, y, g, model, splits, save=run_name)
-        cv.assess()
+        # Assess models
+        model = combine(gs_model, ds_model, uq_model, splits)
+        cv = nested_cv(model, X, y, splitters=splits)
+        df, df_bin, fit_model = cv.test()
+
+        # Full fit model and write results.
+        cv.write_results(run_name)
 
         # Clean up directory
         shutil.rmtree(run_name)
