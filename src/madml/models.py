@@ -22,33 +22,6 @@ import copy
 pd.options.mode.chained_assignment = None
 
 
-class naive:
-    '''
-    Estimate either the mean or median.
-    '''
-
-    def __init__(self, mode='median'):
-        self.mode = mode
-
-    def fit(self, X, y):
-
-        if self.mode == 'mean':
-            self.data = np.mean(y)
-
-        elif self.mode == 'median':
-            self.data = np.median(y)
-
-    def transform(self, X):
-
-        if self.mode == 'mean':
-            result = np.full((X.shape[0], 1), self.data)
-
-        elif self.median == 'median':
-            result = np.full((X.shape[0], 1), self.data)
-
-        return result
-
-
 class calibration:
     '''
     A UQ model for calibration of uncertainties.
@@ -521,7 +494,7 @@ class combine:
         count, splitter, tr, te = split
 
         if (tr.shape[0] < 1) | (te.shape[0] < 1):
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
 
         # Copy/clone models to prefent leakage
         ds_model_cv = copy.deepcopy(ds_model)
@@ -553,6 +526,10 @@ class combine:
         data['d_pred'] = ds_model_cv.predict(X_trans_te)
         data['r'] = y[te]-data['y_pred']
         data['r/std_y'] = data['r']/data['std_y']
+
+        # Get naive predictions
+        data['naive_y'] = np.mean(y[tr])
+        data['naive_stdc'] = np.mean(predict_std(gs_model_cv, X_trans_tr))
 
         return data
 
@@ -611,7 +588,7 @@ class combine:
         self.ds_model.fit(X_trans)
 
         # Update data not used for calibration of UQ
-        data_cv['y_stdc_pred'] = data_cv['y_stdc_pred'].values
+        data_cv['naive_stdc'] = self.uq_model.predict(data_cv['naive_stdc'])
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdc_pred'])
         data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
@@ -626,11 +603,18 @@ class combine:
 
         # Acquire ground truths
         if self.gt_rmse is None:
-            self.gt_rmse = bin_id['rmse/std_y'].max()
+            true = data_id['y']/data_id['std_y']
+            pred = data_id['naive_y']/data_id['std_y']
+            rmse = metrics.mean_squared_error(
+                                              true,
+                                              pred,
+                                              )
+            rmse **= 0.5
+            self.gt_rmse = rmse
 
         if self.gt_area is None:
-            self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']
-            self.gt_area = self.gt_area['cdf_area'].max()
+            pred = data_id['naive_stdc']/data_id['std_y']
+            self.gt_area = cdf(pred)[4]
 
         # Classify ground truth labels
         assign_ground_truth(data_cv, bin_cv, self.gt_rmse, self.gt_area)

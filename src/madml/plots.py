@@ -57,7 +57,7 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
                                         '{}_{}_legend.png'.format(name, suffix)
                                         ), bbox_inches='tight')
 
-        ax.legend().remove()
+        ax.legend([]).set_visible(False)
 
         pl.close(fig_legend)
 
@@ -298,14 +298,13 @@ def pr(df, save, suffix):
     diff = df['AUC-Baseline']
     baseline = df['Baseline']
 
-    fig, ax = pl.subplots()
-
     pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
     label = 'AUC: {:.2f}\n'.format(auc_score)
     label += 'AUC-Baseline: {:.2f}'.format(diff)
 
-    pr_display.plot(ax=ax)
-    ax.legend([label])
+    pr_display.plot(label=label)
+
+    fig, ax = pl.gcf(), pl.gca()
 
     ax.hlines(
               baseline,

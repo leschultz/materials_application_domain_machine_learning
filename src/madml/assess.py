@@ -1,6 +1,8 @@
 from madml.models import bin_data, assign_ground_truth
+from madml.calculators import cdf
 from madml.hosting import docker
 from madml.plots import plotter
+from sklearn import metrics
 from tqdm import tqdm
 
 import pandas as pd
@@ -86,13 +88,19 @@ class nested_cv:
         data['y'] = self.y[test]
 
         # Statistics from training data
-        std_y = np.std(self.y[train])
+        data['std_y'] = np.std(self.y[train])
 
         # Predictions
         data['r'] = self.y[test]-data['y_pred']
         data['z'] = data['r']/data['y_stdc_pred']
-        data['r/std_y'] = data['r']/std_y
-        data['y_stdc_pred/std_y'] = data['y_stdc_pred']/std_y
+        data['r/std_y'] = data['r']/data['std_y']
+        data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
+
+        # Get naive predictions
+        data['naive_y'] = np.mean(self.y[train])
+        naive_stdc = model.predict(self.X[train])
+        naive_stdc = np.mean(naive_stdc['y_stdc_pred'])
+        data['naive_stdc'] = naive_stdc
 
         return data
 
@@ -113,14 +121,24 @@ class nested_cv:
         bin_id = bin_data(df_id, self.model.bins)
         df_bin = bin_data(df, self.model.bins)
 
+        # Acquire ground truths
         if self.model.gt_rmse is None:
-            self.gt_rmse = bin_id['rmse/std_y'].max()
+            true = df_id['y']/df_id['std_y']
+            pred = df_id['naive_y']/df_id['std_y']
+            rmse = metrics.mean_squared_error(
+                                              true,
+                                              pred,
+                                              )
+            rmse **= 0.5
+            self.gt_rmse = rmse
+
         else:
             self.gt_rmse = self.model.gt_rmse
 
         if self.model.gt_area is None:
-            self.gt_area = bin_id[bin_id['bin'] != '[1.0, 1.0]']
-            self.gt_area = self.gt_area['cdf_area'].max()
+            pred = df_id['naive_stdc']/df_id['std_y']
+            self.gt_area = cdf(pred)[4]
+
         else:
             self.gt_area = self.model.gt_area
 
