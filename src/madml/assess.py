@@ -211,13 +211,13 @@ class nested_cv:
 
         # Make plots from test data
         pr_rmse = pr(
-                     self.df['d_pred'],
-                     self.df['domain_rmse/sigma_y'],
+                     self.df_bin['d_pred_max'],
+                     self.df_bin['domain_rmse/sigma_y'],
                      self.model.precs,
                      )
         pr_area = pr(
-                     self.df['d_pred'],
-                     self.df['domain_cdf_area'],
+                     self.df_bin['d_pred_max'],
+                     self.df_bin['domain_cdf_area'],
                      self.model.precs,
                      )
         plot = plotter(
