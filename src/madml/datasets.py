@@ -188,7 +188,7 @@ def load(name, *args, **kwargs):
 
         return data
 
-    elif name == 'super_cond':
+    elif name == 'supercond':
         '''
         Load the super conductor data set.
         '''
