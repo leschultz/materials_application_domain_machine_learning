@@ -74,11 +74,7 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
 
 
 def parity(
-           y,
-           y_pred,
-           y_stdc_pred,
-           r_std_y,
-           d,
+           df,
            save='.',
            suffix='',
            ):
@@ -86,14 +82,16 @@ def parity(
     Make a parity plot.
 
     inputs:
-        y = The true target value.
-        y_pred = The predicted target value.
-        y_stdc_pred = The uncertainties in predicted values.
-        r_std_y = The residuals normalized by standard deviation.
-        d = Dissimilarity measure
+        df = Data.
         save = The directory to save plot.
         suffix = Append a suffix to the save name.
     '''
+
+    y = df.y
+    y_pred = df.y_pred
+    y_stdc_pred = df.y_stdc_pred
+    r_std_y = df['r/std_y']
+    d = df.d_pred
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
     rmse_sigma = (sum(r_std_y**2)/r_std_y.shape[0])**0.5
@@ -177,7 +175,7 @@ def cdf(df, gt, save, suffix):
 
     inputs:
         x = The residuals normalized by the calibrated uncertainties.
-        gt = The ground truth to examine.
+        gt = The column to group.
         save = The location to save the figure/data.
     '''
 
@@ -188,9 +186,9 @@ def cdf(df, gt, save, suffix):
         eval_points, y, y_pred, areacdf = calculators.cdf(values['z'])
 
         area_label = '{}: '.format(group)
-        area_label += '$E^{{{}}}={:.3f}$'.format(suffix, areacdf)
+        area_label += '$E^{{area}}={:.3f}$'.format(areacdf)
 
-        color = 'g' if group == 'ID' else 'r'
+        color = 'r' if group == 'OD' else 'g'
 
         ax.plot(
                 eval_points,
@@ -502,6 +500,27 @@ class plotter:
         # Domain prediction columns
         pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
+        # For data used to fit regression model
+        df = self.df[self.df['splitter'] == 'fit']
+        parity(
+               df,
+               self.save,
+               'fit_splitter',
+               )
+
+        # CDF
+        cdf(df, 'splitter', self.save, 'fit_splitter')
+
+        # Need to re-bin data by stdc not d for visual
+        df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+
+        # RMSE vs. stdc
+        rmse_vs_stdc(
+                     df,
+                     self.save,
+                     'fit_splitter',
+                     )
+
         # Miscalibration area vs. RMSE
         area_vs_rmse(self.df_bin, self.save)
 
@@ -519,11 +538,7 @@ class plotter:
 
                 # Parity plot
                 parity(
-                       df.y,
-                       df.y_pred,
-                       df.y_stdc_pred,
-                       df['r/std_y'],
-                       df.d_pred,
+                       df,
                        self.save,
                        '{}_{}'.format(k, group),
                        )
