@@ -185,7 +185,7 @@ def cdf(df, gt, save, suffix):
     fig, ax = pl.subplots()
     for group, values in df.groupby(gt):
 
-        eval_points, y, y_pred, _, areacdf = calculators.cdf(values['z'])
+        eval_points, y, y_pred, areacdf = calculators.cdf(values['z'])
 
         area_label = '{}: '.format(group)
         area_label += '$E^{{{}}}={:.3f}$'.format(suffix, areacdf)

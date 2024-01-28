@@ -40,9 +40,8 @@ def cdf(x):
     # Area between ideal distribution and observed
     absres = np.abs(y_pred-y)
     areacdf = np.trapz(absres, x=eval_points, dx=0.00001)
-    areaparity = np.trapz(absres, x=y, dx=0.00001)
 
-    return eval_points, y, y_pred, areaparity, areacdf
+    return eval_points, y, y_pred, areacdf
 
 
 def llh(std, res, x, func):
