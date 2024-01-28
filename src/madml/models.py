@@ -1,17 +1,21 @@
+from madml.calculators import (
+                               set_llh,
+                               poly,
+                               cdf,
+                               pr,
+                               )
+
 from sklearn.model_selection import RepeatedKFold
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 from madml.utils import parallel
-from madml.calculators import *
 from sklearn.base import clone
 from functools import reduce
 from sklearn import metrics
-from scipy import stats
 
 import pandas as pd
 import numpy as np
-import warnings
 import copy
 
 pd.options.mode.chained_assignment = None
@@ -521,7 +525,6 @@ class combine:
         data_cv = data_cv[data_cv['splitter'] != 'calibration']
 
         # Get binned data from alternate forms of sampling
-        bin_id = bin_data(data_id, self.bins)
         bin_cv = bin_data(data_cv, self.bins)
 
         # Acquire ground truths

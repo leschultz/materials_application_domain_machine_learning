@@ -137,7 +137,7 @@ def parity(
                 zorder=-1,
                 )
 
-    bar = fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='D')
 
     # Line of best fit
     limits = []
@@ -397,7 +397,7 @@ def area_vs_rmse(df, save):
                     vmax=1.0,
                     )
 
-    bar = fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='D')
 
     ax.set_xlabel(r'$E^{rmse}$')
     ax.set_ylabel(r'$E^{area}$')
@@ -437,7 +437,7 @@ def rmse_vs_stdc(df, save, suffix):
                     vmax=1.0,
                     )
 
-    bar = fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='D')
 
     # Line of best fit
     limits = []

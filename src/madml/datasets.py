@@ -1,5 +1,4 @@
 from sklearn import datasets as sklearn_datasets
-from madml import datasets
 import pandas as pd
 import numpy as np
 

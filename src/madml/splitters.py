@@ -116,7 +116,6 @@ class BootstrappedLeaveClusterOut:
             A generator for train and test splits.
         '''
 
-        indx = np.arange(X.shape[0])
         X = self.scaler.fit_transform(X)
         self.clust.fit(X)  # Do clustering
 

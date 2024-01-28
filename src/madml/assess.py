@@ -118,7 +118,6 @@ class nested_cv:
 
         # Determine ground truth from test data
         df_id = df[df['splitter'] == 'fit']
-        bin_id = bin_data(df_id, self.model.bins)
         df_bin = bin_data(df, self.model.bins)
 
         # Acquire ground truths

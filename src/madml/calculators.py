@@ -5,7 +5,6 @@ from sklearn.metrics import (
 
 from scipy.optimize import minimize
 
-import pandas as pd
 import numpy as np
 import warnings
 

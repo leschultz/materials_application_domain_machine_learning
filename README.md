@@ -13,25 +13,10 @@ The structure of the code packages is as follows:
 ```
 materials_application_domain_machine_learning/
 ├── examples
-│   ├── auto_push
 │   ├── jupyter
 │   └── single_runs
-│       ├── bw_rf
-│       ├── gt_rf
-│       ├── kernel_rf
-│       ├── nn
-│       ├── ols
-│       ├── rf
-│       ├── svm
-│       └── wg_rf
 ├── src
 │   └── madml
-│       ├── data
-│       ├── hosting
-│       ├── ml
-│       ├── models
-│       └── templates
-│           └── docker
 └── tests
 ```
 
