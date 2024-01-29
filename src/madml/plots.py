@@ -5,6 +5,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from madml.models import domain
 from madml import calculators
 from sklearn import metrics
 
@@ -495,21 +496,18 @@ class plotter:
                  self,
                  df,
                  df_bin,
-                 domain_rmse,
-                 domain_area,
                  gt_rmse,
                  gt_area,
-                 save
+                 precs,
+                 save,
                  ):
 
         self.save = save
         self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
         self.errors = ['rmse/std_y', 'cdf_area']
         self.assessments = ['rmse', 'area']
-
-        # Domain
         self.gts = [gt_rmse, gt_area]  # Ground truths
-        self.prs = [domain_rmse, domain_area]  # Domain pr
+        self.precs = precs  # Precisions used
 
         # For plotting purposes
         cols = self.errors+self.domains
@@ -519,9 +517,6 @@ class plotter:
         self.bins = self.df_bin.shape[0]
 
     def generate(self):
-
-        # Domain prediction columns
-        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
         # For data used to fit regression model
         df = self.df[self.df['splitter'] == 'fit']
@@ -551,13 +546,12 @@ class plotter:
         area_vs_rmse(self.df_bin, self.save)
 
         # Loop over domains
-        for i, j, k, f, z in zip(
-                                 self.domains,
-                                 self.errors,
-                                 self.assessments,
-                                 self.gts,
-                                 self.prs,
-                                 ):
+        for i, j, k, f, in zip(
+                               self.domains,
+                               self.errors,
+                               self.assessments,
+                               self.gts,
+                               ):
 
             # Separate domains and classes
             for group, df in self.df.groupby(i):
@@ -599,12 +593,19 @@ class plotter:
                  )
 
             # PR curve
-            pr(z, self.save, k)
+            model = domain(self.precs)
+            model.fit(self.df['d_pred'], self.df[i])
+            pr(model.data, self.save, k)
 
-            # Confusion matrices
-            for pred in pred_cols:
-                if i.replace('domain_', '') in pred:
-                    y = self.df.loc[:, i].values
-                    y_pred = self.df.loc[:, pred].values
-                    suffix = pred.replace(' ', '_').replace('/', '_div_')
-                    confusion(y, y_pred, self.save, suffix)
+            preds = model.predict(self.df['d_pred'])
+            for pred in preds.columns:
+
+                suffix = pred.replace(' ', '_')
+                suffix = suffix.replace(':', '')
+                suffix = '{}_{}'.format(k, suffix)
+                confusion(
+                          self.df[i].values,
+                          preds[pred],
+                          self.save,
+                          suffix,
+                          )

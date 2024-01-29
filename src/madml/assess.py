@@ -1,5 +1,5 @@
-from madml.calculators import cdf, pr, bin_data
 from madml.models import assign_ground_truth
+from madml.calculators import cdf, bin_data
 from madml.hosting import docker
 from madml.plots import plotter
 from sklearn import metrics
@@ -98,9 +98,9 @@ class nested_cv:
 
         # Get naive predictions
         data['naive_y'] = np.mean(self.y[train])
-        naive_stdc = model.predict(self.X[train])
-        naive_stdc = np.mean(naive_stdc['y_stdc_pred'])
-        data['naive_stdc'] = naive_stdc
+        pred = model.predict(self.X[train])
+        data['naive_stdu'] = np.mean(pred['y_stdu_pred'])
+        data['naive_stdc'] = np.mean(pred['y_stdc_pred'])
 
         return data
 
@@ -171,10 +171,9 @@ class nested_cv:
         # Save locations
         ass_save = os.path.join(parent, 'assessment')
         model_save = os.path.join(parent, 'model')
-        model_ass = os.path.join(model_save, 'train')
 
         # Create locations
-        for d in [ass_save, model_save, model_ass]:
+        for d in [ass_save, model_save]:
             os.makedirs(d, exist_ok=True)
 
         # Write test data
@@ -209,39 +208,14 @@ class nested_cv:
                   open(os.path.join(model_save, 'model.dill'), 'wb')
                   )
 
-        # Make plots from test data
-        pr_rmse = pr(
-                     self.df_bin['d_pred_max'],
-                     self.df_bin['domain_rmse/sigma_y'],
-                     self.model.precs,
-                     )
-        pr_area = pr(
-                     self.df_bin['d_pred_max'],
-                     self.df_bin['domain_cdf_area'],
-                     self.model.precs,
-                     )
-
         # Test data
         plot = plotter(
                        self.df,
                        self.df_bin,
-                       pr_rmse,
-                       pr_area,
                        self.gt_rmse,
                        self.gt_area,
+                       self.model.precs,
                        ass_save,
-                       )
-        plot.generate()
-
-        # Train data
-        plot = plotter(
-                       self.model.data_cv,
-                       self.model.bin_cv,
-                       self.model.domain_rmse.data,
-                       self.model.domain_area.data,
-                       self.model.gt_rmse,
-                       self.model.gt_area,
-                       model_ass,
                        )
         plot.generate()
 

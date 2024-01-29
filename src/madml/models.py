@@ -173,18 +173,18 @@ class domain:
     Domain classification model.
     '''
 
-    def __init__(self, precs=[]):
+    def __init__(self, precs=[0.95]):
 
         self.precs = precs
 
-    def train(self, d, labels):
+    def fit(self, d, labels):
         '''
         Train the domain model on dissimilarity scores by finding thresholds.
         '''
 
         self.data = pr(d, labels, self.precs)
 
-    def predict(self, d, d_input):
+    def predict(self, d, d_input=None):
         '''
         Predict the domain based on thresholds.
 
@@ -309,7 +309,7 @@ class combine:
                  uq_model,
                  splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
-                 precs=[],
+                 precs=[0.95],
                  gt_rmse=None,
                  gt_area=None,
                  disable_tqdm=False,
@@ -395,14 +395,14 @@ class combine:
 
         # Predictions
         data['y_pred'] = gs_model_cv.predict(X[te])
-        data['y_stdc_pred'] = predict_std(gs_model_cv, X_trans_te)
+        data['y_stdu_pred'] = predict_std(gs_model_cv, X_trans_te)
         data['d_pred'] = ds_model_cv.predict(X_trans_te)
         data['r'] = y[te]-data['y_pred']
         data['r/std_y'] = data['r']/data['std_y']
 
         # Get naive predictions
         data['naive_y'] = np.mean(y[tr])
-        data['naive_stdc'] = np.mean(predict_std(gs_model_cv, X_trans_tr))
+        data['naive_stdu'] = np.mean(predict_std(gs_model_cv, X_trans_tr))
 
         return data
 
@@ -450,7 +450,7 @@ class combine:
         self.uq_model.fit(
                           data_id['y'].values,
                           data_id['y_pred'].values,
-                          data_id['y_stdc_pred'].values
+                          data_id['y_stdu_pred'].values
                           )
 
         X_trans = pipe_transforms(
@@ -461,8 +461,8 @@ class combine:
         self.ds_model.fit(X_trans)
 
         # Update data not used for calibration of UQ
-        data_cv['naive_stdc'] = self.uq_model.predict(data_cv['naive_stdc'])
-        data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdc_pred'])
+        data_cv['naive_stdc'] = self.uq_model.predict(data_cv['naive_stdu'])
+        data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdu_pred'])
         data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
 
@@ -497,14 +497,14 @@ class combine:
         self.domain_area = domain(self.precs)
 
         # Train classifiers
-        self.domain_rmse.train(
-                               bin_cv['d_pred_max'].values,
-                               bin_cv['domain_rmse/sigma_y'].values,
-                               )
-        self.domain_area.train(
-                               bin_cv['d_pred_max'].values,
-                               bin_cv['domain_cdf_area'].values,
-                               )
+        self.domain_rmse.fit(
+                             bin_cv['d_pred_max'].values,
+                             bin_cv['domain_rmse/sigma_y'].values,
+                             )
+        self.domain_area.fit(
+                             bin_cv['d_pred_max'].values,
+                             bin_cv['domain_cdf_area'].values,
+                             )
 
         self.data_cv = data_cv
         self.bin_cv = bin_cv
@@ -541,8 +541,8 @@ class combine:
         pred = pd.DataFrame()
         pred['y_pred'] = self.gs_model.predict(X)
         pred['d_pred'] = self.ds_model.predict(X_trans)
-        pred['y_stdc_pred'] = predict_std(self.gs_model, X_trans)
-        pred['y_stdc_pred'] = self.uq_model.predict(pred['y_stdc_pred'])
+        pred['y_stdu_pred'] = predict_std(self.gs_model, X_trans)
+        pred['y_stdc_pred'] = self.uq_model.predict(pred['y_stdu_pred'])
 
         pred = pd.concat([
                           pred,
