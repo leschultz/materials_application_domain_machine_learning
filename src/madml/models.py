@@ -268,6 +268,9 @@ def predict_std(model, X):
 
 def bin_data(data_cv, bins, by='d_pred'):
 
+    # Copy to prevent problems
+    data_cv = data_cv.copy()
+
     # Correct for cases were many cases are at the same value
     count = 0
     unique_quantiles = 0
@@ -317,7 +320,7 @@ def bin_data(data_cv, bins, by='d_pred'):
 
     bin_cv = bin_cv.reset_index()
 
-    return bin_cv
+    return data_cv, bin_cv
 
 
 def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
@@ -525,7 +528,7 @@ class combine:
         data_cv = data_cv[data_cv['splitter'] != 'calibration']
 
         # Get binned data from alternate forms of sampling
-        bin_cv = bin_data(data_cv, self.bins)
+        data_cv, bin_cv = bin_data(data_cv, self.bins)
 
         # Acquire ground truths
         if self.gt_rmse is None:

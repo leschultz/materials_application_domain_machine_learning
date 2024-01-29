@@ -73,6 +73,33 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
         json.dump(data, handle)
 
 
+def residuals(df, save='.', suffix=''):
+    '''
+    A plot of absolute residuals vs. dissimilarity.
+
+    inputs:
+        df = Data.
+        save = The directory to save plot.
+        suffix = Append a suffix to the save name.
+    '''
+
+    data = {}
+    fig, ax = pl.subplots()
+
+    x = df['d_pred'].values
+    y = df['r/std_y'].abs().values
+
+    ax.scatter(x, y, marker='.', color='r')
+
+    data['d_pred'] = x.tolist()
+    data['r/std_y'] = y.tolist()
+
+    ax.set_xlabel('D')
+    ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
+
+    plot_dump(data, fig, ax, 'residuals', save, suffix)
+
+
 def parity(
            df,
            save='.',
@@ -247,10 +274,8 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
 
         if dom == 'ID':
             color = 'g'
-            bot = 0
         else:
             color = 'r'
-            bot = gt
 
         x = np.array(values[d], dtype=float)
         y = np.array(values[e], dtype=float)
@@ -259,7 +284,6 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
         ax.fill_between(
                         x,
                         y,
-                        bot,
                         color=color,
                         alpha=0.5,
                         )
@@ -508,11 +532,14 @@ class plotter:
                'fit_splitter',
                )
 
+        # Residuals
+        residuals(self.df, self.save, '')
+
         # CDF
         cdf(df, 'splitter', self.save, 'fit_splitter')
 
         # Need to re-bin data by stdc not d for visual
-        df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+        _, df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
 
         # RMSE vs. stdc
         rmse_vs_stdc(
@@ -544,7 +571,7 @@ class plotter:
                        )
 
                 # Need to re-bin data by stdc not d for visual
-                df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+                _, df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
 
                 # RMSE vs. stdc
                 rmse_vs_stdc(

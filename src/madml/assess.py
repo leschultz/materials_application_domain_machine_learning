@@ -115,10 +115,10 @@ class nested_cv:
             df.append(self.cv(i))
 
         df = pd.concat(df)  # Combine data
+        df,  df_bin = bin_data(df, self.model.bins)
 
         # Determine ground truth from test data
         df_id = df[df['splitter'] == 'fit']
-        df_bin = bin_data(df, self.model.bins)
 
         # Acquire ground truths
         if self.model.gt_rmse is None:
@@ -171,9 +171,10 @@ class nested_cv:
         # Save locations
         ass_save = os.path.join(parent, 'assessment')
         model_save = os.path.join(parent, 'model')
+        model_ass = os.path.join(model_save, 'train')
 
         # Create locations
-        for d in [ass_save, model_save]:
+        for d in [ass_save, model_save, model_ass]:
             os.makedirs(d, exist_ok=True)
 
         # Write test data
@@ -219,6 +220,8 @@ class nested_cv:
                      self.df_bin['domain_cdf_area'],
                      self.model.precs,
                      )
+
+        # Test data
         plot = plotter(
                        self.df,
                        self.df_bin,
@@ -226,7 +229,19 @@ class nested_cv:
                        pr_area,
                        self.gt_rmse,
                        self.gt_area,
-                       ass_save
+                       ass_save,
+                       )
+        plot.generate()
+
+        # Train data
+        plot = plotter(
+                       self.model.data_cv,
+                       self.model.bin_cv,
+                       self.model.domain_rmse.data,
+                       self.model.domain_area.data,
+                       self.model.gt_rmse,
+                       self.model.gt_area,
+                       model_ass,
                        )
         plot.generate()
 
