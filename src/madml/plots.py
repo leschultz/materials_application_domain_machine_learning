@@ -5,7 +5,6 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
-from madml.models import bin_data
 from madml import calculators
 from sklearn import metrics
 
@@ -539,7 +538,7 @@ class plotter:
         cdf(df, 'splitter', self.save, 'fit_splitter')
 
         # Need to re-bin data by stdc not d for visual
-        _, df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+        _, df = calculators.bin_data(df, self.bins, 'y_stdc_pred/std_y')
 
         # RMSE vs. stdc
         rmse_vs_stdc(
@@ -571,7 +570,11 @@ class plotter:
                        )
 
                 # Need to re-bin data by stdc not d for visual
-                _, df = bin_data(df, self.bins, 'y_stdc_pred/std_y')
+                _, df = calculators.bin_data(
+                                             df,
+                                             self.bins,
+                                             'y_stdc_pred/std_y',
+                                             )
 
                 # RMSE vs. stdc
                 rmse_vs_stdc(

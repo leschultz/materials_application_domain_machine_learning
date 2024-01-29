@@ -1,5 +1,5 @@
-from madml.models import bin_data, assign_ground_truth
-from madml.calculators import cdf, pr
+from madml.calculators import cdf, pr, bin_data
+from madml.models import assign_ground_truth
 from madml.hosting import docker
 from madml.plots import plotter
 from sklearn import metrics

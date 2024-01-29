@@ -4,7 +4,9 @@ from sklearn.metrics import (
                              )
 
 from scipy.optimize import minimize
+from functools import reduce
 
+import pandas as pd
 import numpy as np
 import warnings
 
@@ -200,3 +202,60 @@ def pr(d, labels, precs):
     data['Thresholds'] = thresholds.tolist()
 
     return data
+
+
+def bin_data(data_cv, bins, by='d_pred'):
+
+    # Copy to prevent problems
+    data_cv = data_cv.copy()
+
+    # Correct for cases were many cases are at the same value
+    count = 0
+    unique_quantiles = 0
+    while unique_quantiles < bins:
+        quantiles = pd.qcut(
+                            data_cv[by],
+                            bins+count,
+                            duplicates='drop',
+                            )
+
+        unique_quantiles = len(quantiles.unique())
+        count += 1
+
+    data_cv['bin'] = quantiles
+
+    # Calculate statistics
+    bin_groups = data_cv.groupby('bin', observed=False)
+    distmean = bin_groups['d_pred'].mean()
+    binmax = bin_groups['d_pred'].max()
+    counts = bin_groups['z'].count()
+    stdc = bin_groups['y_stdc_pred/std_y'].mean()
+    rmse = bin_groups['r/std_y'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+
+    area = bin_groups.apply(lambda x: cdf(
+                                          x['z'],
+                                          )[-1])
+
+    area = area.to_frame().rename({0: 'cdf_area'}, axis=1)
+
+    distmean = distmean.to_frame().add_suffix('_mean')
+    binmax = binmax.to_frame().add_suffix('_max')
+    stdc = stdc.to_frame().add_suffix('_mean')
+    rmse = rmse.to_frame().rename({'r/std_y': 'rmse/std_y'}, axis=1)
+    counts = counts.to_frame().rename({'z': 'count'}, axis=1)
+
+    # Combine data for each bin
+    bin_cv = [
+              counts,
+              distmean,
+              binmax,
+              stdc,
+              rmse,
+              area,
+              ]
+
+    bin_cv = reduce(lambda x, y: pd.merge(x, y, on='bin'), bin_cv)
+
+    bin_cv = bin_cv.reset_index()
+
+    return data_cv, bin_cv
