@@ -5,7 +5,6 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
-from madml.models import domain
 from madml import calculators
 from sklearn import metrics
 

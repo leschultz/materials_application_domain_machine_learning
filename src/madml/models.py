@@ -406,7 +406,7 @@ class combine:
 
         return data
 
-    def fit(self, X, y, g=None):
+    def fit(self, X, y, g=None, d_input=None):
         '''
         Fit all models. Thresholds for domain classification are also set.
 
@@ -505,6 +505,12 @@ class combine:
                              bin_cv['d_pred_max'].values,
                              bin_cv['domain_cdf_area'].values,
                              )
+
+        pred = self.combine_domains_preds(data_cv['d_pred'], d_input)
+        data_cv = pd.concat([
+                             data_cv.reset_index(drop=True),
+                             pred.reset_index(drop=True),
+                             ], axis=1)
 
         self.data_cv = data_cv
         self.bin_cv = bin_cv

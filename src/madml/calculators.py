@@ -172,7 +172,6 @@ def pr(d, labels, precs):
 
     # Maximum F1 score
     max_f1_index = np.argmax(f1_scores)
-    print(f1_scores, max_f1_index)
 
     data['Max F1'] = {
                       'Precision': precision[max_f1_index],
