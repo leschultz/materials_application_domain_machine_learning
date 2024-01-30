@@ -32,7 +32,7 @@ def main():
 
     # ML
     scale = StandardScaler()
-    model = return_model(model)
+    model = return_model(model, X)
 
     # The grid for grid search
     grid = {}
