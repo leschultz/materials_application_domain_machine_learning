@@ -106,7 +106,6 @@ class nested_cv:
         # Get naive predictions
         data['naive_y'] = np.mean(self.y[train])
         pred = model.predict(self.X[train])
-        data['naive_stdu'] = np.mean(pred['y_stdu_pred'])
         data['naive_stdc'] = np.mean(pred['y_stdc_pred'])
 
         return data

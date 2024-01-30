@@ -468,8 +468,8 @@ class combine:
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
 
         # Separate out of bag data from those used to fint UQ
-        data_id = data_cv[data_cv['splitter'] == 'calibration']
         data_cv = data_cv[data_cv['splitter'] != 'calibration']
+        data_id = data_cv[data_cv['splitter'] == 'fit']  # Assessment
 
         # Get binned data from alternate forms of sampling
         data_cv, bin_cv = bin_data(data_cv, self.bins)
