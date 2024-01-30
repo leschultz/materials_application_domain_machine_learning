@@ -173,7 +173,7 @@ class domain:
     Domain classification model.
     '''
 
-    def __init__(self, precs=[0.95]):
+    def __init__(self, precs=[]):
 
         self.precs = precs
 
@@ -309,7 +309,7 @@ class combine:
                  uq_model,
                  splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
-                 precs=[0.95],
+                 precs=[],
                  gt_rmse=None,
                  gt_area=None,
                  disable_tqdm=False,

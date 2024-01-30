@@ -518,6 +518,9 @@ class plotter:
 
     def generate(self):
 
+        # Domain prediction columns
+        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
+
         # For data used to fit regression model
         df = self.df[self.df['splitter'] == 'fit']
         parity(
@@ -593,19 +596,17 @@ class plotter:
                  )
 
             # PR curve
-            model = domain(self.precs)
-            model.fit(self.df_bin['d_pred_max'], self.df_bin[i])
-            pr(model.data, self.save, k)
+            pr_data = calculators.pr(
+                                     self.df_bin['d_pred_max'],
+                                     self.df_bin[i],
+                                     self.precs,
+                                     )
+            pr(pr_data, self.save, k)
 
-            preds = model.predict(self.df['d_pred'])
-            for pred in preds.columns:
-
-                suffix = pred.replace(' ', '_')
-                suffix = suffix.replace(':', '')
-                suffix = '{}_{}'.format(k, suffix)
-                confusion(
-                          self.df[i].values,
-                          preds[pred],
-                          self.save,
-                          suffix,
-                          )
+            # Confusion matrices
+            for pred in pred_cols:
+                if i.replace('domain_', '') in pred:
+                    y = self.df.loc[:, i].values
+                    y_pred = self.df.loc[:, pred].values
+                    suffix = pred.replace(' ', '_').replace('/', '_div_')
+                    confusion(y, y_pred, self.save, suffix)

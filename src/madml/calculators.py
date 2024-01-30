@@ -129,11 +129,21 @@ def pr(d, labels, precs):
     Precision recall curve.
     '''
 
-    d = -d  # Because lowest d is more likely ID
+    # Compensate for munerically small floats
+    if all(i == 'ID' for i in labels):
+        precision = np.array([1.0, 1.0])
+        recall = np.array([0.0, 1.0])
+        thresholds = np.array([1.0, 1.0])
+        auc_score = 1.0
 
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+    elif all(i == 'OD' for i in labels):
+        precision = np.array([0.0, 0.0])
+        recall = np.array([0.0, 1.0])
+        thresholds = np.array([-np.inf])
+        auc_score = 0.0
 
+    else:
+        d = -d  # Because lowest d is more likely ID
         prc_scores = precision_recall_curve(
                                             labels,
                                             d,
@@ -141,13 +151,14 @@ def pr(d, labels, precs):
                                             )
 
         precision, recall, thresholds = prc_scores
-        thresholds *= -1
 
         auc_score = average_precision_score(
                                             labels,
                                             d,
                                             pos_label='ID',
-                                            )
+                                            )+0.0  # Make positive
+
+        thresholds *= -1
 
     num = 2*recall*precision
     den = recall+precision
@@ -161,6 +172,7 @@ def pr(d, labels, precs):
 
     # Maximum F1 score
     max_f1_index = np.argmax(f1_scores)
+    print(f1_scores, max_f1_index)
 
     data['Max F1'] = {
                       'Precision': precision[max_f1_index],
@@ -196,7 +208,7 @@ def pr(d, labels, precs):
 
     data['AUC'] = auc_score
     data['Baseline'] = np.sum(labels == 'ID')/labels.shape[0]
-    data['AUC-Baseline'] = auc_score-data['Baseline']
+    data['AUC-Baseline'] = (auc_score-data['Baseline'])+0.0  # Force positive
     data['Precision'] = precision.tolist()
     data['Recall'] = recall.tolist()
     data['Thresholds'] = thresholds.tolist()
