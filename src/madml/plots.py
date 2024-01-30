@@ -97,7 +97,7 @@ def residuals(df, save='.', suffix=''):
     ax.set_xlabel('D')
     ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
 
-    plot_dump(data, fig, ax, 'residuals', save, suffix)
+    plot_dump(data, fig, ax, 'residuals', save, suffix, False)
 
 
 def parity(
@@ -594,7 +594,7 @@ class plotter:
 
             # PR curve
             model = domain(self.precs)
-            model.fit(self.df['d_pred'], self.df[i])
+            model.fit(self.df_bin['d_pred_max'], self.df_bin[i])
             pr(model.data, self.save, k)
 
             preds = model.predict(self.df['d_pred'])

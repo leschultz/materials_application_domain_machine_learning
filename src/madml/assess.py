@@ -171,9 +171,10 @@ class nested_cv:
         # Save locations
         ass_save = os.path.join(parent, 'assessment')
         model_save = os.path.join(parent, 'model')
+        model_ass = os.path.join(model_save, 'train')
 
         # Create locations
-        for d in [ass_save, model_save]:
+        for d in [ass_save, model_save, model_ass]:
             os.makedirs(d, exist_ok=True)
 
         # Write test data
@@ -216,6 +217,17 @@ class nested_cv:
                        self.gt_area,
                        self.model.precs,
                        ass_save,
+                       )
+        plot.generate()
+
+        # Train data
+        plot = plotter(
+                       self.model.data_cv,
+                       self.model.bin_cv,
+                       self.model.gt_rmse,
+                       self.model.gt_area,
+                       self.model.precs,
+                       model_ass,
                        )
         plot.generate()
 
