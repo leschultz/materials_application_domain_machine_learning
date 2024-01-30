@@ -11,6 +11,7 @@ from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
 from scipy.spatial.distance import cdist
 from madml.utils import parallel
+from madml.plots import plotter
 from sklearn.base import clone
 from sklearn import metrics
 
@@ -556,3 +557,18 @@ class combine:
                           ], axis=1)
 
         return pred
+
+    def plot(self, save):
+        '''
+        Plot model fit data.
+        '''
+
+        plot = plotter(
+                       self.data_cv,
+                       self.bin_cv,
+                       self.gt_rmse,
+                       self.gt_area,
+                       self.precs,
+                       save,
+                       )
+        plot.generate()
