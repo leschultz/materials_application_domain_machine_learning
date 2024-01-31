@@ -1,6 +1,7 @@
 from sklearn.metrics import (
                              precision_recall_curve,
                              average_precision_score,
+                             mean_squared_error,
                              )
 
 from scipy.optimize import minimize
@@ -220,6 +221,11 @@ def bin_data(data_cv, bins, by='d_pred'):
     # Copy to prevent problems
     data_cv = data_cv.copy()
 
+    if by == 'y_stdc_pred':
+        data_cv.sort_values(by=[by, 'y_pred'], inplace=True)
+    else:
+        data_cv.sort_values(by=[by, 'y_stdc_pred', 'y_pred'], inplace=True)
+
     # Correct for cases were many cases are at the same value
     count = 0
     unique_quantiles = 0
@@ -270,3 +276,32 @@ def bin_data(data_cv, bins, by='d_pred'):
     bin_cv = bin_cv.reset_index()
 
     return data_cv, bin_cv
+
+
+def ground_truth(self, y):
+
+    # Acquire ground truths
+    if any([self.gt_rmse is None, self.gt_area is None]):
+        std_y = np.std(y)
+        mean_y = np.mean(y)
+
+    if self.gt_rmse is None:
+        mean = np.repeat(mean_y, y.shape[0])
+        naive_rmse = mean_squared_error(
+                                        y,
+                                        mean,
+                                        )
+        naive_rmse **= 0.5
+        naive_rmse /= std_y
+
+        self.gt_rmse = naive_rmse
+
+    if self.gt_area is None:
+        naive_area = y-mean_y
+        naive_area /= std_y
+        naive_area = cdf(naive_area)
+        naive_area = naive_area[3]
+
+        self.gt_area = naive_area
+
+    return self

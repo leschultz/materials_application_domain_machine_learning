@@ -1,12 +1,10 @@
-from sklearn.cluster import AgglomerativeClustering
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from madml.models import dissimilarity, calibration, domain, combine
-from madml.splitters import BootstrappedLeaveClusterOut
+from madml.models import dissimilarity, calibration, combine
 from madml.assess import nested_cv
 from madml import datasets
 
@@ -28,7 +26,6 @@ class ml_test(unittest.TestCase):
         df = data['frame']
         X = data['data']
         y = data['target']
-        g = data['class_name']
 
         # ML Distance model
         ds_model = dissimilarity(dis='kde')
@@ -67,9 +64,6 @@ class ml_test(unittest.TestCase):
                                         save_inner_folds=run_name,
                                         save_outer_folds=run_name,
                                         )
-
-        # Full fit model and write results.
-        cv.write_results(run_name)
 
         # Clean up directory
         shutil.rmtree(run_name)

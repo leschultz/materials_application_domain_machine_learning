@@ -1,8 +1,7 @@
 from madml.models import assign_ground_truth
-from madml.calculators import cdf, bin_data
+from madml.calculators import bin_data
 from madml.hosting import docker
 from madml.plots import plotter
-from sklearn import metrics
 from tqdm import tqdm
 
 import pandas as pd
@@ -45,6 +44,10 @@ class nested_cv:
         self.y = y  # Target
         self.splitters = copy.deepcopy(splitters)  # Splitter
         self.model = copy.deepcopy(model)
+
+        # If user defined
+        self.gt_rmse = self.model.gt_rmse
+        self.gt_area = self.model.gt_area
 
         self.model.disable_tqdm = True  # Disable print
 
@@ -103,11 +106,6 @@ class nested_cv:
         data['r/std_y'] = data['r']/data['std_y']
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
-        # Get naive predictions
-        data['naive_y'] = np.mean(self.y[train])
-        pred = model.predict(self.X[train])
-        data['naive_stdc'] = np.mean(pred['y_stdc_pred'])
-
         return data
 
     def test(
@@ -136,44 +134,19 @@ class nested_cv:
         df = pd.concat(df)  # Combine data
         df,  df_bin = bin_data(df, self.model.bins)
 
-        # Determine ground truth from test data
-        df_id = df[df['splitter'] == 'fit']
-
-        # Acquire ground truths
-        if self.model.gt_rmse is None:
-            true = df_id['y']/df_id['std_y']
-            pred = df_id['naive_y']/df_id['std_y']
-            rmse = metrics.mean_squared_error(
-                                              true,
-                                              pred,
-                                              )
-            rmse **= 0.5
-            self.gt_rmse = rmse
-
-        else:
-            self.gt_rmse = self.model.gt_rmse
-
-        if self.model.gt_area is None:
-            pred = df_id['y']-df_id['y_pred']
-            pred /= df_id['naive_stdc']
-            self.gt_area = cdf(pred)[3]
-
-        else:
-            self.gt_area = self.model.gt_area
-
-        # Classify ground truth labels
-        assign_ground_truth(
-                            df,
-                            df_bin,
-                            self.gt_rmse,
-                            self.gt_area,
-                            )
-
-        self.df = df
-        self.df_bin = df_bin
-
         # Full fit
         self.model.fit(self.X, self.y, self.g)
+        self.gt_rmse = self.model.gt_rmse
+        self.gt_area = self.model.gt_area
+
+        # Ground truths
+        df, df_bin = bin_data(df, self.model.bins)
+        df, df_bin = assign_ground_truth(
+                                         df,
+                                         df_bin,
+                                         self.gt_rmse,
+                                         self.gt_area,
+                                         )
 
         if save_outer_folds is not None:
 
@@ -187,11 +160,11 @@ class nested_cv:
                 os.makedirs(d, exist_ok=True)
 
             # Write test data
-            self.df.to_csv(os.path.join(ass_save, 'pred.csv'), index=False)
-            self.df_bin.to_csv(os.path.join(
-                                            ass_save,
-                                            'pred_bins.csv',
-                                            ), index=False)
+            df.to_csv(os.path.join(ass_save, 'pred.csv'), index=False)
+            df_bin.to_csv(os.path.join(
+                                       ass_save,
+                                       'pred_bins.csv',
+                                       ), index=False)
 
             # Save model
             np.savetxt(
@@ -220,8 +193,8 @@ class nested_cv:
 
             # Test data
             plot = plotter(
-                           self.df,
-                           self.df_bin,
+                           df,
+                           df_bin,
                            self.gt_rmse,
                            self.gt_area,
                            self.model.precs,

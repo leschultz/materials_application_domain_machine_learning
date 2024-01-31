@@ -1,8 +1,8 @@
 from madml.calculators import (
+                               ground_truth,
                                bin_data,
                                set_llh,
                                poly,
-                               cdf,
                                pr,
                                )
 
@@ -13,7 +13,6 @@ from scipy.spatial.distance import cdist
 from madml.utils import parallel
 from madml.plots import plotter
 from sklearn.base import clone
-from sklearn import metrics
 
 import pandas as pd
 import numpy as np
@@ -269,6 +268,9 @@ def predict_std(model, X):
 
 def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
 
+    data_cv = data_cv.copy()
+    bin_cv = bin_cv.copy()
+
     rmse = bin_cv['rmse/std_y'] <= gt_rmse
     area = bin_cv['cdf_area'] <= gt_area
 
@@ -295,6 +297,8 @@ def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
 
         for col in cols:
             data_cv.loc[row, col] = gt[col].values[0]
+
+    return data_cv, bin_cv
 
 
 class combine:
@@ -401,10 +405,6 @@ class combine:
         data['r'] = y[te]-data['y_pred']
         data['r/std_y'] = data['r']/data['std_y']
 
-        # Get naive predictions
-        data['naive_y'] = np.mean(y[tr])
-        data['naive_stdu'] = np.mean(predict_std(gs_model_cv, X_trans_tr))
-
         return data
 
     def fit(self, X, y, g=None, d_input=None):
@@ -444,6 +444,7 @@ class combine:
 
         # Separate data
         data_id = data_cv[data_cv['splitter'] == 'calibration']
+        data_cv = data_cv[data_cv['splitter'] != 'calibration']
 
         # Fit models
         self.gs_model.fit(X, y)
@@ -462,36 +463,23 @@ class combine:
         self.ds_model.fit(X_trans)
 
         # Update data not used for calibration of UQ
-        data_cv['naive_stdc'] = self.uq_model.predict(data_cv['naive_stdu'])
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdu_pred'])
         data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
-
-        # Separate out of bag data from those used to fint UQ
-        data_cv = data_cv[data_cv['splitter'] != 'calibration']
-        data_id = data_cv[data_cv['splitter'] == 'fit']  # Assessment
 
         # Get binned data from alternate forms of sampling
         data_cv, bin_cv = bin_data(data_cv, self.bins)
 
         # Acquire ground truths
-        if self.gt_rmse is None:
-            true = data_id['y']/data_id['std_y']
-            pred = data_id['naive_y']/data_id['std_y']
-            rmse = metrics.mean_squared_error(
-                                              true,
-                                              pred,
-                                              )
-            rmse **= 0.5
-            self.gt_rmse = rmse
-
-        if self.gt_area is None:
-            pred = data_id['y']-data_id['y_pred']
-            pred /= data_id['naive_stdc']
-            self.gt_area = cdf(pred)[3]
+        self = ground_truth(self, y)
 
         # Classify ground truth labels
-        assign_ground_truth(data_cv, bin_cv, self.gt_rmse, self.gt_area)
+        data_cv, bin_cv = assign_ground_truth(
+                                              data_cv,
+                                              bin_cv,
+                                              self.gt_rmse,
+                                              self.gt_area,
+                                              )
 
         # Fit domain classifiers
         self.domain_rmse = domain(self.precs)

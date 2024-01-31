@@ -72,7 +72,6 @@ def main():
     cv = nested_cv(model, X, y, splitters=splits)
     df, df_bin, fit_model = cv.test(
                                     save_outer_folds=run_name,
-                                    save_inner_folds=run_name,
                                     )
 
 
