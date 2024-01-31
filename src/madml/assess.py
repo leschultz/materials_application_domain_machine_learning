@@ -132,12 +132,18 @@ class nested_cv:
             df.append(self.cv(i, save_inner_folds))
 
         df = pd.concat(df)  # Combine data
-        df,  df_bin = bin_data(df, self.model.bins)
 
         # Full fit
         self.model.fit(self.X, self.y, self.g)
         self.gt_rmse = self.model.gt_rmse
         self.gt_area = self.model.gt_area
+
+        pred = self.model.combine_domains_preds(df['d_pred'])
+        df.drop(pred.columns, axis=1, inplace=True)
+        df = pd.concat([
+                        df.reset_index(drop=True),
+                        pred.reset_index(drop=True)
+                        ], axis=1)
 
         # Ground truths
         df, df_bin = bin_data(df, self.model.bins)
