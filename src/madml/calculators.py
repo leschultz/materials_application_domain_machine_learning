@@ -226,6 +226,7 @@ def bin_data(data_cv, bins, by='d_pred'):
     # Correct for cases were many cases are at the same value
     count = 0
     unique_quantiles = 0
+    old = 0
     while unique_quantiles < bins:
         quantiles = pd.qcut(
                             data_cv[by],
@@ -234,6 +235,12 @@ def bin_data(data_cv, bins, by='d_pred'):
                             )
 
         unique_quantiles = len(quantiles.unique())
+
+        # Do not get stuck in infinite loop
+        if unique_quantiles == old:
+            break
+        else:
+            old = unique_quantiles
         count += 1
 
     data_cv['bin'] = quantiles

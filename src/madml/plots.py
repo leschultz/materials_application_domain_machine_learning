@@ -584,8 +584,8 @@ class plotter:
 
             # PR curve
             pr_data = calculators.pr(
-                                     self.df_bin['d_pred_max'],
-                                     self.df_bin[i],
+                                     self.df['d_pred'],
+                                     self.df[i],
                                      self.precs,
                                      )
             pr(pr_data, self.save, k)
