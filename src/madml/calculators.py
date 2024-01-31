@@ -10,6 +10,7 @@ from functools import reduce
 import pandas as pd
 import numpy as np
 import warnings
+import copy
 
 # Standard normal distribution
 nz = 10000
@@ -219,12 +220,8 @@ def pr(d, labels, precs):
 def bin_data(data_cv, bins, by='d_pred'):
 
     # Copy to prevent problems
-    data_cv = data_cv.copy()
-
-    if by == 'y_stdc_pred':
-        data_cv.sort_values(by=[by, 'y_pred'], inplace=True)
-    else:
-        data_cv.sort_values(by=[by, 'y_stdc_pred', 'y_pred'], inplace=True)
+    data_cv = copy.deepcopy(data_cv)
+    data_cv = data_cv.sample(frac=1)  # Shuffle to prevent sorting bias
 
     # Correct for cases were many cases are at the same value
     count = 0

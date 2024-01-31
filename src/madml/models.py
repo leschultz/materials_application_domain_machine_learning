@@ -268,8 +268,8 @@ def predict_std(model, X):
 
 def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
 
-    data_cv = data_cv.copy()
-    bin_cv = bin_cv.copy()
+    data_cv = copy.deepcopy(data_cv)
+    bin_cv = copy.deepcopy(bin_cv)
 
     rmse = bin_cv['rmse/std_y'] <= gt_rmse
     area = bin_cv['cdf_area'] <= gt_area
