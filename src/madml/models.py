@@ -266,37 +266,36 @@ def predict_std(model, X):
     return std
 
 
-def assign_ground_truth(data_cv, bin_cv, gt_rmse, gt_area):
+def assign_ground_truth(data_cv, bin_cv):
 
     data_cv = copy.deepcopy(data_cv)
     bin_cv = copy.deepcopy(bin_cv)
 
-    rmse = bin_cv['rmse/std_y'] <= gt_rmse
-    area = bin_cv['cdf_area'] <= gt_area
+    data_cv = data_cv.merge(bin_cv, on=['bin'])
+
+    # Innitiate arrays
+    cols = ['gt_rmse', 'gt_area']
+    for c in cols:
+        bin_cv[c] = None
+
+    # Propagate ground truths
+    for group, value in data_cv.groupby(['bin', *cols]):
+        row = bin_cv['bin'] == group[0]
+        bin_cv.loc[row, 'gt_rmse'] = group[1]
+        bin_cv.loc[row, 'gt_area'] = group[2]
+
+    # Make labels
+    rmse = data_cv['rmse/std_y'] <= data_cv['gt_rmse']
+    area = data_cv['cdf_area'] <= data_cv['gt_area']
+
+    data_cv['domain_rmse/sigma_y'] = np.where(rmse, 'ID', 'OD')
+    data_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
+
+    rmse = bin_cv['rmse/std_y'] <= bin_cv['gt_rmse']
+    area = bin_cv['cdf_area'] <= bin_cv['gt_area']
 
     bin_cv['domain_rmse/sigma_y'] = np.where(rmse, 'ID', 'OD')
     bin_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
-
-    cols = [
-            'domain_rmse/sigma_y',
-            'domain_cdf_area',
-            'rmse/std_y',
-            'cdf_area',
-            ]
-
-    # Allocate data
-    for col in cols:
-        data_cv[col] = None
-
-    # Assign bin data to individual points
-    for i in bin_cv.bin:
-
-        # Ground labels based on rmse
-        row = data_cv['bin'] == i
-        gt = bin_cv.loc[bin_cv['bin'] == i][cols]
-
-        for col in cols:
-            data_cv.loc[row, col] = gt[col].values[0]
 
     return data_cv, bin_cv
 
@@ -472,13 +471,13 @@ class combine:
 
         # Acquire ground truths
         self = ground_truth(self, y)
+        data_cv['gt_rmse'] = self.gt_rmse
+        data_cv['gt_area'] = self.gt_area
 
         # Classify ground truth labels
         data_cv, bin_cv = assign_ground_truth(
                                               data_cv,
                                               bin_cv,
-                                              self.gt_rmse,
-                                              self.gt_area,
                                               )
 
         # Fit domain classifiers

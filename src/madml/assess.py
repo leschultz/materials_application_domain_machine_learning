@@ -106,6 +106,10 @@ class nested_cv:
         data['r/std_y'] = data['r']/data['std_y']
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
+        # Ground truths
+        data['gt_rmse'] = model.gt_rmse
+        data['gt_area'] = model.gt_area
+
         return data
 
     def test(
@@ -135,23 +139,12 @@ class nested_cv:
 
         # Full fit
         self.model.fit(self.X, self.y, self.g)
-        self.gt_rmse = self.model.gt_rmse
-        self.gt_area = self.model.gt_area
-
-        pred = self.model.combine_domains_preds(df['d_pred'])
-        df.drop(pred.columns, axis=1, inplace=True)
-        df = pd.concat([
-                        df.reset_index(drop=True),
-                        pred.reset_index(drop=True)
-                        ], axis=1)
 
         # Ground truths
         df, df_bin = bin_data(df, self.model.bins)
         df, df_bin = assign_ground_truth(
                                          df,
                                          df_bin,
-                                         self.gt_rmse,
-                                         self.gt_area,
                                          )
 
         if save_outer_folds is not None:
@@ -201,8 +194,6 @@ class nested_cv:
             plot = plotter(
                            df,
                            df_bin,
-                           self.gt_rmse,
-                           self.gt_area,
                            self.model.precs,
                            ass_save,
                            )
@@ -212,8 +203,6 @@ class nested_cv:
             plot = plotter(
                            self.model.data_cv,
                            self.model.bin_cv,
-                           self.model.gt_rmse,
-                           self.model.gt_area,
                            self.model.precs,
                            model_ass,
                            )

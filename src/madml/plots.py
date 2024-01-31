@@ -251,7 +251,7 @@ def cdf(df, gt, save, suffix):
     plot_dump(data, fig, ax, 'cdf', save, suffix)
 
 
-def bins(df, d, e, elabel, gt, ylabel, save, suffix):
+def bins(df, d, e, elabel, ylabel, save, suffix):
     '''
     Plot statistical errors with respect to dissimilarity.
 
@@ -259,13 +259,12 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
         d = The dissimilarity.
         e = The error statistic.
         elabel = The domain labels.
-        gt = The domain ground truth.
         ylabel = The y-axis label.
         save = The directory to save plot.
         suffix = Append a suffix to the save name.
     '''
 
-    data = {'gt': gt}
+    data = {}
     fig, ax = pl.subplots()
     for group, values in df.groupby([elabel, 'bin']):
 
@@ -290,12 +289,6 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
         data[dom] = {}
         data[dom]['x'] = x.tolist()
         data[dom]['y'] = y.tolist()
-
-    ax.axhline(
-               gt,
-               color='g',
-               label='GT = {:.2f}'.format(gt),
-               )
 
     ax.set_ylabel(ylabel)
     ax.set_xlabel('D')
@@ -495,8 +488,6 @@ class plotter:
                  self,
                  df,
                  df_bin,
-                 gt_rmse,
-                 gt_area,
                  precs,
                  save,
                  ):
@@ -505,10 +496,9 @@ class plotter:
         self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
         self.errors = ['rmse/std_y', 'cdf_area']
         self.assessments = ['rmse', 'area']
-        self.gts = [gt_rmse, gt_area]  # Ground truths
         self.precs = precs  # Precisions used
 
-        # For plotting purposes
+        # For plotting purposes on the histogram of E^* vs. D
         cols = self.errors+self.domains
         self.df = df.sort_values(by=['d_pred']+cols)
         self.df_bin = df_bin.sort_values(by=['d_pred_max']+cols)
@@ -548,12 +538,11 @@ class plotter:
         area_vs_rmse(self.df_bin, self.save)
 
         # Loop over domains
-        for i, j, k, f, in zip(
-                               self.domains,
-                               self.errors,
-                               self.assessments,
-                               self.gts,
-                               ):
+        for i, j, k, in zip(
+                            self.domains,
+                            self.errors,
+                            self.assessments,
+                            ):
 
             # Separate domains and classes
             for group, df in self.df.groupby(i):
@@ -588,7 +577,6 @@ class plotter:
                  'd_pred',
                  j,
                  i,
-                 f,
                  r'$E^{{{}}}$'.format(k),
                  self.save,
                  k,
