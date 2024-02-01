@@ -137,15 +137,15 @@ class nested_cv:
 
         df = pd.concat(df)  # Combine data
 
-        # Full fit
-        self.model.fit(self.X, self.y, self.g)
-
         # Ground truths
         df, df_bin = bin_data(df, self.model.bins)
         df, df_bin = assign_ground_truth(
                                          df,
                                          df_bin,
                                          )
+
+        # Full fit
+        self.model.fit(self.X, self.y, self.g)
 
         if save_outer_folds is not None:
 

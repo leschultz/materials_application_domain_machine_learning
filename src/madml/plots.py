@@ -271,6 +271,23 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
 
     data = {'gt_min': gt_min, 'gt_max': gt_max}
     fig, ax = pl.subplots()
+    for group, values in df.groupby([elabel, 'bin']):
+
+        dom, _ = group
+
+        if dom == 'ID':
+            color = 'g'
+        else:
+            color = 'r'
+
+        x = np.array(values[d], dtype=float)
+        y = np.array(values[e], dtype=float)
+
+        ax.scatter(x, y, color=color, marker='.', alpha=0.5)
+
+        data[dom] = {}
+        data[dom]['x'] = x.tolist()
+        data[dom]['y'] = y.tolist()
 
     lim = [0, 1]
     ax.axhline(
@@ -292,30 +309,6 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
                      )
 
     ax.set_xlim(*lim)
-
-    for group, values in df.groupby([elabel, 'bin']):
-
-        dom, _ = group
-
-        if dom == 'ID':
-            color = 'g'
-        else:
-            color = 'r'
-
-        x = np.array(values[d], dtype=float)
-        y = np.array(values[e], dtype=float)
-
-        ax.plot(x, y, color=color)
-        ax.fill_between(
-                        x,
-                        y,
-                        color=color,
-                        alpha=0.5,
-                        )
-
-        data[dom] = {}
-        data[dom]['x'] = x.tolist()
-        data[dom]['y'] = y.tolist()
 
     ax.set_ylabel(ylabel)
     ax.set_xlabel('D')

@@ -135,8 +135,7 @@ def pr(d, labels, precs):
     if all(i == 'ID' for i in labels):
         precision = np.array([1.0, 1.0])
         recall = np.array([0.0, 1.0])
-        thresholds = np.max(d)
-        thresholds = np.repeat(thresholds, 2)
+        thresholds = np.repeat(np.inf, 2)
         auc_score = 1.0
 
     elif all(i == 'OD' for i in labels):
@@ -227,21 +226,18 @@ def bin_data(data_cv, bins, by='d_pred'):
     # Correct for cases were many cases are at the same value
     count = 0
     unique_quantiles = 0
-    old = 0
+    max_iters = 100
     while unique_quantiles < bins:
         quantiles = pd.qcut(
                             data_cv[by],
                             bins+count,
                             duplicates='drop',
                             )
-
         unique_quantiles = len(quantiles.unique())
 
-        # Do not get stuck in infinite loop
-        if unique_quantiles == old:
+        if count >= max_iters:
             break
-        else:
-            old = unique_quantiles
+
         count += 1
 
     data_cv['bin'] = quantiles
