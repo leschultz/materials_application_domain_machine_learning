@@ -277,13 +277,15 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
 
         if dom == 'ID':
             color = 'g'
+            marker = '.'
         else:
             color = 'r'
+            marker = 'x'
 
         x = np.array(values[d], dtype=float)
         y = np.array(values[e], dtype=float)
 
-        ax.scatter(x, y, color=color, marker='.', alpha=0.5)
+        ax.scatter(x, y, color=color, marker=marker, alpha=0.5)
 
         data[dom] = {}
         data[dom]['x'] = x.tolist()
