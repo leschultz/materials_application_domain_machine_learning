@@ -266,8 +266,8 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     '''
 
     # Range of ground truths from training.
-    gt_max = df[gt].max()
-    gt_min = df[gt].min()
+    gt_max = float(df[gt].max())
+    gt_min = float(df[gt].min())
 
     data = {'gt_min': gt_min, 'gt_max': gt_max}
     fig, ax = pl.subplots()

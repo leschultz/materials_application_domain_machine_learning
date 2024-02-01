@@ -131,11 +131,12 @@ def pr(d, labels, precs):
     Precision recall curve.
     '''
 
-    # Compensate for munerically small floats
+    # Compensate for all classes being ID/OD
     if all(i == 'ID' for i in labels):
         precision = np.array([1.0, 1.0])
         recall = np.array([0.0, 1.0])
-        thresholds = np.array([1.0, 1.0])
+        thresholds = np.max(d)
+        thresholds = np.repeat(thresholds, 2)
         auc_score = 1.0
 
     elif all(i == 'OD' for i in labels):
