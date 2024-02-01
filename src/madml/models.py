@@ -553,8 +553,6 @@ class combine:
         plot = plotter(
                        self.data_cv,
                        self.bin_cv,
-                       self.gt_rmse,
-                       self.gt_area,
                        self.precs,
                        save,
                        )
