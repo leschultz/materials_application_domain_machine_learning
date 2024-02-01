@@ -269,27 +269,40 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     gt_max = float(df[gt].max())
     gt_min = float(df[gt].min())
 
+    p = {
+         'ID': {
+                'color': 'g',
+                'marker': '.',
+                'zorder': 2,
+                },
+         'OD': {
+                'color': 'r',
+                'marker': 'x',
+                'zorder': 1,
+                },
+         }
     data = {'gt_min': gt_min, 'gt_max': gt_max}
     fig, ax = pl.subplots()
     for group, values in df.groupby([elabel, 'bin']):
 
         dom, _ = group
 
-        if dom == 'ID':
-            color = 'g'
-            marker = '.'
-        else:
-            color = 'r'
-            marker = 'x'
-
         x = np.array(values[d], dtype=float)
         y = np.array(values[e], dtype=float)
 
-        ax.scatter(x, y, color=color, marker=marker, alpha=0.5)
+        ax.scatter(
+                   x,
+                   y,
+                   alpha=0.5,
+                   **p[dom],
+                   )
 
         data[dom] = {}
         data[dom]['x'] = x.tolist()
         data[dom]['y'] = y.tolist()
+
+    for key, val in p.items():
+        ax.scatter([], [], label=key, **val)
 
     lim = [0, 1]
     ax.axhline(

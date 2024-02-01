@@ -243,7 +243,7 @@ def bin_data(data_cv, bins, by='d_pred'):
     data_cv['bin'] = quantiles
 
     # Calculate statistics
-    bin_groups = data_cv.groupby('bin', observed=False)
+    bin_groups = data_cv.groupby('bin', observed=False, sort=False)
     distmean = bin_groups['d_pred'].mean()
     binmax = bin_groups['d_pred'].max()
     counts = bin_groups['z'].count()
