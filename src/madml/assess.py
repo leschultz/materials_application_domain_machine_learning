@@ -1,5 +1,5 @@
+from madml.calculators import bin_data, ground_truth
 from madml.models import assign_ground_truth
-from madml.calculators import bin_data
 from madml.hosting import docker
 from madml.plots import plotter
 from tqdm import tqdm
@@ -136,6 +136,11 @@ class nested_cv:
             df.append(self.cv(i, save_inner_folds))
 
         df = pd.concat(df)  # Combine data
+
+        # Acquire ground truths
+        self = ground_truth(self, self.y)
+        df['gt_rmse'] = self.gt_rmse
+        df['gt_area'] = self.gt_area
 
         # Ground truths
         df, df_bin = bin_data(df, self.model.bins)

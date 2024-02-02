@@ -288,13 +288,13 @@ def assign_ground_truth(data_cv, bin_cv):
     rmse = data_cv['rmse/std_y'] <= data_cv['gt_rmse']
     area = data_cv['cdf_area'] <= data_cv['gt_area']
 
-    data_cv['domain_rmse/sigma_y'] = np.where(rmse, 'ID', 'OD')
+    data_cv['domain_rmse/std_y'] = np.where(rmse, 'ID', 'OD')
     data_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
 
     rmse = bin_cv['rmse/std_y'] <= bin_cv['gt_rmse']
     area = bin_cv['cdf_area'] <= bin_cv['gt_area']
 
-    bin_cv['domain_rmse/sigma_y'] = np.where(rmse, 'ID', 'OD')
+    bin_cv['domain_rmse/std_y'] = np.where(rmse, 'ID', 'OD')
     bin_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
 
     return data_cv, bin_cv
@@ -487,7 +487,7 @@ class combine:
         # Train classifiers
         self.domain_rmse.fit(
                              bin_cv['d_pred_max'].values,
-                             bin_cv['domain_rmse/sigma_y'].values,
+                             bin_cv['domain_rmse/std_y'].values,
                              )
         self.domain_area.fit(
                              bin_cv['d_pred_max'].values,
@@ -511,7 +511,7 @@ class combine:
 
         # Predict domains on training data
         data_rmse_dom_pred = self.domain_rmse.predict(d, d_input)
-        data_rmse_dom_pred = data_rmse_dom_pred.add_prefix('rmse/sigma_y ')
+        data_rmse_dom_pred = data_rmse_dom_pred.add_prefix('rmse/std_y ')
 
         data_area_dom_pred = self.domain_area.predict(d, d_input)
         data_area_dom_pred = data_area_dom_pred.add_prefix('cdf_area ')

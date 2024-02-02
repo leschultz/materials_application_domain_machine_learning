@@ -8,6 +8,7 @@ from matplotlib import pyplot as pl
 from madml import calculators
 from sklearn import metrics
 
+import seaborn as sns
 import numpy as np
 
 import matplotlib
@@ -70,6 +71,54 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     jsonfile = os.path.join(save, '{}_{}.json'.format(name, suffix))
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
+
+
+def pred_violin(df, domain, a, save='.', suffix=''):
+    '''
+    A plot of D versus predicted labels.
+    '''
+
+    cols = [domain]
+    for i in df.columns:
+        if ('Prediction' in i) and (a in i):
+            cols.append(i)
+
+    order1 = ['OD', 'ID']
+    order2 = [r'$\hat{OD}$', r'$\hat{ID}$']
+    colors = {'ID': 'g', 'OD': 'r', r'$\hat{ID}$': 'g', r'$\hat{OD}$': 'r'}
+
+    for col in cols:
+
+        fig, ax = pl.subplots()
+
+        d = df[['d_pred', col]]
+        if col != domain:
+            d[col].replace('ID', r'$\hat{ID}$', inplace=True)
+            d[col].replace('OD', r'$\hat{OD}$', inplace=True)
+            order = order2
+        else:
+            order = order1
+
+        g = sns.violinplot(
+                           data=d,
+                           x='d_pred',
+                           y=col,
+                           ax=ax,
+                           cut=0,
+                           density_norm='count',
+                           inner='quartile',
+                           order=order,
+                           palette=colors,
+                           )
+        g.set(ylabel=None)
+        ax.set_xlabel('D')
+
+        data = {}
+        data['D'] = df.d_pred.tolist()
+        data['domain'] = df[domain].tolist()
+
+        s = col.replace('/', '_div_').replace(' ', '_')
+        plot_dump(data, fig, ax, 'violin', save, s, False)
 
 
 def residuals(df, save='.', suffix=''):
@@ -266,8 +315,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     '''
 
     # Range of ground truths from training.
-    gt_max = float(df[gt].max())
-    gt_min = float(df[gt].min())
+    gt_min = float(df[gt].min())  # Should now be all the same
 
     p = {
          'ID': {
@@ -281,7 +329,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
                 'zorder': 1,
                 },
          }
-    data = {'gt_min': gt_min, 'gt_max': gt_max}
+    data = {'gt_min': gt_min}
     fig, ax = pl.subplots()
     for group, values in df.groupby([elabel, 'bin']):
 
@@ -297,6 +345,13 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
                    **p[dom],
                    )
 
+        ax.fill_between(
+                        x,
+                        y,
+                        color=p[dom]['color'],
+                        alpha=0.5,
+                        )
+
         data[dom] = {}
         data[dom]['x'] = x.tolist()
         data[dom]['y'] = y.tolist()
@@ -307,21 +362,9 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     lim = [0, 1]
     ax.axhline(
                gt_min,
-               color='tab:gray',
-               label='GT (min, max)= ({:.2f}, {:.2f})'.format(gt_min, gt_max),
+               color='g',
+               label='GT = {:.2f}'.format(gt_min),
                )
-    ax.axhline(
-               gt_max,
-               color='tab:gray',
-               )
-
-    ax.fill_betweenx(
-                     [gt_min, gt_max],
-                     lim[0],
-                     lim[1],
-                     color='tab:gray',
-                     alpha=0.5,
-                     )
 
     ax.set_xlim(*lim)
 
@@ -528,7 +571,7 @@ class plotter:
                  ):
 
         self.save = save
-        self.domains = ['domain_rmse/sigma_y', 'domain_cdf_area']
+        self.domains = ['domain_rmse/std_y', 'domain_cdf_area']
         self.errors = ['rmse/std_y', 'cdf_area']
         self.gts = ['gt_rmse', 'gt_area']
         self.assessments = ['rmse', 'area']
@@ -619,6 +662,9 @@ class plotter:
                  self.save,
                  k,
                  )
+
+            # Violin plots of classes with respect to D
+            pred_violin(self.df, i, j, self.save, k)
 
             # PR curve
             pr_data = calculators.pr(
