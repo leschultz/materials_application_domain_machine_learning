@@ -371,7 +371,7 @@ class combine:
         count, splitter, tr, te = split
 
         if (tr.shape[0] < 1) | (te.shape[0] < 1):
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame()
 
         # Copy/clone models to prefent leakage
         ds_model_cv = copy.deepcopy(ds_model)
