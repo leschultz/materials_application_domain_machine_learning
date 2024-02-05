@@ -84,7 +84,7 @@ class nested_cv:
         # Save fold fit
         if save_inner_folds is not None:
             save = os.path.join(save_inner_folds, 'train_folds')
-            save = os.path.join(save, 'fold_{}'.format(count))
+            save = os.path.join(save, 'fold_{}_split_{}'.format(count, name))
             os.makedirs(save, exist_ok=True)
             model.plot(save)
 
@@ -162,13 +162,6 @@ class nested_cv:
             # Create locations
             for d in [ass_save, model_save, model_ass]:
                 os.makedirs(d, exist_ok=True)
-
-            # Write test data
-            df.to_csv(os.path.join(ass_save, 'pred.csv'), index=False)
-            df_bin.to_csv(os.path.join(
-                                       ass_save,
-                                       'pred_bins.csv',
-                                       ), index=False)
 
             # Save model
             np.savetxt(

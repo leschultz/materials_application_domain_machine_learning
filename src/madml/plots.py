@@ -586,6 +586,13 @@ class plotter:
 
     def generate(self):
 
+        # Write test data
+        self.df.to_csv(os.path.join(self.save, 'pred.csv'), index=False)
+        self.df_bin.to_csv(os.path.join(
+                                        self.save,
+                                        'pred_bins.csv',
+                                        ), index=False)
+
         # Domain prediction columns
         pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 

@@ -486,12 +486,12 @@ class combine:
 
         # Train classifiers
         self.domain_rmse.fit(
-                             bin_cv['d_pred_max'].values,
-                             bin_cv['domain_rmse/std_y'].values,
+                             data_cv['d_pred_max'].values,
+                             data_cv['domain_rmse/std_y'].values,
                              )
         self.domain_area.fit(
-                             bin_cv['d_pred_max'].values,
-                             bin_cv['domain_cdf_area'].values,
+                             data_cv['d_pred_max'].values,
+                             data_cv['domain_cdf_area'].values,
                              )
 
         pred = self.combine_domains_preds(data_cv['d_pred'], d_input)

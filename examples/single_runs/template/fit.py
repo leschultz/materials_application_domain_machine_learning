@@ -22,7 +22,10 @@ def main():
     data = datasets.load(data_name)
     X = data['data']
     y = data['target']
+
+    # MADML parameters
     n_repeats = 5
+    bins = 10
 
     # ML Distance model
     ds_model = dissimilarity(dis='kde')
@@ -66,7 +69,7 @@ def main():
         splits.append(('agglo_{}'.format(i), top_split))
 
     # Assess models
-    model = combine(gs_model, ds_model, uq_model, splits)
+    model = combine(gs_model, ds_model, uq_model, splits, bins=bins)
     cv = nested_cv(model, X, y, splitters=splits)
     df, df_bin, fit_model = cv.test(
                                     save_outer_folds=run_name,

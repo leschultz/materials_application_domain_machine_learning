@@ -1,8 +1,8 @@
-from keras.layers import Dense, Dropout, BatchNormalization
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import BaggingRegressor
 from scikeras.wrappers import KerasRegressor
+from keras.layers import Dense, Dropout
 from keras.models import Sequential
 from sklearn.svm import SVR
 
