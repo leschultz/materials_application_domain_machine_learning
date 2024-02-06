@@ -84,7 +84,8 @@ class nested_cv:
         # Save fold fit
         if save_inner_folds is not None:
             save = os.path.join(save_inner_folds, 'train_folds')
-            save = os.path.join(save, 'fold_{}_split_{}'.format(count, name))
+            save = os.path.join(save, 'split_{}'.format(name))
+            save = os.path.join(save, 'fold_{}'.format(count))
             os.makedirs(save, exist_ok=True)
             model.plot(save)
 

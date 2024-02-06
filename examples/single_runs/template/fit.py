@@ -24,7 +24,6 @@ def main():
     y = data['target']
 
     # MADML parameters
-    n_repeats = 5
     bins = 10
 
     # ML Distance model
@@ -54,19 +53,25 @@ def main():
                             )
 
     # Types of sampling to test
-    splits = [('fit', RepeatedKFold(n_repeats=n_repeats))]
+    n_repeats = 2
+    n_splits = 10
+    n_folds = n_splits*n_repeats
+    splits = [('fit', RepeatedKFold(n_repeats=n_repeats, n_splits=n_splits))]
 
     # Boostrap, cluster data, and generate splits
-    for i in [2, 3]:
+    for clusters in [2, 3]:
+
+        # Keep number of folds close to same for all splitters
+        repeats = n_folds//clusters
 
         # Cluster Splits
         top_split = BootstrappedLeaveClusterOut(
                                                 AgglomerativeClustering,
-                                                n_repeats=n_repeats,
-                                                n_clusters=i
+                                                n_repeats=repeats,
+                                                n_clusters=clusters,
                                                 )
 
-        splits.append(('agglo_{}'.format(i), top_split))
+        splits.append(('agglo_{}'.format(clusters), top_split))
 
     # Assess models
     model = combine(gs_model, ds_model, uq_model, splits, bins=bins)
