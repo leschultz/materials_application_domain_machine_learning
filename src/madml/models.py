@@ -279,7 +279,7 @@ def assign_ground_truth(data_cv, bin_cv):
         bin_cv[c] = None
 
     # Propagate ground truths
-    for group, value in data_cv.groupby(['bin', *cols]):
+    for group, value in data_cv.groupby(['bin', *cols], observed=True):
         row = bin_cv['bin'] == group[0]
         bin_cv.loc[row, 'gt_rmse'] = group[1]
         bin_cv.loc[row, 'gt_area'] = group[2]

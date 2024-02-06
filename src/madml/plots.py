@@ -8,9 +8,7 @@ from matplotlib import pyplot as pl
 from madml import calculators
 from sklearn import metrics
 
-import seaborn as sns
 import numpy as np
-
 import matplotlib
 import json
 import os
@@ -71,54 +69,6 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     jsonfile = os.path.join(save, '{}_{}.json'.format(name, suffix))
     with open(jsonfile, 'w') as handle:
         json.dump(data, handle)
-
-
-def pred_violin(df, domain, a, save='.', suffix=''):
-    '''
-    A plot of D versus predicted labels.
-    '''
-
-    cols = [domain]
-    for i in df.columns:
-        if ('Prediction' in i) and (a in i):
-            cols.append(i)
-
-    order1 = ['OD', 'ID']
-    order2 = [r'$\hat{OD}$', r'$\hat{ID}$']
-    colors = {'ID': 'g', 'OD': 'r', r'$\hat{ID}$': 'g', r'$\hat{OD}$': 'r'}
-
-    for col in cols:
-
-        fig, ax = pl.subplots()
-
-        d = df[['d_pred', col]]
-        if col != domain:
-            d[col].replace('ID', r'$\hat{ID}$', inplace=True)
-            d[col].replace('OD', r'$\hat{OD}$', inplace=True)
-            order = order2
-        else:
-            order = order1
-
-        g = sns.violinplot(
-                           data=d,
-                           x='d_pred',
-                           y=col,
-                           ax=ax,
-                           cut=0,
-                           density_norm='count',
-                           inner='quartile',
-                           order=order,
-                           palette=colors,
-                           )
-        g.set(ylabel=None)
-        ax.set_xlabel('D')
-
-        data = {}
-        data['D'] = df.d_pred.tolist()
-        data['domain'] = df[domain].tolist()
-
-        s = col.replace('/', '_div_').replace(' ', '_')
-        plot_dump(data, fig, ax, 'violin', save, s, False)
 
 
 def residuals(df, save='.', suffix=''):
@@ -669,9 +619,6 @@ class plotter:
                  self.save,
                  k,
                  )
-
-            # Violin plots of classes with respect to D
-            pred_violin(self.df, i, j, self.save, k)
 
             # PR curve
             pr_data = calculators.pr(
