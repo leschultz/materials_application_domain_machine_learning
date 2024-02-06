@@ -309,14 +309,11 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     for key, val in p.items():
         ax.scatter([], [], label=key, **val)
 
-    lim = [0, 1]
     ax.axhline(
                gt_min,
                color='g',
                label='GT = {:.2f}'.format(gt_min),
                )
-
-    ax.set_xlim(*lim)
 
     ax.set_ylabel(ylabel)
     ax.set_xlabel('D')

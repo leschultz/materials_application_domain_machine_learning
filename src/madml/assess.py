@@ -153,13 +153,13 @@ class nested_cv:
         # Full fit
         self.model.fit(self.X, self.y, self.g)
 
-        # Refit on out-of-bag data for final model
+        # Refit on out-of-bag data for final classification models
         self.model.domain_rmse.fit(
-                                   df['d_pred_max'].values,
+                                   df['d_pred'].values,
                                    df['domain_rmse/std_y'].values,
                                    )
         self.model.domain_area.fit(
-                                   df['d_pred_max'].values,
+                                   df['d_pred'].values,
                                    df['domain_cdf_area'].values,
                                    )
 
