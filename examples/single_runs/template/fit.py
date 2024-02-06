@@ -25,6 +25,7 @@ def main():
 
     # MADML parameters
     bins = 10
+    n_repeats = 1
 
     # ML Distance model
     ds_model = dissimilarity(dis='kde')
@@ -53,21 +54,17 @@ def main():
                             )
 
     # Types of sampling to test
-    n_repeats = 2
-    n_splits = 10
+    n_splits = 20
     n_folds = n_splits*n_repeats
     splits = [('fit', RepeatedKFold(n_repeats=n_repeats, n_splits=n_splits))]
 
     # Boostrap, cluster data, and generate splits
     for clusters in [2, 3]:
 
-        # Keep number of folds close to same for all splitters
-        repeats = n_folds//clusters
-
         # Cluster Splits
         top_split = BootstrappedLeaveClusterOut(
                                                 AgglomerativeClustering,
-                                                n_repeats=repeats,
+                                                n_repeats=n_repeats,
                                                 n_clusters=clusters,
                                                 )
 
