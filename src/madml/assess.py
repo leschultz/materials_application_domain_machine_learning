@@ -152,15 +152,24 @@ class nested_cv:
         # Full fit
         self.model.fit(self.X, self.y, self.g)
 
+        # Refit on out-of-bag data for final model
+        self.model.domain_rmse.fit(
+                                   df['d_pred_max'].values,
+                                   df['domain_rmse/std_y'].values,
+                                   )
+        self.model.domain_area.fit(
+                                   df['d_pred_max'].values,
+                                   df['domain_cdf_area'].values,
+                                   )
+
         if save_outer_folds is not None:
 
             # Save locations
             ass_save = os.path.join(save_outer_folds, 'assessment')
             model_save = os.path.join(save_outer_folds, 'model')
-            model_ass = os.path.join(model_save, 'train')
 
             # Create locations
-            for d in [ass_save, model_save, model_ass]:
+            for d in [ass_save, model_save]:
                 os.makedirs(d, exist_ok=True)
 
             # Save model
@@ -194,15 +203,6 @@ class nested_cv:
                            df_bin,
                            self.model.precs,
                            ass_save,
-                           )
-            plot.generate()
-
-            # Train data
-            plot = plotter(
-                           self.model.data_cv,
-                           self.model.bin_cv,
-                           self.model.precs,
-                           model_ass,
                            )
             plot.generate()
 

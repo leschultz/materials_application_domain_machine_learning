@@ -684,7 +684,23 @@ class plotter:
             # Confusion matrices
             for pred in pred_cols:
                 if i.replace('domain_', '') in pred:
+
+                    # Confusion matrix for all splitters
                     y = self.df.loc[:, i].values
                     y_pred = self.df.loc[:, pred].values
                     suffix = pred.replace(' ', '_').replace('/', '_div_')
-                    confusion(y, y_pred, self.save, suffix)
+                    confusion(y, y_pred, self.save, suffix+'_splitter_all')
+
+                    # Confusion matrix for fit splitters
+                    d = self.df[self.df['splitter'] == 'fit']
+                    y = d.loc[:, i].values
+                    y_pred = d.loc[:, pred].values
+                    suffix = pred.replace(' ', '_').replace('/', '_div_')
+                    confusion(y, y_pred, self.save, suffix+'_splitter_fit')
+
+                    # Confusion matrix for spliters that are not fit
+                    d = self.df[self.df['splitter'] != 'fit']
+                    y = d.loc[:, i].values
+                    y_pred = d.loc[:, pred].values
+                    suffix = pred.replace(' ', '_').replace('/', '_div_')
+                    confusion(y, y_pred, self.save, suffix+'_splitter_not_fit')
