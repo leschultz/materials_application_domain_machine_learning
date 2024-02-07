@@ -56,7 +56,7 @@ def main():
                             )
 
     # Types of sampling to test
-    splits = [('fit', RepeatedKFold(n_repeats=n_repeats))]
+    splits = [('fit', RepeatedKFold(n_repeats=n_repeats, n_splits=5))]
 
     # Boostrap, cluster data, and generate splits
     for i in [2, 3]:

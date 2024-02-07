@@ -513,8 +513,9 @@ class plotter:
                  self,
                  df,
                  df_bin,
-                 precs,
-                 save,
+                 df_confusion=None,
+                 precs=None,
+                 save='.',
                  ):
 
         self.save = save
@@ -531,6 +532,15 @@ class plotter:
 
         self.bins = self.df_bin.shape[0]
 
+        # Domain prediction columns
+        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
+        self.pred_cols = pred_cols
+
+        if df_confusion is None:
+            self.df_confusion = df[self.domains+pred_cols+['splitter']]
+        else:
+            self.df_confusion = df_confusion
+
     def generate(self):
 
         # Write test data
@@ -539,9 +549,6 @@ class plotter:
                                         self.save,
                                         'pred_bins.csv',
                                         ), index=False)
-
-        # Domain prediction columns
-        pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
 
         # For data used to fit regression model
         df = self.df[self.df['splitter'] == 'fit']
@@ -569,6 +576,12 @@ class plotter:
 
         # Miscalibration area vs. RMSE
         area_vs_rmse(self.df_bin, self.save)
+
+        # Prepare for confusion matrixes
+        dy = self.df_confusion['splitter'] == 'fit'
+        dy = self.df_confusion[dy]
+        dn = self.df_confusion['splitter'] != 'fit'
+        dn = self.df_confusion[dn]
 
         # Loop over domains
         for i, j, k, f in zip(
@@ -626,25 +639,23 @@ class plotter:
             pr(pr_data, self.save, k)
 
             # Confusion matrices
-            for pred in pred_cols:
+            for pred in self.pred_cols:
                 if i.replace('domain_', '') in pred:
 
                     # Confusion matrix for all splitters
-                    y = self.df.loc[:, i].values
-                    y_pred = self.df.loc[:, pred].values
+                    y = self.df_confusion.loc[:, i].values
+                    y_pred = self.df_confusion.loc[:, pred].values
                     suffix = pred.replace(' ', '_').replace('/', '_div_')
                     confusion(y, y_pred, self.save, suffix+'_splitter_all')
 
                     # Confusion matrix for fit splitters
-                    d = self.df[self.df['splitter'] == 'fit']
-                    y = d.loc[:, i].values
-                    y_pred = d.loc[:, pred].values
+                    y = dy.loc[:, i].values
+                    y_pred = dy.loc[:, pred].values
                     suffix = pred.replace(' ', '_').replace('/', '_div_')
                     confusion(y, y_pred, self.save, suffix+'_splitter_fit')
 
                     # Confusion matrix for spliters that are not fit
-                    d = self.df[self.df['splitter'] != 'fit']
-                    y = d.loc[:, i].values
-                    y_pred = d.loc[:, pred].values
+                    y = dn.loc[:, i].values
+                    y_pred = dn.loc[:, pred].values
                     suffix = pred.replace(' ', '_').replace('/', '_div_')
                     confusion(y, y_pred, self.save, suffix+'_splitter_not_fit')

@@ -111,7 +111,7 @@ class nested_cv:
         data['gt_rmse'] = model.gt_rmse
         data['gt_area'] = model.gt_area
 
-        return data
+        return data, model, name
 
     def test(
              self,
@@ -136,7 +136,9 @@ class nested_cv:
         for i in tqdm(self.splits):
             df.append(self.cv(i, save_inner_folds))
 
-        df = pd.concat(df)  # Combine data
+        models = [i[1] for i in df]
+        splitters = [i[2] for i in df]
+        df = pd.concat([i[0] for i in df])  # Combine data
 
         # Acquire ground truths
         self = ground_truth(self, self.y)
@@ -149,6 +151,23 @@ class nested_cv:
                                          df,
                                          df_bin,
                                          )
+
+        # Get domain predictions for each model on all test data
+        df_confusion = []
+        for i, j in zip(models, splitters):
+            p = i.combine_domains_preds(df_bin['d_pred_max'])
+            d = df_bin[['domain_rmse/std_y', 'domain_cdf_area']]
+
+            d = pd.concat([
+                           d.reset_index(drop=True),
+                           p.reset_index(drop=True),
+                           ], axis=1)
+
+            d['splitter'] = j
+
+            df_confusion.append(d)
+
+        df_confusion = pd.concat(df_confusion)
 
         # Full fit
         self.model.fit(self.X, self.y, self.g)
@@ -202,6 +221,7 @@ class nested_cv:
             plot = plotter(
                            df,
                            df_bin,
+                           df_confusion,
                            self.model.precs,
                            ass_save,
                            )

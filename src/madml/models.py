@@ -553,7 +553,7 @@ class combine:
         plot = plotter(
                        self.data_cv,
                        self.bin_cv,
-                       self.precs,
-                       save,
+                       precs=self.precs,
+                       save=save,
                        )
         plot.generate()
