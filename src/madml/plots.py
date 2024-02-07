@@ -281,7 +281,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
          }
     data = {'gt_min': gt_min}
     fig, ax = pl.subplots()
-    for group, values in df.groupby([elabel, 'bin']):
+    for group, values in df.groupby([elabel, 'bin'], observed=True):
 
         dom, _ = group
 
