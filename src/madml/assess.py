@@ -155,8 +155,8 @@ class nested_cv:
         # Get domain predictions for each model on all test data
         df_confusion = []
         for i, j in zip(models, splitters):
-            p = i.combine_domains_preds(df_bin['d_pred_max'])
-            d = df_bin[['domain_rmse/std_y', 'domain_cdf_area']]
+            p = i.combine_domains_preds(df['d_pred'])
+            d = df[['domain_rmse/std_y', 'domain_cdf_area']]
 
             d = pd.concat([
                            d.reset_index(drop=True),

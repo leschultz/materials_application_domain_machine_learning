@@ -401,13 +401,23 @@ def confusion(y, y_pred, save, suffix):
         suffix = Append a suffix to the save name.
     '''
 
-    conf = confusion_matrix(y, y_pred, labels=['ID', 'OD'])
+    f1_id = metrics.f1_score(y, y_pred, pos_label='ID')
+    f1_od = metrics.f1_score(y, y_pred, pos_label='OD')
+    conf = confusion_matrix(y, y_pred, labels=['ID', 'OD'], normalize='all')
 
     fig, ax = pl.subplots()
-    disp = ConfusionMatrixDisplay(conf, display_labels=['ID', 'OD'])
+    disp = ConfusionMatrixDisplay(
+                                  conf,
+                                  display_labels=['ID', 'OD'],
+                                  )
     disp.plot(ax=ax)
 
-    plot_dump(conf.tolist(), fig, ax, 'confusion', save, suffix, legend=False)
+    data = {}
+    data['confusion_matrix'] = conf.tolist()
+    data['F1_ID'] = f1_id
+    data['F1_OD'] = f1_od
+
+    plot_dump(data, fig, ax, 'confusion', save, suffix, legend=False)
 
 
 def area_vs_rmse(df, save):
