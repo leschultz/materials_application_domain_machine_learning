@@ -59,13 +59,16 @@ class nested_cv:
         # Train, test splits
         self.splits = []
         for splitter in self.splitters:
-            for count, split in enumerate(splitter[1].split(
-                                                            self.X,
-                                                            self.y,
-                                                            self.g
-                                                            ), 1):
-                train, test = split
-                self.splits.append((train, test, count, splitter[0]))
+            try:
+                for count, split in enumerate(splitter[1].split(
+                                                                self.X,
+                                                                self.y,
+                                                                self.g
+                                                                ), 1):
+                    train, test = split
+                    self.splits.append((train, test, count, splitter[0]))
+            except Exception:
+                continue
 
     def cv(self, split, save_inner_folds=None):
         '''
@@ -75,11 +78,15 @@ class nested_cv:
         train, test, count, name = split  # train/test
 
         if (train.shape[0] < 1) | (test.shape[0] < 1):
-            return pd.DataFrame()
+            return pd.DataFrame(), None, name
 
         # Fit models
         model = copy.deepcopy(self.model)
-        model.fit(self.X[train], self.y[train], self.g[train])
+
+        try:
+            model.fit(self.X[train], self.y[train], self.g[train])
+        except Exception:
+            return pd.DataFrame(), None, name
 
         # Save fold fit
         if save_inner_folds is not None:
@@ -155,6 +162,10 @@ class nested_cv:
         # Get domain predictions for each model on all test data
         df_confusion = []
         for i, j in zip(models, splitters):
+
+            if i is None:
+                continue
+
             p = i.combine_domains_preds(df['d_pred'])
             d = df[['domain_rmse/std_y', 'domain_cdf_area']]
 

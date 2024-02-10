@@ -210,7 +210,7 @@ def load(name, *args, **kwargs):
 
         # Dataset information
         df = 'diffusion.csv'
-        target = 'E_regression_shift'
+        target = 'E_regression'
         class_name = 'group'
         drop_cols = [
                      'mat',

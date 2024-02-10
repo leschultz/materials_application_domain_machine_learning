@@ -423,8 +423,11 @@ class combine:
         # Generate all splits
         splits = []
         for i in self.splits:
-            for count, (tr, te) in enumerate(i[1].split(X, y, g), 1):
-                splits.append((count, i[0], tr, te))
+            try:
+                for count, (tr, te) in enumerate(i[1].split(X, y, g), 1):
+                    splits.append((count, i[0], tr, te))
+            except Exception:
+                continue
 
         # Analyze each split in parallel
         data_cv = parallel(
