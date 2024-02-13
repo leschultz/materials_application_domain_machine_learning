@@ -1,7 +1,6 @@
 #!/bin/bash
 
 bws=(0.1 1.0 10.0 100.0 False)
-kernels=("gaussian" "tophat" "epanechnikov" "exponential" "linear" "cosine")
 
 data=(
       "diffusion"
@@ -20,11 +19,7 @@ do
 for b in "${bws[@]}"
 do
 
-for k in "${kernels[@]}"
-do
-
-    echo "Making (data, model, bandwidth, kernel)=(${i}, ${j}, ${b},${k})"
-    job_dir="runs/data_${i}/model_${j}/bandwidth_${b}/kernel_${k}"
+    job_dir="runs/data_${i}/model_${j}/bandwidth_${b}"
 
     mkdir -p ${job_dir}
     cp -r template/* ${job_dir}
@@ -33,11 +28,9 @@ do
     sed -i "s/replace_data/'${i}'/g" fit.py
     sed -i "s/replace_model/'${j}'/g" fit.py
     sed -i "s/replace_bandwidth/${b}/g" fit.py
-    sed -i "s/replace_kernel/'${k}'/g" fit.py
 
     cd - > /dev/null
 
-done
 done
 done
 done
