@@ -456,7 +456,7 @@ def area_vs_rmse(df, save):
     data['y'] = area.tolist()
     data['d'] = d.tolist()
 
-    plot_dump(data, fig, ax, 'area_vs_rmse', save, '')
+    plot_dump(data, fig, ax, 'area_vs_rmse', save, 'vs_d')
 
 
 def rmse_vs_stdc(df, save, suffix):

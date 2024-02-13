@@ -52,6 +52,7 @@ def main():
                             pipe,
                             grid,
                             cv=((slice(None), slice(None)),),  # No splits
+                            scoring='neg_mean_squared_error',
                             )
 
     # Types of sampling to test
