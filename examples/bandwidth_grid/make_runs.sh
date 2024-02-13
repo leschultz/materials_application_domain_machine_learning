@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bws=(0.1 1.0 10.0 100.0 False)
+bws=(0.1 1.0 10.0 100.0 None)
 
 data=(
       "diffusion"
