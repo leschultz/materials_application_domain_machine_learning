@@ -49,6 +49,7 @@ class dockerhub_model:
         command = 'udocker --allow-root run -v '
         command += '{}:/mnt '.format(os.getcwd())
         command += self.container
+        command += ' python3 model_predict.py'
 
         subprocess.check_output(
                                 command,
