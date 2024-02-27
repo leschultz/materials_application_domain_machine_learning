@@ -73,7 +73,7 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
         json.dump(data, handle)
 
 
-def residuals(df, save='.', suffix=''):
+def residuals(df, save='.', suffix='d'):
     '''
     A plot of absolute residuals vs. dissimilarity.
 
@@ -574,7 +574,7 @@ class plotter:
                )
 
         # Residuals
-        residuals(self.df, self.save, '')
+        residuals(self.df, self.save)
 
         # CDF
         cdf(df, 'splitter', self.save, 'fit_splitter')
