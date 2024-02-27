@@ -281,7 +281,11 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
                 'zorder': 1,
                 },
          }
+
     data = {'gt_min': gt_min}
+    data['ID'] = {'x': [], 'y': []}
+    data['OD'] = {'x': [], 'y': []}
+
     fig, ax = pl.subplots()
     for group, values in df.groupby([elabel, 'bin'], observed=True):
 
@@ -304,9 +308,8 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
                         alpha=0.5,
                         )
 
-        data[dom] = {}
-        data[dom]['x'] = x.tolist()
-        data[dom]['y'] = y.tolist()
+        data[dom]['x'].append(x.tolist())
+        data[dom]['y'].append(y.tolist())
 
     for key, val in p.items():
         ax.scatter([], [], label=key, **val)
