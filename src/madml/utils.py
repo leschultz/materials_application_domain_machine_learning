@@ -5,7 +5,15 @@ import sys
 import os
 
 
-def parallel(func, x, message=None, disable=False, *args, **kwargs):
+def parallel(
+             func,
+             x,
+             message=None,
+             disable=False,
+             n_jobs=-1,
+             *args,
+             **kwargs,
+             ):
     '''
     Run some function in parallel.
 
@@ -14,6 +22,7 @@ def parallel(func, x, message=None, disable=False, *args, **kwargs):
         x = The list of items to iterate on.
         message = A message to print.
         disable = Disable tqdm print.
+        n_jobs = The number of cores to run on.
         args = Arguemnts for func.
         kwargs = Keyword arguments for func.
 
@@ -25,8 +34,13 @@ def parallel(func, x, message=None, disable=False, *args, **kwargs):
         print(message)
 
     part_func = partial(func, *args, **kwargs)
-    cores = os.cpu_count()
-    with Pool(cores) as pool:
+
+    if n_jobs == -1:
+        n_jobs = os.cpu_count()
+    else:
+        n_jobs = n_jobs
+
+    with Pool(n_jobs) as pool:
         data = list(tqdm(
                          pool.imap(part_func, x),
                          total=len(x),

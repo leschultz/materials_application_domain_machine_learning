@@ -27,6 +27,7 @@ class nested_cv:
                  y,
                  g=None,
                  splitters=None,
+                 n_jobs=-1,
                  ):
 
         '''
@@ -38,12 +39,14 @@ class nested_cv:
             y = The original target features to be split.
             g = The groups of data to be split.
             splitters = All the types of splitters to assess.
+            n_jobs = The number of cores to use.
         '''
 
         self.X = X  # Features
         self.y = y  # Target
         self.splitters = copy.deepcopy(splitters)  # Splitter
         self.model = copy.deepcopy(model)
+        self.n_jobs = n_jobs
 
         # If user defined
         self.gt_rmse = self.model.gt_rmse
@@ -84,7 +87,12 @@ class nested_cv:
         model = copy.deepcopy(self.model)
 
         try:
-            model.fit(self.X[train], self.y[train], self.g[train])
+            model.fit(
+                      self.X[train],
+                      self.y[train],
+                      self.g[train],
+                      n_jobs=self.n_jobs,
+                      )
         except Exception:
             return pd.DataFrame(), None, name
 
@@ -181,7 +189,7 @@ class nested_cv:
         df_confusion = pd.concat(df_confusion)
 
         # Full fit
-        self.model.fit(self.X, self.y, self.g)
+        self.model.fit(self.X, self.y, self.g, n_jobs=self.n_jobs)
 
         # Refit on out-of-bag data for final classification models
         self.model.domain_rmse.fit(

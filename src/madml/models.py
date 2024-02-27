@@ -406,7 +406,7 @@ class combine:
 
         return data
 
-    def fit(self, X, y, g=None, d_input=None):
+    def fit(self, X, y, g=None, d_input=None, n_jobs=-1):
         '''
         Fit all models. Thresholds for domain classification are also set.
 
@@ -414,6 +414,8 @@ class combine:
             X = The features.
             y = The target variable.
             g = The groups.
+            d_input = The d cutoff to use that is custom from user.
+            n_jobs = The number of cores to use.
 
         outputs:
             data_cv = Cross validation data used.
@@ -429,19 +431,34 @@ class combine:
             except Exception:
                 continue
 
-        # Analyze each split in parallel
-        data_cv = parallel(
-                           self.cv,
-                           splits,
-                           disable=self.disable_tqdm,
-                           gs_model=self.gs_model,
-                           ds_model=self.ds_model,
-                           X=X,
-                           y=y,
-                           g=g,
-                           )
+        # Analyze each split
+        if n_jobs == 1:
+            data_cv = []
+            for i in splits:
+                d = self.cv(
+                            i,
+                            gs_model=self.gs_model,
+                            ds_model=self.ds_model,
+                            X=X,
+                            y=y,
+                            g=g,
+                            )
 
-        # Combine data
+                data_cv.append(d)
+
+        else:
+            data_cv = parallel(
+                               self.cv,
+                               splits,
+                               disable=self.disable_tqdm,
+                               gs_model=self.gs_model,
+                               ds_model=self.ds_model,
+                               X=X,
+                               y=y,
+                               g=g,
+                               )
+
+        # Put data in one dataframe
         data_cv = pd.concat(data_cv)
 
         # Separate data
