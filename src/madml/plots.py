@@ -32,7 +32,6 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     '''
 
     fig.tight_layout()
-    fig.set_dpi(300)
 
     if legend:
 
@@ -55,7 +54,7 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
         fig_legend.savefig(os.path.join(
                                         save,
                                         '{}_{}_legend.png'.format(name, suffix)
-                                        ), bbox_inches='tight')
+                                        ), bbox_inches='tight', dpi=400)
 
         ax.legend([]).set_visible(False)
 
@@ -64,7 +63,7 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
     fig.savefig(os.path.join(
                              save,
                              '{}_{}.png'.format(name, suffix)
-                             ), bbox_inches='tight')
+                             ), bbox_inches='tight', dpi=400)
 
     pl.close(fig)
 
