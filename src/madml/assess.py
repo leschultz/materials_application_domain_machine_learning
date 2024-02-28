@@ -148,8 +148,19 @@ class nested_cv:
 
         # Assess model
         df = []
+        count = 1
+        total = len(self.splits)
         for i in tqdm(self.splits):
+
+            with open('status.txt', 'w') as handle:
+                print('Starting fold {}/{}'.format(count, total), file=handle)
+
             df.append(self.cv(i, save_inner_folds))
+
+            with open('status.txt', 'w') as handle:
+                print('Ending fold {}/{}'.format(count, total), file=handle)
+
+            count += 1
 
         models = [i[1] for i in df]
         splitters = [i[2] for i in df]
