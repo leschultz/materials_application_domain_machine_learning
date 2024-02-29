@@ -50,7 +50,6 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
         ax_legend.spines['left'].set_visible(False)
         ax_legend.spines['right'].set_visible(False)
 
-        fig_legend.set_dpi(150)
         fig_legend.savefig(os.path.join(
                                         save,
                                         '{}_{}_legend.png'.format(name, suffix)
