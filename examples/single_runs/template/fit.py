@@ -25,7 +25,7 @@ def main():
 
     # MADML parameters
     bins = 10
-    n_repeats = 5
+    n_repeats = replace_repeats
 
     # ML Distance model
     ds_model = dissimilarity(dis='kde')
