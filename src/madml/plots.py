@@ -92,7 +92,7 @@ def residuals(df, save='.', suffix='d'):
     data['d_pred'] = x.tolist()
     data['r/std_y'] = y.tolist()
 
-    ax.set_xlabel('D')
+    ax.set_xlabel('d')
     ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
 
     plot_dump(data, fig, ax, 'residuals', save, suffix, False)
@@ -160,7 +160,7 @@ def parity(
                 zorder=-1,
                 )
 
-    fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='d')
 
     # Line of best fit
     limits = []
@@ -320,7 +320,7 @@ def bins(df, d, e, elabel, gt, ylabel, gtlabel, save, suffix):
                )
 
     ax.set_ylabel(ylabel)
-    ax.set_xlabel('D')
+    ax.set_xlabel('d')
 
     plot_dump(data, fig, ax, 'bins', save, suffix)
 
@@ -450,9 +450,9 @@ def area_vs_rmse(df, save):
                     vmax=1.0,
                     )
 
-    fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='d')
 
-    ax.set_xlabel(r'$E^{rmse}$')
+    ax.set_xlabel(r'$E^{RMSE/\sigma_{y}}$')
     ax.set_ylabel(r'$E^{area}$')
 
     data = {}
@@ -460,7 +460,7 @@ def area_vs_rmse(df, save):
     data['y'] = area.tolist()
     data['d'] = d.tolist()
 
-    plot_dump(data, fig, ax, 'area_vs_rmse', save, 'vs_d')
+    plot_dump(data, fig, ax, 'area_vs_RMSE', save, 'vs_d')
 
 
 def rmse_vs_stdc(df, save, suffix):
@@ -490,7 +490,7 @@ def rmse_vs_stdc(df, save, suffix):
                     vmax=1.0,
                     )
 
-    fig.colorbar(sc, ax=ax, label='D')
+    fig.colorbar(sc, ax=ax, label='d')
 
     # Line of best fit
     limits = []
@@ -502,7 +502,7 @@ def rmse_vs_stdc(df, save, suffix):
     ax.plot(
             limits,
             limits,
-            label=r'$E^{rmse}=mean(\sigma_{c}/\sigma_{y})$',
+            label=r'$E^{RMSE/\sigma_{y}}=mean(\sigma_{c}/\sigma_{y})$',
             color='k',
             linestyle=':',
             zorder=1
@@ -511,14 +511,14 @@ def rmse_vs_stdc(df, save, suffix):
     ax.set_aspect('equal')
 
     ax.set_xlabel(r'$\sigma_{c}/\sigma(y)$')
-    ax.set_ylabel(r'$E^{rmse}$')
+    ax.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
 
     data = {}
     data['x'] = stdc.tolist()
     data['y'] = rmse.tolist()
     data['d'] = d.tolist()
 
-    plot_dump(data, fig, ax, 'rmse_vs_stdc', save, suffix)
+    plot_dump(data, fig, ax, 'RMSE_vs_stdc', save, suffix)
 
 
 class plotter:
@@ -605,6 +605,16 @@ class plotter:
                               self.gts,
                               ):
 
+            # Name change Dane wants
+            if k == 'rmse':
+                ename = r'$E^{RMSE/\sigma_{y}}$'
+                cname = r'$E^{RMSE/\sigma_{y}}_{c}$'
+            elif k == 'area':
+                ename = r'$E^{area}$'
+                cname = r'$E^{area}_{c}$'
+            else:
+                raise 'Unsupported error metric'
+
             # Separate domains and classes
             for group, df in self.df.groupby(i):
 
@@ -639,8 +649,8 @@ class plotter:
                  j,
                  i,
                  f,
-                 r'$E^{{{}}}$'.format(k),
-                 r'$E^{{{}}}_c$'.format(k),
+                 ename,
+                 cname,
                  self.save,
                  k,
                  )
