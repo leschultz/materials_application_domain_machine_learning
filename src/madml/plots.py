@@ -236,13 +236,13 @@ def cdf(df, gt, save, suffix):
             zorder=0,
             color='b',
             linewidth=4,
-            label='N(0,1)',
+            label=r'$\Phi(0,1)$',
             )
 
-    data['N(0,1)'] = {}
-    data['N(0,1)']['x'] = list(eval_points)
-    data['N(0,1)']['y'] = list(y)
-    data['N(0,1)'] = areacdf
+    data[r'$\Phi(0,1)$'] = {}
+    data[r'$\Phi(0,1)$']['x'] = list(eval_points)
+    data[r'$\Phi(0,1)$']['y'] = list(y)
+    data[r'$\Phi(0,1)$'] = areacdf
 
     ax.set_xlabel('z')
     ax.set_ylabel('CDF(z)')
@@ -250,7 +250,7 @@ def cdf(df, gt, save, suffix):
     plot_dump(data, fig, ax, 'cdf', save, suffix)
 
 
-def bins(df, d, e, elabel, gt, ylabel, save, suffix):
+def bins(df, d, e, elabel, gt, ylabel, gtlabel, save, suffix):
     '''
     Plot statistical errors with respect to dissimilarity.
 
@@ -260,6 +260,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
         elabel = The domain labels.
         gt = The domain ground truth.
         ylabel = The y-axis label.
+        gtlabel = The label for ground truth.
         save = The directory to save plot.
         suffix = Append a suffix to the save name.
     '''
@@ -315,7 +316,7 @@ def bins(df, d, e, elabel, gt, ylabel, save, suffix):
     ax.axhline(
                gt_min,
                color='g',
-               label='GT = {:.2f}'.format(gt_min),
+               label='{} = {:.2f}'.format(gtlabel, gt_min),
                )
 
     ax.set_ylabel(ylabel)
@@ -501,7 +502,7 @@ def rmse_vs_stdc(df, save, suffix):
     ax.plot(
             limits,
             limits,
-            label=r'$E^{rmse}=mean(\sigma_{c}/\sigma_(y))$',
+            label=r'$E^{rmse}=mean(\sigma_{c}/\sigma_{y})$',
             color='k',
             linestyle=':',
             zorder=1
@@ -639,6 +640,7 @@ class plotter:
                  i,
                  f,
                  r'$E^{{{}}}$'.format(k),
+                 r'$E^{{{}}}_c$'.format(k),
                  self.save,
                  k,
                  )
