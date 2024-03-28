@@ -4,8 +4,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-from madml.splitters import BootstrappedLeaveClusterOut, LeaveTargetQuantileOut
 from madml.models import dissimilarity, calibration, combine
+from madml.splitters import BootstrappedLeaveClusterOut
 from madml.assess import nested_cv
 from madml import datasets
 
@@ -68,8 +68,6 @@ def main():
                                                 )
 
         splits.append(('agglo_{}'.format(clusters), top_split))
-
-    splits.append(('target_split', LeaveTargetQuantileOut(n_splits=1)))
 
     # Assess models
     model = combine(gs_model, ds_model, uq_model, splits, bins=bins)
