@@ -92,7 +92,7 @@ def residuals(df, save='.', suffix='d'):
     data['d_pred'] = x.tolist()
     data['r/std_y'] = y.tolist()
 
-    ax.set_xlabel('d')
+    ax.set_xlabel(r'$d$')
     ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
 
     plot_dump(data, fig, ax, 'residuals', save, suffix, False)
@@ -160,7 +160,7 @@ def parity(
                 zorder=-1,
                 )
 
-    fig.colorbar(sc, ax=ax, label='d')
+    fig.colorbar(sc, ax=ax, label=r'$d$')
 
     # Line of best fit
     limits = []
@@ -320,7 +320,7 @@ def bins(df, d, e, elabel, gt, ylabel, gtlabel, save, suffix):
                )
 
     ax.set_ylabel(ylabel)
-    ax.set_xlabel('d')
+    ax.set_xlabel(r'$d$')
 
     plot_dump(data, fig, ax, 'bins', save, suffix)
 
@@ -450,7 +450,7 @@ def area_vs_rmse(df, save):
                     vmax=1.0,
                     )
 
-    fig.colorbar(sc, ax=ax, label='d')
+    fig.colorbar(sc, ax=ax, label=r'$d$')
 
     ax.set_xlabel(r'$E^{RMSE/\sigma_{y}}$')
     ax.set_ylabel(r'$E^{area}$')
@@ -490,7 +490,7 @@ def rmse_vs_stdc(df, save, suffix):
                     vmax=1.0,
                     )
 
-    fig.colorbar(sc, ax=ax, label='d')
+    fig.colorbar(sc, ax=ax, label=r'$d$')
 
     # Line of best fit
     limits = []
