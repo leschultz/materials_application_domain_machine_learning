@@ -186,6 +186,9 @@ class nested_cv:
                 continue
 
             p = i.combine_domains_preds(df['d_pred'])
+            cols = p.columns
+            cols = [i.split(' (')[0] for i in cols]
+            p.columns = cols
             d = df[['domain_rmse/std_y', 'domain_cdf_area']]
 
             d = pd.concat([

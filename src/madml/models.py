@@ -212,7 +212,11 @@ class domain:
             if key in skip:
                 continue
 
-            key = 'Domain Prediction from {}'.format(key)
+            # Round here
+            p = round(value['Precision'], 2)
+            r = round(value['Recall'], 2)
+
+            key = 'Domain Prediction from {} (p={},r={})'.format(key, p, r)
             cut = value['Threshold']
             do_pred[key] = np.where(d <= cut, 'ID', 'OD')
 

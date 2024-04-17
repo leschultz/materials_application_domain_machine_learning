@@ -548,6 +548,7 @@ class plotter:
 
         # Domain prediction columns
         pred_cols = [i for i in self.df.columns if 'Domain Prediction' in i]
+        pred_cols = [i.split(' (')[0] for i in pred_cols]
         self.pred_cols = pred_cols
 
         if df_confusion is None:
