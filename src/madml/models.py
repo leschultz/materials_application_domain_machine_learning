@@ -1,3 +1,8 @@
+from sklearn.gaussian_process.kernels import (
+                                              ConstantKernel,
+                                              WhiteKernel,
+                                              Matern,
+                                              )
 from madml.calculators import (
                                ground_truth,
                                bin_data,
@@ -6,6 +11,7 @@ from madml.calculators import (
                                pr,
                                )
 
+from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.model_selection import RepeatedKFold
 from sklearn.cluster import estimate_bandwidth
 from sklearn.neighbors import KernelDensity
@@ -16,6 +22,8 @@ from sklearn.base import clone
 
 import pandas as pd
 import numpy as np
+
+import warnings
 import copy
 
 pd.options.mode.chained_assignment = None
@@ -90,23 +98,30 @@ class dissimilarity:
     def __init__(
                  self,
                  dis='kde',
-                 kernel='epanechnikov',
+                 kernel=None,
                  bandwidth=None,
                  ):
 
         self.dis = dis
-        self.kernel = kernel
         self.bandwidth = bandwidth
+
+        if (kernel is None) and dis == 'kde':
+            self.kernel = 'epanechnikov'
+
+        elif (kernel is None) and dis == 'gpr':
+            self.kernel = ConstantKernel()*Matern()+WhiteKernel()
 
     def fit(
             self,
             X_train,
+            y_train=None,
             ):
         '''
         Get the dissimilarities based on a metric.
 
         inputs:
             X_train = The features of the training set.
+            y_train = The target variable for training set.
             dis = The distance to consider.
             model = The model to get feature importances.
             n_features = The number of features to keep.
@@ -143,6 +158,24 @@ class dissimilarity:
 
             else:
                 self.model = lambda x: np.repeat(1.0, len(x))
+
+        elif self.dis == 'gpr':
+
+            model = GaussianProcessRegressor(
+                                             kernel=self.kernel,
+                                             n_restarts_optimizer=10,
+                                             )
+
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+
+                model.fit(X_train, y_train)
+
+            def pred(X):
+                _, out = model.predict(X, return_std=True)
+                return out
+
+            self.model = pred
 
         else:
 
@@ -387,7 +420,7 @@ class combine:
         X_trans_tr = pipe_transforms(gs_model_cv, X[tr])
         X_trans_te = pipe_transforms(gs_model_cv, X[te])
 
-        ds_model_cv.fit(X_trans_tr)
+        ds_model_cv.fit(X_trans_tr, y[tr])
 
         # Variable to save data
         data = pd.DataFrame()
@@ -483,7 +516,7 @@ class combine:
                                   X,
                                   )
 
-        self.ds_model.fit(X_trans)
+        self.ds_model.fit(X_trans, y)
 
         # Update data not used for calibration of UQ
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdu_pred'])
