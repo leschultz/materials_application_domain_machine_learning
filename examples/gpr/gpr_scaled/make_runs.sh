@@ -10,9 +10,6 @@ data=(
 
 models=(
 	"rf"
-	"bols"
-	"bsvr"
-	"bnn"
 	)
 
 for i in "${data[@]}"

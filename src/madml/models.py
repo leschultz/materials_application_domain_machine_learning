@@ -100,16 +100,13 @@ class dissimilarity:
                  dis='kde',
                  kernel=None,
                  bandwidth=None,
+                 scale=True,
                  ):
 
         self.dis = dis
+        self.kernel = kernel
         self.bandwidth = bandwidth
-
-        if (kernel is None) and dis == 'kde':
-            self.kernel = 'epanechnikov'
-
-        elif (kernel is None) and dis == 'gpr':
-            self.kernel = ConstantKernel()*Matern()+WhiteKernel()
+        self.scale = scale
 
     def fit(
             self,
@@ -130,10 +127,18 @@ class dissimilarity:
             d = Dissimilarities.
         '''
 
-        if self.dis == 'kde':
+        if self.bandwidth is None:
+            self.bandwidth = estimate_bandwidth(X_train)
 
-            if self.bandwidth is None:
-                self.bandwidth = estimate_bandwidth(X_train)
+        if (self.kernel is None) and self.dis == 'kde':
+            self.kernel = 'epanechnikov'
+
+        elif (self.kernel is None) and self.dis == 'gpr':
+            self.kernel = ConstantKernel(self.bandwidth)
+            self.kernel *= Matern(self.bandwidth)
+            self.kernel += WhiteKernel(self.bandwidth)
+
+        if self.dis == 'kde':
 
             if self.bandwidth > 0.0:
                 model = KernelDensity(
@@ -148,7 +153,10 @@ class dissimilarity:
 
                 def pred(X):
                     out = model.score_samples(X)
-                    out = out-m
+
+                    if self.scale:
+                        out = out-m
+
                     out = np.exp(out)
                     out = 1-out
                     out = np.maximum(0.0, out)
@@ -161,27 +169,49 @@ class dissimilarity:
 
         elif self.dis == 'gpr':
 
-            model = GaussianProcessRegressor(
-                                             kernel=self.kernel,
-                                             n_restarts_optimizer=10,
-                                             )
+            if self.bandwidth > 0.0:
 
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
+                model = GaussianProcessRegressor(
+                                                 kernel=self.kernel,
+                                                 n_restarts_optimizer=10,
+                                                 )
 
-                model.fit(X_train, y_train)
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
 
-            def pred(X):
-                _, out = model.predict(X, return_std=True)
-                return out
+                    model.fit(X_train, y_train)
+                    _, dis = model.predict(X_train, return_std=True)
+                    m = np.max(dis)
 
-            self.model = pred
+                def pred(X):
+                    _, out = model.predict(X, return_std=True)
+
+                    if self.scale:
+                        out = out/m
+                        out = out/(out+1)
+
+                    return out
+
+                self.model = pred
+
+            elif self.scale and (self.bandwidth <= 0.0):
+                self.model = lambda x: np.repeat(1.0, len(x))
+
+            else:
+                self.model = lambda x: np.repeat(np.inf, len(x))
 
         else:
 
             def pred(X):
                 out = cdist(X_train, X, self.dis)
                 out = np.mean(out, axis=0)
+
+                if self.scale:
+                    dis = np.mean(cdist(X_train, X_train), axis=0)
+                    m = np.max(dis)
+                    out = out/m
+                    out = out/(out+1)
+
                 return out
 
             self.model = pred
