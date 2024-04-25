@@ -5,7 +5,6 @@ data=(
       "fluence"
       "diffusion"
       "strength"
-      "supercond"
       )
 
 models=(

@@ -169,36 +169,31 @@ class dissimilarity:
 
         elif self.dis == 'gpr':
 
-            if self.bandwidth > 0.0:
+            if self.bandwidth <= 0.0:
+                self.bandwidth = 1e-4  # Just a small number
 
-                model = GaussianProcessRegressor(
-                                                 kernel=self.kernel,
-                                                 n_restarts_optimizer=10,
-                                                 )
+            model = GaussianProcessRegressor(
+                                             kernel=self.kernel,
+                                             n_restarts_optimizer=10,
+                                             )
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
 
-                    model.fit(X_train, y_train)
-                    _, dis = model.predict(X_train, return_std=True)
-                    m = np.max(dis)
+                model.fit(X_train, y_train)
+                _, dis = model.predict(X_train, return_std=True)
+                m = np.max(dis)
 
-                def pred(X):
-                    _, out = model.predict(X, return_std=True)
+            def pred(X):
+                _, out = model.predict(X, return_std=True)
 
-                    if self.scale:
-                        out = out/m
-                        out = out/(out+1)
+                if self.scale:
+                    out = out/m
+                    out = out/(out+1)
 
-                    return out
+                return out
 
-                self.model = pred
-
-            elif self.scale and (self.bandwidth <= 0.0):
-                self.model = lambda x: np.repeat(1.0, len(x))
-
-            else:
-                self.model = lambda x: np.repeat(np.inf, len(x))
+            self.model = pred
 
         else:
 
