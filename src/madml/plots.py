@@ -111,9 +111,9 @@ def confidence(df, save='.', suffix='all'):
 
     def func(i, d, y, z):
 
-        removed = d[i]
-        y_sub = y[i:]
-        z_sub = z[i:]
+        removed = d[i-1]
+        y_sub = y[:i]
+        z_sub = z[:i]
 
         rmse = (sum(y_sub**2)/y_sub.shape[0])**0.5
         area = calculators.cdf(z_sub)[-1]
@@ -142,10 +142,8 @@ def confidence(df, save='.', suffix='all'):
                        label='{} = {:.2f}'.format(gtlabel, gt),
                        )
 
-        ax_sub.set_xlabel(f'Removed {key}')
+        ax_sub.set_xlabel(f'Included {key}')
         ax_sub.set_ylabel(ylabel)
-
-        ax_sub.invert_xaxis()
 
         dat = {'x': x, 'y': y, 'gt': gt}
         plot_dump(
@@ -167,7 +165,7 @@ def confidence(df, save='.', suffix='all'):
                'Random': np.random.uniform(size=df.shape[0]),
                }
 
-    loop = range(0, df.shape[0])
+    loop = range(1, df.shape[0]+1)
     frac = list(np.array(loop)/df.shape[0])
 
     data_area = {}
@@ -176,7 +174,7 @@ def confidence(df, save='.', suffix='all'):
     fig_area, ax_area = pl.subplots()
     for key, value in sorters.items():
 
-        indx = np.argsort(value)[::-1]
+        indx = np.argsort(value)
         d = value[indx]
         y = sorters[r'$|y-\hat{y}|/\sigma_{y}$'][indx]
         z = df['z'].values[indx]
@@ -251,10 +249,10 @@ def confidence(df, save='.', suffix='all'):
     ax_rmse.set_xlim(0.0, 1.0)
     ax_area.set_xlim(0.0, 1.0)
 
-    ax_rmse.set_xlabel('Fraction Removed')
+    ax_rmse.set_xlabel('Fraction Added')
     ax_rmse.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
 
-    ax_area.set_xlabel('Fraction Removed')
+    ax_area.set_xlabel('Fraction Added')
     ax_area.set_ylabel(r'$E^{area}$')
 
     plot_dump(data_rmse, fig_rmse, ax_rmse, 'confidence_rmse', save, suffix)
