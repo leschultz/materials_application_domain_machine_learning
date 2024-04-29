@@ -126,7 +126,7 @@ def confidence(df, save='.', suffix='all'):
                }
 
     loop = range(0, df.shape[0])
-    frac = np.array(loop)/df.shape[0]
+    frac = list(np.array(loop)/df.shape[0])
 
     data_area = {}
     data_rmse = {}
@@ -152,11 +152,14 @@ def confidence(df, save='.', suffix='all'):
         auc_rmse = np.trapz(rmse, x=frac, dx=0.00001)
         auc_area = np.trapz(rmse, x=frac, dx=0.00001)
 
-        ax_rmse.plot(frac, rmse, label=key)
-        ax_area.plot(frac, area, label=key)
+        label_rmse = '{} AUC: {:.2f}'.format(key, auc_rmse)
+        label_area = '{} AUC: {:.2f}'.format(key, auc_area)
 
-        data_rmse[key] = rmse
-        data_area[key] = area
+        ax_rmse.plot(frac, rmse, label=label_rmse)
+        ax_area.plot(frac, area, label=label_area)
+
+        data_rmse[key] = {'x': frac, 'y': rmse, 'auc': auc_rmse}
+        data_area[key] = {'x': frac, 'y': area, 'auc': auc_area}
 
     ax_rmse.set_xlabel('Fraction Removed')
     ax_rmse.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
