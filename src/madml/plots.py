@@ -5,6 +5,7 @@ from sklearn.metrics import (
                              )
 
 from matplotlib import pyplot as pl
+from madml.utils import parallel
 from madml import calculators
 from sklearn import metrics
 
@@ -98,10 +99,80 @@ def residuals(df, save='.', suffix='d'):
     plot_dump(data, fig, ax, 'residuals', save, suffix, False)
 
 
+def confidence(df, save='.', suffix='all'):
+    '''
+    A plot of absolute residuals vs. dissimilarity.
+
+    inputs:
+        df = Data.
+        save = The directory to save plot.
+        suffix = Append a suffix to the save name.
+    '''
+
+    def func(i, y, z):
+        y_sub = y[i:]
+        z_sub = z[i:]
+
+        rmse = (sum(y_sub**2)/y_sub.shape[0])**0.5
+        area = calculators.cdf(z_sub)[-1]
+
+        return rmse, area
+
+    sorters = {
+               r'$|y-\hat{y}|/\sigma_{y}$': df['r/std_y'].abs().values,
+               r'$d$': df['d_pred'].values,
+               r'$\sigma_{c}$': df['y_stdc_pred'].values,
+               'Random': np.random.uniform(size=df.shape[0]),
+               }
+
+    loop = range(0, df.shape[0])
+    frac = np.array(loop)/df.shape[0]
+
+    data_area = {}
+    data_rmse = {}
+    fig_rmse, ax_rmse = pl.subplots()
+    fig_area, ax_area = pl.subplots()
+    for key, value in sorters.items():
+
+        indx = np.argsort(value)[::-1]
+        y = sorters[r'$|y-\hat{y}|/\sigma_{y}$'][indx]
+        z = df['z'].values[indx]
+
+        out = parallel(
+                       func,
+                       loop,
+                       y=y,
+                       z=z,
+                       disable=True,
+                       )
+
+        rmse = [i[0] for i in out]
+        area = [i[1] for i in out]
+
+        auc_rmse = np.trapz(rmse, x=frac, dx=0.00001)
+        auc_area = np.trapz(rmse, x=frac, dx=0.00001)
+
+        ax_rmse.plot(frac, rmse, label=key)
+        ax_area.plot(frac, area, label=key)
+
+        data_rmse[key] = rmse
+        data_area[key] = area
+
+    ax_rmse.set_xlabel('Fraction Removed')
+    ax_rmse.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
+
+    ax_area.set_xlabel('Fraction Removed')
+    ax_area.set_ylabel(r'$E^{area}$')
+
+    plot_dump(data_rmse, fig_rmse, ax_rmse, 'confidence_rmse', save, suffix)
+    plot_dump(data_area, fig_area, ax_area, 'confidence_area', save, suffix)
+
+
 def parity(
            df,
            save='.',
            suffix='',
+           heat=False,
            ):
     '''
     Make a parity plot.
@@ -138,17 +209,29 @@ def parity(
 
     fig, ax = pl.subplots()
 
-    sc = ax.scatter(
-                    y,
-                    y_pred,
-                    c=d,
-                    cmap='viridis',
-                    marker='.',
-                    zorder=2,
-                    label=label,
-                    vmin=0.0,
-                    vmax=1.0,
-                    )
+    if heat:
+        sc = ax.scatter(
+                        y,
+                        y_pred,
+                        c=d,
+                        cmap='viridis',
+                        marker='.',
+                        zorder=2,
+                        label=label,
+                        vmin=0.0,
+                        vmax=1.0,
+                        )
+
+        fig.colorbar(sc, ax=ax, label=r'$d$')
+
+    else:
+        sc = ax.scatter(
+                        y,
+                        y_pred,
+                        marker='.',
+                        zorder=2,
+                        label=label,
+                        )
 
     ax.errorbar(
                 y,
@@ -159,8 +242,6 @@ def parity(
                 ecolor='r',
                 zorder=-1,
                 )
-
-    fig.colorbar(sc, ax=ax, label=r'$d$')
 
     # Line of best fit
     limits = []
@@ -463,7 +544,7 @@ def area_vs_rmse(df, save):
     plot_dump(data, fig, ax, 'area_vs_RMSE', save, 'vs_d')
 
 
-def rmse_vs_stdc(df, save, suffix):
+def rmse_vs_stdc(df, save, suffix, heat=False):
     '''
     Make a plot of rmse vs stdc.
 
@@ -478,19 +559,29 @@ def rmse_vs_stdc(df, save, suffix):
     stdc = df['y_stdc_pred/std_y_mean']
 
     fig, ax = pl.subplots()
-    sc = ax.scatter(
-                    stdc,
-                    rmse,
-                    c=d,
-                    cmap='viridis',
-                    marker='.',
-                    zorder=2,
-                    label='Bins',
-                    vmin=0.0,
-                    vmax=1.0,
-                    )
+    if heat:
+        sc = ax.scatter(
+                        stdc,
+                        rmse,
+                        c=d,
+                        cmap='viridis',
+                        marker='.',
+                        zorder=2,
+                        label='Bins',
+                        vmin=0.0,
+                        vmax=1.0,
+                        )
 
-    fig.colorbar(sc, ax=ax, label=r'$d$')
+        fig.colorbar(sc, ax=ax, label=r'$d$')
+
+    else:
+        sc = ax.scatter(
+                        stdc,
+                        rmse,
+                        marker='.',
+                        zorder=2,
+                        label='Bins',
+                        )
 
     # Line of best fit
     limits = []
@@ -575,6 +666,10 @@ class plotter:
 
         # Residuals
         residuals(self.df, self.save)
+
+        # Confidence
+        confidence(self.df, self.save)
+        confidence(df, self.save, 'fit_splitter')
 
         # CDF
         cdf(df, 'splitter', self.save, 'fit_splitter')
