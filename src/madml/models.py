@@ -547,6 +547,9 @@ class combine:
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdu_pred'])
         data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
+        data_cv['|r/std_y|'] = data_cv['y']-data_cv['y_pred']
+        data_cv['|r/std_y|'] = data_cv['|r/std_y|']/data_cv['std_y']
+        data_cv['|r/std_y|'] = data_cv['|r/std_y|'].abs()
 
         # Get binned data from alternate forms of sampling
         data_cv, bin_cv = bin_data(data_cv, self.bins)
