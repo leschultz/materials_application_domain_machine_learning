@@ -120,6 +120,7 @@ class nested_cv:
         data['r'] = self.y[test]-data['y_pred']
         data['z'] = data['r']/data['y_stdc_pred']
         data['r/std_y'] = data['r']/data['std_y']
+        data['|r/std_y|'] = data['r/std_y'].abs()
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
         # Ground truths

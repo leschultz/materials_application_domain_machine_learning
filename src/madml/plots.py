@@ -86,12 +86,12 @@ def residuals(df, save='.', suffix='d'):
     fig, ax = pl.subplots()
 
     x = df['d_pred'].values
-    y = df['r/std_y'].abs().values
+    y = df['|r/std_y|'].values
 
     ax.scatter(x, y, marker='.', color='r')
 
     data['d_pred'] = x.tolist()
-    data['r/std_y'] = y.tolist()
+    data['|r/std_y|'] = y.tolist()
 
     ax.set_xlabel(r'$d$')
     ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
@@ -109,17 +109,59 @@ def confidence(df, save='.', suffix='all'):
         suffix = Append a suffix to the save name.
     '''
 
-    def func(i, y, z):
+    def func(i, d, y, z):
+
+        removed = d[i]
         y_sub = y[i:]
         z_sub = z[i:]
 
         rmse = (sum(y_sub**2)/y_sub.shape[0])**0.5
         area = calculators.cdf(z_sub)[-1]
 
-        return rmse, area
+        return removed, rmse, area
+
+    def sub(x, y, ylabel, key, gt, gtlabel, metric, color):
+
+        if key == r'$|y-\hat{y}|/\sigma_{y}$':
+            name = 'residual'
+        elif key == r'$d$':
+            name = 'd'
+        elif key == r'$\sigma_{c}$':
+            name = 'stdc'
+        elif key == 'Random':
+            name = 'random'
+
+        fig_sub, ax_sub = pl.subplots()
+
+        ax_sub.plot(x, y, color=color, label=key)
+
+        ax_sub.axhline(
+                       gt,
+                       color='g',
+                       linestyle=':',
+                       label='{} = {:.2f}'.format(gtlabel, gt),
+                       )
+
+        ax_sub.set_xlabel(f'Removed {key}')
+        ax_sub.set_ylabel(ylabel)
+
+        ax_sub.invert_xaxis()
+
+        dat = {'x': x, 'y': y, 'gt': gt}
+        plot_dump(
+                  dat,
+                  fig_sub,
+                  ax_sub,
+                  f'confidence_{metric}_{name}',
+                  save,
+                  suffix,
+                  )
+
+    gt_rmse = float(df['gt_rmse'].min())  # Should all be same
+    gt_area = float(df['gt_area'].min())  # Should all be same
 
     sorters = {
-               r'$|y-\hat{y}|/\sigma_{y}$': df['r/std_y'].abs().values,
+               r'$|y-\hat{y}|/\sigma_{y}$': df['|r/std_y|'].values,
                r'$d$': df['d_pred'].values,
                r'$\sigma_{c}$': df['y_stdc_pred'].values,
                'Random': np.random.uniform(size=df.shape[0]),
@@ -135,19 +177,22 @@ def confidence(df, save='.', suffix='all'):
     for key, value in sorters.items():
 
         indx = np.argsort(value)[::-1]
+        d = value[indx]
         y = sorters[r'$|y-\hat{y}|/\sigma_{y}$'][indx]
         z = df['z'].values[indx]
 
         out = parallel(
                        func,
                        loop,
+                       d=d,
                        y=y,
                        z=z,
                        disable=True,
                        )
 
-        rmse = [i[0] for i in out]
-        area = [i[1] for i in out]
+        remo = [i[0] for i in out]
+        rmse = [i[1] for i in out]
+        area = [i[2] for i in out]
 
         auc_rmse = np.trapz(rmse, x=frac, dx=0.00001)
         auc_area = np.trapz(rmse, x=frac, dx=0.00001)
@@ -155,11 +200,56 @@ def confidence(df, save='.', suffix='all'):
         label_rmse = '{} AUC: {:.2f}'.format(key, auc_rmse)
         label_area = '{} AUC: {:.2f}'.format(key, auc_area)
 
-        ax_rmse.plot(frac, rmse, label=label_rmse)
-        ax_area.plot(frac, area, label=label_area)
+        line = ax_rmse.plot(frac, rmse, label=label_rmse)
+        color = line[0].get_color()
+        ax_area.plot(frac, area, color=color, label=label_area)
 
         data_rmse[key] = {'x': frac, 'y': rmse, 'auc': auc_rmse}
         data_area[key] = {'x': frac, 'y': area, 'auc': auc_area}
+
+        if key == 'Random':
+            continue
+
+        # Plot the plots for the real measure instead of fraction
+        sub(
+            remo,
+            rmse,
+            r'$E^{RMSE/\sigma_{y}}$',
+            key,
+            gt_rmse,
+            r'$E^{RMSE/\sigma_{y}}_{c}$',
+            'rmse',
+            color,
+            )
+        sub(
+            remo,
+            area,
+            r'$E^{area}$',
+            key,
+            gt_area,
+            r'$E^{area}_{c}$',
+            'area',
+            color,
+            )
+
+    gtlabel = r'$E^{RMSE/\sigma_{y}}_{c}$'
+    ax_rmse.axhline(
+                    gt_rmse,
+                    color='g',
+                    linestyle=':',
+                    label='{} = {:.2f}'.format(gtlabel, gt_rmse),
+                    )
+
+    gtlabel = r'$E^{area}_{c}$'
+    ax_area.axhline(
+                    gt_area,
+                    color='g',
+                    linestyle=':',
+                    label='{} = {:.2f}'.format(gtlabel, gt_area),
+                    )
+
+    ax_rmse.set_xlim(0.0, 1.0)
+    ax_area.set_xlim(0.0, 1.0)
 
     ax_rmse.set_xlabel('Fraction Removed')
     ax_rmse.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
