@@ -86,15 +86,15 @@ def residuals(df, save='.', suffix='d'):
     fig, ax = pl.subplots()
 
     x = df['d_pred'].values
-    y = df['|r/std_y|'].values
+    y = df['|r|/mad_y'].values
 
     ax.scatter(x, y, marker='.', color='r')
 
-    data['d_pred'] = x.tolist()
-    data['|r/std_y|'] = y.tolist()
+    data['x'] = x.tolist()
+    data['y'] = y.tolist()
 
     ax.set_xlabel(r'$d$')
-    ax.set_ylabel(r'$|y-\hat{y}|/\sigma_{y}$')
+    ax.set_ylabel(r'$|y-\hat{y}|/MAD_{y}$')
 
     plot_dump(data, fig, ax, 'residuals', save, suffix, False)
 
@@ -122,7 +122,7 @@ def confidence(df, save='.', suffix='all'):
 
     def sub(x, y, ylabel, key, gt, gtlabel, metric, color):
 
-        if key == r'$|y-\hat{y}|/\sigma_{y}$':
+        if key == r'$|y-\hat{y}|$':
             name = 'residual'
         elif key == r'$d$':
             name = 'd'
@@ -159,7 +159,7 @@ def confidence(df, save='.', suffix='all'):
     gt_area = float(df['gt_area'].min())  # Should all be same
 
     sorters = {
-               r'$|y-\hat{y}|/\sigma_{y}$': df['|r/std_y|'].values,
+               r'$|y-\hat{y}|$': df['|r|'].values,
                r'$d$': df['d_pred'].values,
                r'$\sigma_{c}$': df['y_stdc_pred'].values,
                'Random': np.random.uniform(size=df.shape[0]),
@@ -176,7 +176,7 @@ def confidence(df, save='.', suffix='all'):
 
         indx = np.argsort(value)
         d = value[indx]
-        y = sorters[r'$|y-\hat{y}|/\sigma_{y}$'][indx]
+        y = sorters[r'$|y-\hat{y}|$'][indx]
         z = df['z'].values[indx]
 
         out = parallel(
@@ -193,7 +193,7 @@ def confidence(df, save='.', suffix='all'):
         area = [i[2] for i in out]
 
         auc_rmse = np.trapz(rmse, x=frac, dx=0.00001)
-        auc_area = np.trapz(rmse, x=frac, dx=0.00001)
+        auc_area = np.trapz(area, x=frac, dx=0.00001)
 
         label_rmse = '{} AUC: {:.2f}'.format(key, auc_rmse)
         label_area = '{} AUC: {:.2f}'.format(key, auc_area)
@@ -277,7 +277,7 @@ def parity(
     y = df.y
     y_pred = df.y_pred
     y_stdc_pred = df.y_stdc_pred
-    r_std_y = df['r/std_y']
+    r_std_y = df['|r|/std_y']
     d = df.d_pred
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5

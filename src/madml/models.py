@@ -457,14 +457,21 @@ class combine:
         data['y'] = y[te]
 
         # Statistics from training data
-        data['std_y'] = np.std(y[tr])
+        mu = np.mean(y[tr])
+        std = np.std(y[tr])
+        mad = np.mean(np.abs(y[tr]-mu))
+
+        data['std_y'] = std
+        data['mad_y'] = mad
 
         # Predictions
         data['y_pred'] = gs_model_cv.predict(X[te])
         data['y_stdu_pred'] = predict_std(gs_model_cv, X_trans_te)
         data['d_pred'] = ds_model_cv.predict(X_trans_te)
         data['r'] = y[te]-data['y_pred']
-        data['r/std_y'] = data['r']/data['std_y']
+        data['|r|'] = data['r'].abs()
+        data['|r|/std_y'] = data['|r|']/data['std_y']
+        data['|r|/mad_y'] = data['|r|']/data['mad_y']
 
         return data
 
@@ -547,9 +554,6 @@ class combine:
         data_cv['y_stdc_pred'] = self.uq_model.predict(data_cv['y_stdu_pred'])
         data_cv['y_stdc_pred/std_y'] = data_cv['y_stdc_pred']/data_cv['std_y']
         data_cv['z'] = data_cv['r']/data_cv['y_stdc_pred']
-        data_cv['|r/std_y|'] = data_cv['y']-data_cv['y_pred']
-        data_cv['|r/std_y|'] = data_cv['|r/std_y|']/data_cv['std_y']
-        data_cv['|r/std_y|'] = data_cv['|r/std_y|'].abs()
 
         # Get binned data from alternate forms of sampling
         data_cv, bin_cv = bin_data(data_cv, self.bins)

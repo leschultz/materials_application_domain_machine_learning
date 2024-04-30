@@ -114,13 +114,19 @@ class nested_cv:
         data['y'] = self.y[test]
 
         # Statistics from training data
-        data['std_y'] = np.std(self.y[train])
+        mu = np.mean(self.y[train])
+        std = np.std(self.y[train])
+        mad = np.mean(np.abs(self.y[train]-mu))
+
+        data['std_y'] = std
+        data['mad_y'] = mad
 
         # Predictions
         data['r'] = self.y[test]-data['y_pred']
         data['z'] = data['r']/data['y_stdc_pred']
-        data['r/std_y'] = data['r']/data['std_y']
-        data['|r/std_y|'] = data['r/std_y'].abs()
+        data['|r|'] = data['r'].abs()
+        data['|r|/std_y'] = data['|r|']/data['std_y']
+        data['|r|/mad_y'] = data['|r|']/data['mad_y']
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
         # Ground truths
