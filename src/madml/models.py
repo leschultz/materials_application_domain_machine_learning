@@ -336,20 +336,24 @@ def assign_ground_truth(data_cv, bin_cv):
     data_cv = data_cv.merge(bin_cv, on=['bin'])
 
     # Innitiate arrays
-    cols = ['gt_rmse', 'gt_area']
+    cols = ['gt_absres', 'gt_rmse', 'gt_area']
     for c in cols:
         bin_cv[c] = None
 
     # Propagate ground truths
     for group, value in data_cv.groupby(['bin', *cols], observed=True):
         row = bin_cv['bin'] == group[0]
-        bin_cv.loc[row, 'gt_rmse'] = group[1]
-        bin_cv.loc[row, 'gt_area'] = group[2]
+
+        bin_cv.loc[row, 'gt_absres'] = group[1]
+        bin_cv.loc[row, 'gt_rmse'] = group[2]
+        bin_cv.loc[row, 'gt_area'] = group[3]
 
     # Make labels
+    absres = data_cv['|r|/mad_y'] <= data_cv['gt_absres']
     rmse = data_cv['rmse/std_y'] <= data_cv['gt_rmse']
     area = data_cv['cdf_area'] <= data_cv['gt_area']
 
+    data_cv['domain_absres/mad_y'] = np.where(absres, 'ID', 'OD')
     data_cv['domain_rmse/std_y'] = np.where(rmse, 'ID', 'OD')
     data_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
 
@@ -376,6 +380,7 @@ class combine:
                  splits=[('fit', RepeatedKFold(n_repeats=2))],
                  bins=10,
                  precs=[],
+                 gt_absres=None,
                  gt_rmse=None,
                  gt_area=None,
                  disable_tqdm=False,
@@ -389,6 +394,7 @@ class combine:
             splits = The list of splitting generators.
             bins = The number of quantailes for binning data.
             precs = The minimum preicisions for domain model.
+            gt_absres = The ground truth for absoulte residuals.
             gt_rmse = The ground truth for rmse.
             gt_area = The ground truth for miscalibration area.
         '''
@@ -397,6 +403,7 @@ class combine:
         self.ds_model = ds_model
         self.uq_model = uq_model
         self.bins = bins
+        self.gt_absres = gt_absres
         self.gt_rmse = gt_rmse
         self.gt_area = gt_area
         self.splits = copy.deepcopy(splits)
@@ -560,6 +567,7 @@ class combine:
 
         # Acquire ground truths
         self = ground_truth(self, y)
+        data_cv['gt_absres'] = self.gt_absres
         data_cv['gt_rmse'] = self.gt_rmse
         data_cv['gt_area'] = self.gt_area
 
@@ -570,10 +578,15 @@ class combine:
                                               )
 
         # Fit domain classifiers
+        self.domain_absres = domain(self.precs)
         self.domain_rmse = domain(self.precs)
         self.domain_area = domain(self.precs)
 
         # Train classifiers
+        self.domain_absres.fit(
+                               data_cv['d_pred'].values,
+                               data_cv['domain_absres/mad_y'].values,
+                               )
         self.domain_rmse.fit(
                              data_cv['d_pred_max'].values,
                              data_cv['domain_rmse/std_y'].values,
@@ -599,6 +612,9 @@ class combine:
         '''
 
         # Predict domains on training data
+        data_absres_dom_pred = self.domain_absres.predict(d, d_input)
+        data_absres_dom_pred = data_absres_dom_pred.add_prefix('absres/mad_y ')
+
         data_rmse_dom_pred = self.domain_rmse.predict(d, d_input)
         data_rmse_dom_pred = data_rmse_dom_pred.add_prefix('rmse/std_y ')
 
@@ -606,6 +622,7 @@ class combine:
         data_area_dom_pred = data_area_dom_pred.add_prefix('cdf_area ')
 
         dom_pred = pd.concat([
+                              data_absres_dom_pred,
                               data_rmse_dom_pred,
                               data_area_dom_pred,
                               ], axis=1)

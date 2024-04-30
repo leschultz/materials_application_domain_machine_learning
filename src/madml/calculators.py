@@ -286,6 +286,9 @@ def ground_truth(self, y):
         std_y = np.std(y)
         mean_y = np.mean(y)
 
+    if self.gt_absres is None:
+        self.gt_absres = 1.0
+
     if self.gt_rmse is None:
         mean = np.repeat(mean_y, y.shape[0])
         naive_rmse = mean_squared_error(

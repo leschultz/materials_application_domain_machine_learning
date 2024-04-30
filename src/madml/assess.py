@@ -49,6 +49,7 @@ class nested_cv:
         self.n_jobs = n_jobs
 
         # If user defined
+        self.gt_absres = self.model.gt_absres
         self.gt_rmse = self.model.gt_rmse
         self.gt_area = self.model.gt_area
 
@@ -130,6 +131,7 @@ class nested_cv:
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
         # Ground truths
+        data['gt_absres'] = model.gt_absres
         data['gt_rmse'] = model.gt_rmse
         data['gt_area'] = model.gt_area
 

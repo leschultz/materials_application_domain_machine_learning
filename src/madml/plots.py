@@ -176,7 +176,7 @@ def confidence(df, save='.', suffix='all'):
 
         indx = np.argsort(value)
         d = value[indx]
-        y = sorters[r'$|y-\hat{y}|$'][indx]
+        y = df['|r|/std_y'].values[indx]
         z = df['z'].values[indx]
 
         out = parallel(
