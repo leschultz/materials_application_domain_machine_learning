@@ -349,7 +349,7 @@ def assign_ground_truth(data_cv, bin_cv):
         bin_cv.loc[row, 'gt_area'] = group[3]
 
     # Make labels
-    absres = data_cv['|r|/mad_y'] <= data_cv['gt_absres']
+    absres = data_cv['absres/mad_y'] <= data_cv['gt_absres']
     rmse = data_cv['rmse/std_y'] <= data_cv['gt_rmse']
     area = data_cv['cdf_area'] <= data_cv['gt_area']
 
@@ -476,9 +476,9 @@ class combine:
         data['y_stdu_pred'] = predict_std(gs_model_cv, X_trans_te)
         data['d_pred'] = ds_model_cv.predict(X_trans_te)
         data['r'] = y[te]-data['y_pred']
-        data['|r|'] = data['r'].abs()
-        data['|r|/std_y'] = data['|r|']/data['std_y']
-        data['|r|/mad_y'] = data['|r|']/data['mad_y']
+        data['absres'] = data['r'].abs()
+        data['absres/std_y'] = data['absres']/data['std_y']
+        data['absres/mad_y'] = data['absres']/data['mad_y']
 
         return data
 

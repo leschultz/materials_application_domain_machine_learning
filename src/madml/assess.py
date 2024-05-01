@@ -125,9 +125,9 @@ class nested_cv:
         # Predictions
         data['r'] = self.y[test]-data['y_pred']
         data['z'] = data['r']/data['y_stdc_pred']
-        data['|r|'] = data['r'].abs()
-        data['|r|/std_y'] = data['|r|']/data['std_y']
-        data['|r|/mad_y'] = data['|r|']/data['mad_y']
+        data['absres'] = data['r'].abs()
+        data['absres/std_y'] = data['absres']/data['std_y']
+        data['absres/mad_y'] = data['absres']/data['mad_y']
         data['y_stdc_pred/std_y'] = data['y_stdc_pred']/data['std_y']
 
         # Ground truths
@@ -177,6 +177,7 @@ class nested_cv:
 
         # Acquire ground truths
         self = ground_truth(self, self.y)
+        df['gt_absres'] = self.gt_absres
         df['gt_rmse'] = self.gt_rmse
         df['gt_area'] = self.gt_area
 
@@ -198,7 +199,11 @@ class nested_cv:
             cols = p.columns
             cols = [i.split(' (')[0] for i in cols]
             p.columns = cols
-            d = df[['domain_rmse/std_y', 'domain_cdf_area']]
+            d = df[[
+                    'domain_absres/mad_y',
+                    'domain_rmse/std_y',
+                    'domain_cdf_area',
+                    ]]
 
             d = pd.concat([
                            d.reset_index(drop=True),
@@ -215,12 +220,16 @@ class nested_cv:
         self.model.fit(self.X, self.y, self.g, n_jobs=self.n_jobs)
 
         # Refit on out-of-bag data for final classification models
+        self.model.domain_absres.fit(
+                                     df['d_pred'].values,
+                                     df['domain_absres/mad_y'].values,
+                                     )
         self.model.domain_rmse.fit(
-                                   df['d_pred'].values,
+                                   df['d_pred_max'].values,
                                    df['domain_rmse/std_y'].values,
                                    )
         self.model.domain_area.fit(
-                                   df['d_pred'].values,
+                                   df['d_pred_max'].values,
                                    df['domain_cdf_area'].values,
                                    )
 

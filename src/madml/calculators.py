@@ -248,7 +248,7 @@ def bin_data(data_cv, bins, by='d_pred'):
     binmax = bin_groups['d_pred'].max()
     counts = bin_groups['z'].count()
     stdc = bin_groups['y_stdc_pred/std_y'].mean()
-    rmse = bin_groups['|r|/std_y'].apply(lambda x: (sum(x**2)/len(x))**0.5)
+    rmse = bin_groups['absres/std_y'].apply(lambda x: (sum(x**2)/len(x))**0.5)
 
     area = bin_groups.apply(lambda x: cdf(
                                           x['z'],
@@ -259,7 +259,7 @@ def bin_data(data_cv, bins, by='d_pred'):
     distmean = distmean.to_frame().add_suffix('_mean')
     binmax = binmax.to_frame().add_suffix('_max')
     stdc = stdc.to_frame().add_suffix('_mean')
-    rmse = rmse.to_frame().rename({'|r|/std_y': 'rmse/std_y'}, axis=1)
+    rmse = rmse.to_frame().rename({'absres/std_y': 'rmse/std_y'}, axis=1)
     counts = counts.to_frame().rename({'z': 'count'}, axis=1)
 
     # Combine data for each bin

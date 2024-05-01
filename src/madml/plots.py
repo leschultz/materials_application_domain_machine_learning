@@ -72,33 +72,6 @@ def plot_dump(data, fig, ax, name, save, suffix, legend=True):
         json.dump(data, handle)
 
 
-def residuals(df, save='.', suffix='d'):
-    '''
-    A plot of absolute residuals vs. dissimilarity.
-
-    inputs:
-        df = Data.
-        save = The directory to save plot.
-        suffix = Append a suffix to the save name.
-    '''
-
-    data = {}
-    fig, ax = pl.subplots()
-
-    x = df['d_pred'].values
-    y = df['|r|/mad_y'].values
-
-    ax.scatter(x, y, marker='.', color='r')
-
-    data['x'] = x.tolist()
-    data['y'] = y.tolist()
-
-    ax.set_xlabel(r'$d$')
-    ax.set_ylabel(r'$|y-\hat{y}|/MAD_{y}$')
-
-    plot_dump(data, fig, ax, 'residuals', save, suffix, False)
-
-
 def confidence(df, save='.', suffix='all'):
     '''
     A plot of absolute residuals vs. dissimilarity.
@@ -159,7 +132,7 @@ def confidence(df, save='.', suffix='all'):
     gt_area = float(df['gt_area'].min())  # Should all be same
 
     sorters = {
-               r'$|y-\hat{y}|$': df['|r|'].values,
+               r'$|y-\hat{y}|$': df['absres'].values,
                r'$d$': df['d_pred'].values,
                r'$\sigma_{c}$': df['y_stdc_pred'].values,
                'Random': np.random.uniform(size=df.shape[0]),
@@ -176,7 +149,7 @@ def confidence(df, save='.', suffix='all'):
 
         indx = np.argsort(value)
         d = value[indx]
-        y = df['|r|/std_y'].values[indx]
+        y = df['absres/std_y'].values[indx]
         z = df['z'].values[indx]
 
         out = parallel(
@@ -277,7 +250,7 @@ def parity(
     y = df.y
     y_pred = df.y_pred
     y_stdc_pred = df.y_stdc_pred
-    r_std_y = df['|r|/std_y']
+    r_std_y = df['absres/std_y']
     d = df.d_pred
 
     rmse = metrics.mean_squared_error(y, y_pred)**0.5
@@ -468,16 +441,17 @@ def bins(df, d, e, elabel, gt, ylabel, gtlabel, save, suffix):
         ax.scatter(
                    x,
                    y,
-                   alpha=0.5,
+                   alpha=0.4,
                    **p[dom],
                    )
 
-        ax.fill_between(
-                        x,
-                        y,
-                        color=p[dom]['color'],
-                        alpha=0.5,
-                        )
+        if suffix != 'absres':
+            ax.fill_between(
+                            x,
+                            y,
+                            color=p[dom]['color'],
+                            alpha=0.5,
+                            )
 
         data[dom]['x'].append(x.tolist())
         data[dom]['y'].append(y.tolist())
@@ -715,16 +689,17 @@ class plotter:
                  ):
 
         self.save = save
-        self.domains = ['domain_rmse/std_y', 'domain_cdf_area']
-        self.errors = ['rmse/std_y', 'cdf_area']
-        self.gts = ['gt_rmse', 'gt_area']
-        self.assessments = ['rmse', 'area']
+        self.errors = ['absres/mad_y', 'rmse/std_y', 'cdf_area']
+        self.domains = ['domain_'+i for i in self.errors]
+        self.assessments = ['absres', 'rmse', 'area']
+        self.gts = ['gt_'+i for i in self.assessments]
         self.precs = precs  # Precisions used
 
         # For plotting purposes on the histogram of E^* vs. D
-        cols = self.errors+self.domains
-        self.df = df.sort_values(by=['d_pred']+cols)
-        self.df_bin = df_bin.sort_values(by=['d_pred_max']+cols)
+        df_cols = self.errors+self.domains
+        bin_cols = [i for i in df_cols if 'absres' not in i]
+        self.df = df.sort_values(by=['d_pred']+df_cols)
+        self.df_bin = df_bin.sort_values(by=['d_pred_max']+bin_cols)
 
         self.bins = self.df_bin.shape[0]
 
@@ -737,6 +712,8 @@ class plotter:
         else:
             self.df_confusion = df_confusion
             self.pred_cols = [i.split(' (')[0] for i in pred_cols]
+
+        self.pred_cols = set(self.pred_cols)
 
     def generate(self):
 
@@ -754,9 +731,6 @@ class plotter:
                self.save,
                'fit_splitter',
                )
-
-        # Residuals
-        residuals(self.df, self.save)
 
         # Confidence
         confidence(self.df, self.save)
@@ -799,6 +773,9 @@ class plotter:
             elif k == 'area':
                 ename = r'$E^{area}$'
                 cname = r'$E^{area}_{c}$'
+            elif k == 'absres':
+                ename = r'$E^{|y-\hat{y}|/MAD_{y}}$'
+                cname = r'$E^{|y-\hat{y}|/MAD_{y}}_{c}$'
             else:
                 raise 'Unsupported error metric'
 
@@ -852,7 +829,8 @@ class plotter:
 
             # Confusion matrices
             for pred in self.pred_cols:
-                if i.replace('domain_', '') in pred:
+
+                if j in pred:
 
                     # Confusion matrix for all splitters
                     y = self.df_confusion.loc[:, i].values
