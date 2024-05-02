@@ -110,7 +110,7 @@ def confidence(df, save='.', suffix='all'):
 
         ax_sub.axhline(
                        gt,
-                       color='g',
+                       color='r',
                        linestyle=':',
                        label='{} = {:.2f}'.format(gtlabel, gt),
                        )
@@ -211,7 +211,7 @@ def confidence(df, save='.', suffix='all'):
     gtlabel = r'$E^{RMSE/\sigma_{y}}_{c}$'
     ax_rmse.axhline(
                     gt_rmse,
-                    color='g',
+                    color='r',
                     linestyle=':',
                     label='{} = {:.2f}'.format(gtlabel, gt_rmse),
                     )
@@ -219,7 +219,7 @@ def confidence(df, save='.', suffix='all'):
     gtlabel = r'$E^{area}_{c}$'
     ax_area.axhline(
                     gt_area,
-                    color='g',
+                    color='r',
                     linestyle=':',
                     label='{} = {:.2f}'.format(gtlabel, gt_area),
                     )
@@ -466,7 +466,8 @@ def bins(df, d, e, elabel, gt, ylabel, gtlabel, save, suffix):
 
     ax.axhline(
                gt_min,
-               color='g',
+               color='r',
+               linestyle=':',
                label='{} = {:.2f}'.format(gtlabel, gt_min),
                )
 
