@@ -276,7 +276,7 @@ class domain:
 
             key = 'Domain Prediction from {} (p={},r={})'.format(key, p, r)
             cut = value['Threshold']
-            do_pred[key] = np.where(d <= cut, 'ID', 'OD')
+            do_pred[key] = np.where(d < cut, 'ID', 'OD')
 
         if d_input is not None:
             do_pred['d_input'] = np.where(d <= d_input, 'ID', 'OD')
@@ -349,16 +349,16 @@ def assign_ground_truth(data_cv, bin_cv):
         bin_cv.loc[row, 'gt_area'] = group[3]
 
     # Make labels
-    absres = data_cv['absres/mad_y'] <= data_cv['gt_absres']
-    rmse = data_cv['rmse/std_y'] <= data_cv['gt_rmse']
-    area = data_cv['cdf_area'] <= data_cv['gt_area']
+    absres = data_cv['absres/mad_y'] < data_cv['gt_absres']
+    rmse = data_cv['rmse/std_y'] < data_cv['gt_rmse']
+    area = data_cv['cdf_area'] < data_cv['gt_area']
 
     data_cv['domain_absres/mad_y'] = np.where(absres, 'ID', 'OD')
     data_cv['domain_rmse/std_y'] = np.where(rmse, 'ID', 'OD')
     data_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')
 
-    rmse = bin_cv['rmse/std_y'] <= bin_cv['gt_rmse']
-    area = bin_cv['cdf_area'] <= bin_cv['gt_area']
+    rmse = bin_cv['rmse/std_y'] < bin_cv['gt_rmse']
+    area = bin_cv['cdf_area'] < bin_cv['gt_area']
 
     bin_cv['domain_rmse/std_y'] = np.where(rmse, 'ID', 'OD')
     bin_cv['domain_cdf_area'] = np.where(area, 'ID', 'OD')

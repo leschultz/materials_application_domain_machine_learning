@@ -118,7 +118,12 @@ def confidence(df, save='.', suffix='all'):
         ax_sub.set_xlabel(f'Included {key}')
         ax_sub.set_ylabel(ylabel)
 
-        dat = {'x': x, 'y': y, 'gt': gt}
+        dat = {
+               'x': list(map(float, x)),
+               'y': list(map(float, y)),
+               'gt': float(gt),
+               }
+
         plot_dump(
                   dat,
                   fig_sub,
