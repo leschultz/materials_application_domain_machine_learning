@@ -1,9 +1,11 @@
 #!/bin/bash
 
 data=(
+      "friedman1"
       "fluence"
       "diffusion"
       "strength"
+      "supercond"
       )
 
 models=(

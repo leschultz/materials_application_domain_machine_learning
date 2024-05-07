@@ -93,7 +93,7 @@ def confidence(df, save='.', suffix='all'):
 
         return removed, rmse, area
 
-    def sub(x, y, ylabel, key, gt, gtlabel, metric, color):
+    def sub(x, y, ylabel, key, gt, gtlabel, auc, metric, color):
 
         if key == r'$|y-\hat{y}|$':
             name = 'residual'
@@ -122,6 +122,7 @@ def confidence(df, save='.', suffix='all'):
                'x': list(map(float, x)),
                'y': list(map(float, y)),
                'gt': float(gt),
+               'auc': auc,
                }
 
         plot_dump(
@@ -194,6 +195,7 @@ def confidence(df, save='.', suffix='all'):
             key,
             gt_rmse,
             r'$E^{RMSE/\sigma_{y}}_{c}$',
+            auc_rmse,
             'rmse',
             color,
             )
@@ -204,6 +206,7 @@ def confidence(df, save='.', suffix='all'):
             key,
             gt_area,
             r'$E^{area}_{c}$',
+            auc_area,
             'area',
             color,
             )
