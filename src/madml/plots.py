@@ -675,7 +675,7 @@ def rmse_vs_stdc(df, save, suffix, heat=False):
 
     ax.set_aspect('equal')
 
-    ax.set_xlabel(r'$\sigma_{c}/\sigma(y)$')
+    ax.set_xlabel(r'$\sigma_{c}/\sigma_y$')
     ax.set_ylabel(r'$E^{RMSE/\sigma_{y}}$')
 
     data = {}
